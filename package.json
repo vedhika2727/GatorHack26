@@ -1,0 +1,12 @@
+{
+  "name": "chemo-nerve-check",
+  "version": "1.0.0",
+  "description": "A phone-based digital twin of chemotherapy nerve damage, with Gemma 4 explanations.",
+  "license": "MIT",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/gait.test.js && node test/twin.test.js && node test/gemma.test.js"
+  }
+}
