@@ -1,12 +1,28 @@
 {
   "name": "chemo-nerve-check",
-  "version": "1.0.0",
-  "description": "A phone-based digital twin of chemotherapy nerve damage, with Gemma 4 explanations.",
+  "version": "2.0.0",
+  "description": "A React web app: pre-infusion check-ins, a function twin, scan reports, and second-opinion comparison, with Gemma 4 explanations.",
   "license": "MIT",
   "private": true,
-  "engines": { "node": ">=18" },
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
     "start": "node server.js",
+    "preview-file": "vite build --mode preview && node scripts-preview.mjs",
     "test": "node test/gait.test.js && node test/twin.test.js && node test/gemma.test.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "4.3.4",
+    "vite": "5.4.11",
+    "vite-plugin-singlefile": "2.0.3"
   }
 }

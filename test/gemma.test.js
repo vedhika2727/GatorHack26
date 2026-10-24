@@ -4,9 +4,9 @@
 process.env.GEMINI_API_KEY = 'test-key';
 let lastReq = null, reply = null;
 global.fetch = async (url, opt) => { lastReq = { url, body: JSON.parse(opt.body), headers: opt.headers }; return { ok: true, json: async () => reply }; };
-const { extractReport, explainOpinions } = require('../lib/scans-ai.js');
-const { explain } = require('../lib/explain.js');
-const G = require('../public/gait.js');
+const { extractReport, explainOpinions } = await import('../lib/scans-ai.js');
+const { explain } = await import('../lib/explain.js');
+const { default: G } = await import('../src/core/gait.js');
 let failed = 0;
 const check = (n, c, d = '') => { console.log(`${c ? 'PASS' : 'FAIL'}  ${n}  ${d}`); if (!c) failed++; };
 const wrap = (obj, thought) => ({ candidates: [{ content: { parts: [...(thought ? [{ text: 'thinking...', thought: true }] : []), { text: '```json\n' + JSON.stringify(obj) + '\n```' }] } }] });

@@ -1,6 +1,6 @@
 // Run: node test/gait.test.js
 // Checks the engine recovers known cadence / variability from synthetic walks.
-const Gait = require('../public/gait.js');
+import Gait from '../src/core/gait.js';
 
 let failed = 0;
 function check(name, cond, detail) {

@@ -1,112 +1,115 @@
 # Chemo Nerve Check
 
-A phone-based **digital twin of walking, balance, and hand function during chemotherapy**. Before each infusion, a patient does a two-minute check-in on their phone. A state-space model combines several noisy measurements into one estimate of how much function has changed since their first check-in, with an uncertainty range, and shows it next to the nerve symptoms they report and their tumor measurements from radiology reports, including when two doctors read the same scan differently.
-
-**What it does not claim:** the phone measures function, not nerves. Walking, balance, and hand function can change because of chemotherapy-induced neuropathy, but also because of fatigue, anemia, pain, deconditioning, or other causes. The goal is to surface changes early so the care team can examine the patient and decide what they mean.
+A React web app that helps people on chemotherapy notice and share changes in their **walking, balance, and hand function** between infusions, next to the nerve symptoms they report and how their tumor is responding on scans.
 
 Built for Gator Hack V (an official MLH Hack Day).
 
-**AI model:** Gemma 4, specifically **`gemma-4-26b-a4b-it`** (Gemma 4 26B A4B, instruction-tuned), called through the Gemini API (Google AI Studio). Set `GEMMA_MODEL=gemma-4-31b-it` to use the 31B model instead.
+**AI model:** Gemma 4, specifically **`gemma-4-26b-a4b-it`** (Gemma 4 26B A4B, instruction-tuned), called through the Gemini API (Google AI Studio). Set `GEMMA_MODEL=gemma-4-31b-it` to use the 31B model.
 
 ## The problem
 
-Many chemotherapy drugs (taxanes, platinum drugs, vinca alkaloids, bortezomib) damage the nerves in the feet and hands. This is called chemotherapy-induced peripheral neuropathy. It causes numbness, unsteady walking, falls, and trouble with buttons and small objects. Oncologists often lower the dose or pause treatment because of it, but it's usually assessed with a quick question at the infusion visit, and patients tend to under-report it between visits.
+Many chemotherapy drugs (taxanes, platinum drugs, vinca alkaloids, bortezomib) can damage the nerves in the feet and hands: chemotherapy-induced peripheral neuropathy. It shows up as numbness, unsteady walking, falls, and clumsy hands. Oncologists may lower or pause the dose because of it, but between infusions it is usually checked with a quick question at the visit, and patients tend to under-report it.
 
 ## What it does
 
-1. **Check-in (about 2 minutes, before each infusion)**
-   - Symptom ratings (0–10) for feet and hands, trouble with small objects, falls or near-falls
-   - **30-second walk** with the phone in a front pocket: cadence, step-time variability, step regularity, hesitations
-   - **20-second stance**, feet together, eyes open, then optionally eyes closed (Romberg-style): body sway and the eyes-closed/eyes-open sway ratio
-   - **10-second finger-tapping test per hand** on the touchscreen: tap rate, rhythm steadiness, accuracy
-2. **Function twin:** a Kalman-filter model whose hidden state is "change in function since baseline" (0–100). Each chemo cycle adds expected stress (process model); each signal is a noisy observation weighted by how reliable it tends to be. The twin shows its estimate, an uncertainty range, what it expected before each check-in, and flags check-ins that were **worse than expected**. When signals disagree (for example symptoms rise but walking is steady), it says so.
-3. **What you can see:** a body map whose feet and hands glow with reported symptoms, and two walking figures that replay the real step timing of the baseline and the selected check-in.
-4. **Scan reports:** paste, upload (PDF or text), or photograph a radiology report. Gemma 4 extracts each measured spot, its size, the previous size, and the radiologist's conclusion. **Every size is checked against the report text, and anything that doesn't appear word for word is dropped.** Tumor size is plotted on the same timeline as the function twin.
-5. **Two doctors, one scan:** reports of the same scan within 7 days are compared lesion by lesion (similar, measured differently, only in one report, new finding or not). Gemma explains the differences neutrally and suggests questions. It never says which doctor is right.
-6. **Report for the care team:** Gemma writes a patient summary, a twin summary, a scans summary, a clinician summary, and questions for the next visit. It can be printed or saved as PDF.
+- **Home page and accounts:** a landing page, sign up / sign in with email and password (Supabase), an on-device profile option with no password, and a demo patient.
+- **Check-in (about 2 minutes):** symptom ratings (0–10 buttons), a 30-second walk with the phone in a pocket, a 20-second stance with eyes open and optionally eyes closed (Romberg-style), and a 10-second finger-tapping test per hand.
+- **Function twin:** a Kalman-filter model that fuses eight noisy signals into one estimate (0–100) of how much function has changed since the first check-in, with an uncertainty range. It flags check-ins that are **worse than it expected** and explains when signals disagree.
+- **What you can see:** a body map that glows with reported symptoms, walking figures that replay the real step rhythm (baseline vs. now), and every measurement over time.
+- **Scan reports:** paste, upload (PDF or text), or photograph a radiology report. Gemma 4 extracts each measurement and the radiologist's conclusion. **Every size is checked against the report text, and anything not found word for word is dropped.** Tumor size is plotted next to the twin.
+- **Two doctors, one scan:** reports of the same scan within 7 days are compared lesion by lesion, and Gemma explains the differences neutrally without picking a side.
+- **Care-team report:** patient summary, twin summary, scans, clinician summary, and questions for the next visit. Copy or print it.
+
+### What it does not claim
+
+The phone measures **function, not nerves**. Walking, balance, and hand function can change from neuropathy, but also from fatigue, anemia, pain, deconditioning, or other causes. The app never diagnoses, grades neuropathy, weighs tumor response against side effects, or suggests treatment changes.
 
 ### Where the AI is and isn't used
 
 | Job | Done by |
 | --- | --- |
-| Step detection, sway, tapping metrics | Deterministic signal processing (`public/gait.js`) |
-| Which changes get flagged | Fixed rules (`public/trends.js`) |
-| Function change estimate | Kalman filter (`public/nervetwin.js`) |
-| Reading radiology reports, including photos | **Gemma 4**, with every number verified against the text (`lib/scans-ai.js`) |
-| Plain-language explanations, opinion comparison, care-team report | **Gemma 4** (`lib/explain.js`) |
+| Step detection, sway, tapping metrics | Signal processing (`src/core/gait.js`) |
+| Which changes get flagged | Fixed rules (`src/core/trends.js`) |
+| Function change estimate | Kalman filter (`src/core/twin.js`) |
+| Reading radiology reports, including photos | **Gemma 4**, every number verified against the text (`lib/scans-ai.js`) |
+| Plain-language explanations, two-doctor comparison, care-team report | **Gemma 4** (`lib/explain.js`) |
 
-Gemma never diagnoses, grades neuropathy, weighs tumor response against side effects, or advises on dosing. Without an API key, the app still works using built-in rules and templates, and labels them clearly as such.
+Without a Gemma key, the app still runs using built-in rules and template text, labeled as such.
 
 ## What's new (the recent technology)
 
-- **Gemma 4** (released April 2, 2026, Apache 2.0): its native image understanding reads photos of printed radiology reports, and its small, efficient sizes make an open, low-cost explanation layer possible.
-- The test design follows **NeuroDetect** (JMIR, 2025), a smartphone study in chemotherapy patients against a specialist's neurological exam. There, phone gait and balance tests detected foot neuropathy (AUC about 0.84), Romberg-style stance contributed most for feet, and finger tapping contributed most for hands (hand detection was not statistically significant).
+- **Gemma 4** (released April 2, 2026, Apache 2.0) reads photos of printed reports and writes the explanations.
+- The test design follows **NeuroDetect** (JMIR, 2025), a smartphone study in chemotherapy patients compared against specialists' neurological exams. Phone gait and balance tests detected foot neuropathy (AUC about 0.84); Romberg-style stance contributed most for feet and finger tapping most for hands (hand detection was not statistically significant).
 
 ## Run it
 
-Requires Node 18 or newer. No packages to install.
+Requires Node 18 or newer.
 
 ```bash
-export GEMINI_API_KEY=your_key_from_aistudio.google.com   # optional; without it, templates are used
-node server.js
-# open http://localhost:3000 and click "See a demo patient"
+npm install
+cp .env.example .env        # then fill in GEMINI_API_KEY (from aistudio.google.com)
+npm run dev                 # app + Gemma API on http://localhost:5173
 ```
 
-Phones only share motion sensors with **https** pages. To test on a phone, either deploy (below) or run a tunnel such as `npx localtunnel --port 3000` and open the https link on the phone.
+Production build:
 
-### Deploy (Vercel, free)
+```bash
+npm run build
+npm start                   # serves dist/ and the API on http://localhost:3000
+```
 
-1. Push this folder to a public GitHub repository.
-2. Import the repository at vercel.com. No build command is needed; `vercel.json` serves `public/` and the functions in `api/`.
-3. In the project's settings, add the environment variable `GEMINI_API_KEY`.
-4. Open the deployed https link on your phone.
+Phones only share motion sensors with **https** pages. To test the walk and balance tests on a phone, deploy (below) or use a tunnel such as `npx localtunnel --port 5173`.
 
-Never commit your API key. It is only read on the server.
+### Real accounts (optional, Supabase)
+
+1. Create a free project at supabase.com.
+2. In the SQL editor, run `supabase/schema.sql`. It creates one table with row-level security so each person sees only their own data.
+3. Copy the project URL and anon key (Project settings → API) into `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+4. Optional for a demo: in Authentication → Providers → Email, turn off "Confirm email" so new accounts can sign in right away.
+
+Without these keys the app offers an on-device profile instead. This is health data: fine for a hackathon demo, but real patient use would need a HIPAA-ready setup, consent, and a security review.
+
+### Deploy (Vercel)
+
+1. Push to a public GitHub repo and import it at vercel.com (it detects Vite).
+2. Add environment variables: `GEMINI_API_KEY`, and if using accounts, `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+3. Open the https link on your phone.
+
+The Gemma key is only read on the server and never reaches the browser. Never commit `.env`.
 
 ## Tests
 
 ```bash
-node test/gait.test.js     # step detection, variability, asymmetry, pauses, balance, rejection of bad recordings
-node test/twin.test.js     # function twin: steady patient, sudden decline flagged, disagreement handling
-node test/gemma.test.js    # Gemma request shape, JSON parsing, hallucination guard, fallbacks (simulated API)
-```
-
-### Validating step detection on real data
-
-`test/validate.js` runs the step detector on any accelerometer CSV and compares it with a true step count or cadence:
-
-```bash
+npm test                    # step detection, twin model, Gemma request/fallback handling (simulated API)
 node test/validate.js trial.csv --steps 52 --time t --ax accX --ay accY --az accZ --time-unit s --accel-unit g
 ```
 
-- **Your own phone:** walk exactly 40 counted steps with the phone in your pocket and compare the step count the app reports.
-- **WearGait-PD** (open dataset, Scientific Data, February 2026, CC BY 4.0): export a thigh or pocket-position IMU trial to CSV and pass the walkway reference cadence. Check the dataset documentation for sensor positions and column names. These are older adults with and without Parkinson's, not chemotherapy patients, so this validates the step detector only.
-
-## Limitations (please read)
-
-- **Not a medical device, and not clinically validated.** The twin's parameters (expected change per cycle, each signal's noise, scale conversions) are reasonable starting values chosen for this prototype. Calibrating them requires repeated measurements from real chemotherapy patients compared with a neurological exam.
-- Phone measurements depend on pocket placement, shoes, floor, and phone model. They are only meaningful compared with the same person's earlier check-ins on the same phone.
-- The symptom questions are simple 0–10 ratings. A real deployment should use a validated questionnaire such as the EORTC QLQ-CIPN20 (licensed) or the NCI's PRO-CTCAE items.
-- The eyes-closed stance can be unsafe for people with severe neuropathy. It is optional, and the app tells people to do it next to support.
-- Apple Watch and other wearables can't be read by a website. A native app using HealthKit would be the next step.
-- Data stays in the browser's local storage on the device. Reports and scan text are sent to the server only when the patient asks for a report or an extraction, and from there to the Gemini API.
-- Demo patient data is simulated, and demo scan reports are fictional.
+`validate.js` checks step detection against real accelerometer recordings, for example a trial from the open **WearGait-PD** dataset (Scientific Data, 2026, CC BY 4.0) or your own phone walking a counted number of steps.
 
 ## Project layout
 
 ```
-public/         the website (no build step)
-  gait.js         walking, balance, and tapping analysis
-  nervetwin.js    the Kalman-filter function twin
-  trends.js       rule-based change flags
-  scans.js        report parsing, number verification, comparing two reads
-  twin.js         SVG drawing: body map, walkers, charts
-  app.js          screens and flow
-lib/            server-side Gemma 4 calls
+src/
+  core/         framework-free logic: gait.js, twin.js, trends.js, scans.js, demo data
+  screens/      Landing, Auth, Home, CheckIn, Twin, ScansScreen, Report, Account
+  components/   Icon, Chip, Logo, Confirm dialog, Viz (chart wrappers)
+  viz/draw.js   SVG drawing: body map, walkers, charts
+  lib/          sensors, file reading, API calls with fallbacks, formatting
+  store.jsx     accounts (Supabase / device / demo) and data
+lib/            server-side Gemma 4 calls and API routes
 api/            Vercel serverless functions
-server.js       local server
-test/           tests and the validation script
+server.js       production server
+supabase/       database schema
+test/           tests and validation script
 ```
+
+## Limitations
+
+- Not a medical device and not clinically validated. The twin's parameters are reasonable starting values, not calibrated on patients.
+- Phone measurements depend on pocket placement, shoes, floor, and phone model; compare only with the same person's earlier check-ins.
+- Symptom questions are simple 0–10 ratings. A real deployment should license a validated questionnaire such as the EORTC QLQ-CIPN20.
+- The eyes-closed stance is optional and can be unsafe for people with severe neuropathy.
+- Websites can't read Apple Watch sensors; a native app with HealthKit would be the next step.
 
 ## License
 

@@ -16,8 +16,10 @@
  *   --trim S         seconds trimmed from each end (default 0 for lab trials)
  * Compare a whole folder by running it in a shell loop and collecting the error column.
  */
-const fs = require('fs');
-const Gait = require('../public/gait.js');
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import Gait from '../src/core/gait.js';
+const __filename = fileURLToPath(import.meta.url);
 
 const args = process.argv.slice(2);
 if (!args[0] || args[0].startsWith('--')) { console.log(fs.readFileSync(__filename, 'utf8').split('*/')[0]); process.exit(1); }

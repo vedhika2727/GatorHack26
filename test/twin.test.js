@@ -1,6 +1,6 @@
 // Run: node test/twin.test.js — checks the function twin model behaves sensibly.
-const NT = require('../public/nervetwin.js');
-const G = require('../public/gait.js');
+import NT from '../src/core/twin.js';
+import G from '../src/core/gait.js';
 let failed = 0;
 const check = (n, c, d = '') => { console.log(`${c ? 'PASS' : 'FAIL'}  ${n}  ${d}`); if (!c) failed++; };
 const walk = (o) => G.analyze(G.synthesizeWalk(o).samples);
