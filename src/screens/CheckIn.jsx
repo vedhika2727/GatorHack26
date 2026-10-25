@@ -6,7 +6,7 @@ import { buildCheckinRecord } from '../core/checkinRecord.js';
 import { confirmationMessage } from '../core/checkinConfirmation.js';
 import { checkinsForTwin, setMeasurementSource, skipMeasurements, sourceFromMeasurements } from '../core/checkinSource.js';
 import { useStore, HOSTED_PREVIEW } from '../store.jsx';
-import { requestMotion, record, speak, buzz } from '../lib/sensors.js';
+import { requestMotion, record, buzz } from '../lib/sensors.js';
 import { today } from '../lib/format.js';
 
 const WALK_S = 30, BAL_S = 20, TAP_S = 10;
@@ -94,8 +94,6 @@ export default function CheckIn({ go }) {
   const [saveErr, setSaveErr] = useState('');
   const [walkRec, runWalk, cancelWalk] = useRecorder(WALK_S);
   const [balRec, runBal, cancelBalance] = useRecorder(BAL_S);
-  const [closedRec, runClosed, cancelClosed] = useRecorder(BAL_S);
-  const [showClosed, setShowClosed] = useState(false);
   const set = (patch) => setD((x) => ({ ...x, ...patch }));
   const sym = (k, v) => setD((x) => ({ ...x, symptoms: { ...x.symptoms, [k]: v } }));
   function setTaskSource(measurement, source) {
@@ -110,7 +108,6 @@ export default function CheckIn({ go }) {
   const goStep = (n) => {
     cancelWalk();
     cancelBalance();
-    cancelClosed();
     if (n !== 4) cancelTap();
     setStep(n);
     window.scrollTo(0, 0);
@@ -246,38 +243,18 @@ export default function CheckIn({ go }) {
             ['shield', 'red', 'Stand right next to a wall, counter, or sturdy chair you can grab.'],
             ['pulse', 'navy', 'Keep the phone in the same front pocket.'],
             ['balance', 'navy', 'Put your feet side by side, close together, eyes open. Look straight ahead.'],
-            ['info', 'rose', 'If you feel unsteady at any point, hold on. You can skip this test.'],
+            ['info', 'rose', 'If you feel unsteady at any point, hold on. This test is optional.'],
           ]} />
-          {!showClosed ? <>
-            <div className="card recorder">
-              <Ring remaining={balRec.remaining} progress={balRec.progress} />
-              <p style={{ margin: 0, fontSize: '1.05rem' }} aria-live="assertive">{balRec.msg || 'Tap start, put the phone in your pocket, and stand with feet together.'}</p>
-            </div>
-            {balRec.error && <p className="error" role="alert">{balRec.error}</p>}
-            <div className="actions">
-              <button type="button" className="btn primary" disabled={balRec.busy} onClick={async () => { const b = await runBal('Feet together. Stand still.', 'Standing still… hold on to the wall if you need to.', (s) => Gait.analyzeBalance(s, { trimSeconds: 1 })); if (b) { set({ balance: b }); setTaskSource('balance', 'sensor'); setShowClosed(true); } }}><Icon name="play" size={16} /> Start balance test</button>
-              <button type="button" className="btn" disabled={balRec.busy} onClick={() => { set({ balance: Gait.analyzeBalance(Gait.synthesizeStand({ sway: 0.03 + Math.random() * 0.02, seed: Date.now() % 100000, seconds: 20 }).samples, { trimSeconds: 1 }) }); setTaskSource('balance', 'sample'); setShowClosed(true); }}>Use a sample instead</button>
-              <button type="button" className="btn ghost" onClick={() => { skipTask(['balance', 'balanceClosed'], () => { cancelBalance(); cancelClosed(); }); setShowClosed(false); goStep(4); }}>Skip this test</button>
-            </div>
-          </> : <>
-            <div className="card">
-              <p className="chip steady" style={{ marginTop: 0 }}><Icon name="check" size={14} /> Eyes-open test done</p>
-              <h2 style={{ marginTop: 10 }}>Optional: the same test with your eyes closed</h2>
-              <p className="muted">Doctors use this test (called the Romberg test) because some nerve problems in the feet show up as extra wobble when you can’t see. Your twin compares it with your eyes-open result.</p>
-              <p className="notice red">Only do this with a wall or counter right beside you, and someone nearby if possible. If you feel unsteady, open your eyes and hold on. Skip it if your care team has told you to avoid it, or if you’ve fallen recently.</p>
-              <div className="recorder" style={{ marginTop: 14 }}>
-                <Ring remaining={closedRec.remaining} progress={closedRec.progress} />
-                <p style={{ margin: 0 }} aria-live="assertive">{closedRec.msg || 'Your phone will say “close your eyes” and “open your eyes”.'}</p>
-              </div>
-              {closedRec.error && <p className="error" role="alert">{closedRec.error}</p>}
-              <div className="actions" style={{ marginBottom: 0 }}>
-                <button type="button" className="btn primary" disabled={closedRec.busy} onClick={async () => { const b = await runClosed('Feet together. Close your eyes.', 'Eyes closed, standing still… open your eyes and hold on if you feel unsteady.', (s) => Gait.analyzeBalance(s, { trimSeconds: 1 })); speak('Open your eyes. Well done.'); if (b) { set({ balanceClosed: b }); setTaskSource('balanceClosed', 'sensor'); goStep(4); } }}><Icon name="play" size={16} /> Start eyes-closed test</button>
-                <button type="button" className="btn" disabled={closedRec.busy} onClick={() => { set({ balanceClosed: Gait.analyzeBalance(Gait.synthesizeStand({ sway: (d.balance?.swayRms || 0.04) * 1.6, seed: Date.now() % 100000, seconds: 20 }).samples, { trimSeconds: 1 }) }); setTaskSource('balanceClosed', 'sample'); goStep(4); }}>Use a sample instead</button>
-                <button type="button" className="btn ghost" onClick={() => { skipTask(['balanceClosed'], cancelClosed); goStep(4); }}>Skip this test</button>
-                <button type="button" className="btn ghost" onClick={() => { skipTask(['balance', 'balanceClosed'], () => { cancelBalance(); cancelClosed(); }); setShowClosed(false); goStep(4); }}>Skip balance test</button>
-              </div>
-            </div>
-          </>}
+          <div className="card recorder">
+            <Ring remaining={balRec.remaining} progress={balRec.progress} />
+            <p style={{ margin: 0, fontSize: '1.05rem' }} aria-live="assertive">{balRec.msg || 'Tap start, put the phone in your pocket, and stand with feet together.'}</p>
+          </div>
+          {balRec.error && <p className="error" role="alert">{balRec.error}</p>}
+          <div className="actions">
+            <button type="button" className="btn primary" disabled={balRec.busy} onClick={async () => { const b = await runBal('Feet together. Stand still.', 'Standing still… hold on to the wall if you need to.', (s) => Gait.analyzeBalance(s, { trimSeconds: 1 })); if (b) { set({ balance: b }); setTaskSource('balance', 'sensor'); goStep(4); } }}><Icon name="play" size={16} /> Start balance test</button>
+            <button type="button" className="btn" disabled={balRec.busy} onClick={() => { set({ balance: Gait.analyzeBalance(Gait.synthesizeStand({ sway: 0.03 + Math.random() * 0.02, seed: Date.now() % 100000, seconds: 20 }).samples, { trimSeconds: 1 }) }); setTaskSource('balance', 'sample'); goStep(4); }}>Use a sample instead</button>
+            <button type="button" className="btn ghost" onClick={() => { skipTask(['balance'], cancelBalance); goStep(4); }}>Skip balance test</button>
+          </div>
         </section>
       )}
 

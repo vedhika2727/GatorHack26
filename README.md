@@ -13,7 +13,7 @@ Many chemotherapy drugs (taxanes, platinum drugs, vinca alkaloids, bortezomib) c
 ## What it does
 
 - **Home page and accounts:** a landing page, sign up / sign in with email and password (Supabase), an on-device profile option with no password, and a demo patient.
-- **Check-in (about 2 minutes):** symptom ratings (0–10 buttons), a 30-second walk with the phone in a pocket, a 20-second stance with eyes open and optionally eyes closed (Romberg-style), and a 10-second finger-tapping test per hand.
+- **Check-in (about 2 minutes):** symptom ratings (0–10 buttons), a 30-second walk with the phone in a pocket, one optional 20-second balance stance with eyes open, and a 10-second finger-tapping test per hand. Each physical task can be skipped.
 - **Function twin:** an experimental Kalman-filter model that combines symptom answers and eligible physical measurements. Its function score is 100 at the first check-in and drops as the model estimates more change; the displayed range is model uncertainty, not a clinical confidence interval or a measured physical decline. Fixed rules separately flag recorded changes from baseline.
 - **What you can see:** a body map that glows with reported symptoms, walking step-timing illustrations (not a reconstruction of movement), and measurements over time. Sample, simulated, and unverified physical measurements are labeled and excluded from personal estimates; skipped tests remain unmeasured.
 - **Scan reports:** paste, upload (PDF or text), or photograph a radiology report. Gemma 4 extracts each measurement and the radiologist's conclusion. **Every size is checked against the report text, and anything not found word for word is dropped.** Tumor size is plotted next to the twin.
@@ -39,7 +39,7 @@ Without a Gemma key, the app still runs using built-in rules and template text, 
 ## What's new (the recent technology)
 
 - **Gemma 4** (released April 2, 2026, Apache 2.0) reads photos of printed reports and writes the explanations.
-- The test design follows **NeuroDetect** (JMIR, 2025), a smartphone study in chemotherapy patients compared against specialists' neurological exams. Phone gait and balance tests detected foot neuropathy (AUC about 0.84); Romberg-style stance contributed most for feet and finger tapping most for hands (hand detection was not statistically significant).
+- The test design follows **NeuroDetect** (JMIR, 2025), a smartphone study in chemotherapy patients compared against specialists' neurological exams. Phone gait and balance tests detected foot neuropathy (AUC about 0.84); its Romberg-style stance contributed most for feet and finger tapping most for hands (hand detection was not statistically significant). This app's new check-ins currently collect one optional eyes-open stance.
 
 ## Run it
 
@@ -111,7 +111,7 @@ test/           tests and validation script
   - **To calibrate:** (1) a repeat-testing study in people not on chemo, to measure each signal's day-to-day noise; (2) a side-by-side study where patients do the phone check-in at each infusion while the clinic records standard neuropathy grading (NCI CTCAE, EORTC QLQ-CIPN20, Total Neuropathy Score), then fit the scales and per-cycle change by maximum likelihood; (3) test on patients the fit never saw.
 - Phone measurements depend on pocket placement, shoes, floor, and phone model; compare only with the same person's earlier check-ins.
 - Symptom questions are simple 0–10 ratings. A real deployment should license a validated questionnaire such as the EORTC QLQ-CIPN20.
-- The eyes-closed stance is optional and can be unsafe for people with severe neuropathy.
+- The eyes-open balance stance is optional and can be unsafe for people with severe neuropathy. Existing historical eyes-closed measurements remain available in saved check-ins.
 - Websites can't read Apple Watch sensors; a native app with HealthKit would be the next step.
 
 ## License

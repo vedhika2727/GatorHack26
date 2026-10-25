@@ -5,6 +5,7 @@ import {
   sourceFromMeasurements,
   withSampleData,
 } from '../src/core/checkinSource.js';
+import { buildCheckinRecord } from '../src/core/checkinRecord.js';
 
 let failed = 0;
 function check(name, actual, expected) {
@@ -29,6 +30,27 @@ const skippedWalk = skipMeasurements(previousWalk, { gait: 'sample', balance: 's
 check('skipping a measurement stops its active recording', walkCancelled, true);
 check('skipping clears a prior measurement instead of saving zero', skippedWalk.checkin.gait === null, true);
 check('skipping recalculates source from remaining measurements', skippedWalk.checkin.source, 'sensor');
+const priorBalance = {
+  balance: { ok: true, swayRms: 0.2 },
+  balanceClosed: { ok: true, swayRms: 0.4 },
+  measurementSources: { balance: 'sample', balanceClosed: 'sensor' },
+  source: 'mixed',
+};
+let balanceCancelled = false;
+const skippedBalance = skipMeasurements(
+  priorBalance,
+  { balance: 'sample', gait: 'sensor' },
+  ['balance'],
+  () => { balanceCancelled = true; },
+);
+check('skipping balance cancels its active recording', balanceCancelled, true);
+check('skipping balance clears its prior result', skippedBalance.checkin.balance, null);
+check('skipping balance clears its sample provenance', !Object.hasOwn(skippedBalance.sources, 'balance'), true);
+check('skipping balance recalculates source from remaining measurements', skippedBalance.checkin.source, 'sensor');
+check('skipping balance does not mutate previously saved eyes-open data', priorBalance.balance.swayRms, 0.2);
+check('skipping balance preserves historical eyes-closed data', priorBalance.balanceClosed.swayRms, 0.4);
+const newCheckin = buildCheckinRecord({}, { balance: null }, {}, 'new-checkin', false);
+check('new check-ins do not add an eyes-closed measurement', !Object.hasOwn(newCheckin, 'balanceClosed'), true);
 const skippedHands = skipMeasurements({ tapping: { right: { ok: true }, left: { ok: true } }, source: 'sample' }, { tapping: 'sample' }, ['tapping']);
 check('skipping hands clears both tapping results', skippedHands.checkin.tapping === null, true);
 check('skipping the only sample result clears sample source', skippedHands.checkin.source, 'sensor');
