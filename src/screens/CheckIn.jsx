@@ -148,34 +148,31 @@ export default function CheckIn({ go }) {
             {d.falls === 'fall' && <p className="notice red" style={{ marginTop: 14 }}>If you fell and were hurt, or your numbness came on suddenly, call your care team today rather than waiting for your next visit.</p>}
           </>) },
         ];
-        const cur = QS[q], lastQ = q === QS.length - 1;
         return (
-          <form className="form-ed" onSubmit={(e) => { e.preventDefault(); if (lastQ) goStep(2); else setQ(q + 1); }}>
-            <aside className="form-rail" aria-label="Questions">
-              <p className="mono">Symptom questionnaire</p>
+          <form className="form-list" onSubmit={(e) => { e.preventDefault(); goStep(2); }}>
+            <header className="fl-head">
+              <div>
+                <p className="mono form-k">Step 1 of 5 · symptom questionnaire</p>
+                <h1>How have you been this past week?</h1>
+              </div>
               <dl className="form-meta">
                 <div><dt>Cycle</dt><dd><input id="ci-cycle" type="number" min="1" max="60" inputMode="numeric" value={d.cycle} onChange={(e) => set({ cycle: Math.max(1, parseInt(e.target.value || '1', 10)) })} /></dd></div>
                 <div><dt>Date</dt><dd><input id="ci-date" type="date" value={d.date} onChange={(e) => set({ date: e.target.value || today() })} /></dd></div>
               </dl>
-              <ol>
-                {QS.map((x, k) => (
-                  <li key={k} className={k === q ? 'on' : k < q ? 'done' : ''}>
-                    <button type="button" onClick={() => setQ(k)} aria-current={k === q ? 'step' : undefined}>
-                      <span className="n">{String(k + 1).padStart(2, '0')}</span><span className="t">{x.short}</span><span className="a">{k < q || k === q ? x.ans : ''}</span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            </aside>
-            <section className="form-q" aria-labelledby="q-title">
-              <p className="mono form-k">Question {q + 1} of {QS.length}{q < 3 ? ' · past 7 days · 0 = none, 10 = worst imaginable' : ''}</p>
-              <h1 id="q-title">{cur.title}</h1>
-              {cur.body}
-              <div className="form-foot">
-                <button type="button" className="btn" disabled={q === 0} onClick={() => setQ(q - 1)}>Previous</button>
-                <button type="submit" className="btn primary">{lastQ ? 'Continue to walking test' : 'Continue'}</button>
-              </div>
-            </section>
+            </header>
+            <ol className="fl-items">
+              {QS.map((x, k) => (
+                <li key={k}>
+                  <span className="n mono">{String(k + 1).padStart(2, '0')}</span>
+                  <div>
+                    <h2>{x.title}</h2>
+                    {k < 3 && <p className="fine">0 = none, 10 = worst imaginable</p>}
+                    {x.body}
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <div className="form-foot"><span className="fine">About 20 seconds. Next: a 30-second walk.</span><button type="submit" className="btn primary">Continue to walking test</button></div>
           </form>
         );
       })()}

@@ -1336,3 +1336,34 @@ main.page { padding-bottom: 0 !important; }
 .opts button[aria-checked="true"] .rb::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #3A3F44; }
 .form-foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 30px; padding-top: 18px; border-top: 1px solid rgba(58,63,68,.12); }
 .form-foot .btn[disabled] { opacity: .4; }
+
+/* concentric rings + key */
+.crings { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 20px; align-items: center; width: 100%; }
+.crings-svg { width: 150px; height: 150px; display: block; }
+.crings-key { list-style: none; margin: 0; padding: 0; display: grid; }
+.crings-key li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(58,63,68,.08); }
+.crings-key li:last-child { border-bottom: 0; }
+.crings-key i { width: 10px; height: 10px; border-radius: 50%; }
+.crings-key b { display: block; font-size: .95rem; font-weight: 600; }
+.crings-key small { display: block; color: var(--ink-2); font-size: .76rem; line-height: 1.3; }
+.crings-key span { font-size: .8rem; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.rp-hero { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+@media (max-width: 460px) { .crings { grid-template-columns: 1fr; justify-items: center; } }
+
+/* Check-in questions: one vertical form */
+.ci-form { max-width: 860px; }
+.form-list { margin: 22px 0 32px; border-radius: 14px; background: rgba(253,252,248,.94); border: 1px solid rgba(58,63,68,.14); box-shadow: 0 20px 44px -34px rgba(60,55,40,.5); padding: 26px 32px 22px; }
+@media (max-width: 600px) { .form-list { padding: 20px 16px; } }
+.fl-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 2px solid #3A3F44; }
+.fl-head h1 { font-size: clamp(1.6rem, 3vw, 2.1rem); letter-spacing: -0.025em; font-weight: 600; margin: 0; color: #2F3438; }
+.fl-head .form-meta { margin: 0; grid-template-columns: auto auto; display: grid; gap: 10px; }
+.fl-head .form-meta > div { grid-template-columns: auto 1fr; }
+.fl-head .form-meta input[type="number"] { width: 4.5rem; }
+.fl-items { list-style: none; margin: 0; padding: 0; }
+.fl-items > li { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr); gap: 8px; padding: 22px 0; border-bottom: 1px solid rgba(58,63,68,.12); }
+.fl-items .n { color: var(--ink-2); font-size: .78rem; padding-top: 4px; }
+.fl-items h2 { font-size: 1.08rem; line-height: 1.35; font-weight: 600; margin: 0 0 4px; color: #2F3438; }
+.fl-items .fine { margin: 0 0 12px; }
+.fl-items .opts { margin-top: 12px; }
+.fl-items .nrs-val { margin-top: 10px; font-size: .88rem; }
+.form-list .form-foot { align-items: center; border-top: 0; margin-top: 18px; padding-top: 0; }

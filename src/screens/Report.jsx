@@ -60,29 +60,40 @@ function TwinSpark({ twin }) {
 /* ---------- Overview: rings per ability, and a cycle-by-cycle story ---------- */
 // Which twin signals belong to which ability. Each signal is 0 (same as the first check-in) to 100.
 const AREAS = [
-  { id: 'walking', name: 'Walking', signals: ['pace', 'timing', 'evenness', 'feet'] },
-  { id: 'balance', name: 'Balance', signals: ['sway', 'romberg'] },
-  { id: 'hands', name: 'Hands', signals: ['tapping', 'hands-fine', 'hands'] },
+  { id: 'walking', name: 'Walking', what: 'pace, step timing, evenness', signals: ['pace', 'timing', 'evenness'], color: '#4A74A8' },
+  { id: 'balance', name: 'Balance', what: 'standing still, eyes open and closed', signals: ['sway', 'romberg'], color: '#6B7D45' },
+  { id: 'hands', name: 'Hands', what: 'tapping speed, buttons and zips', signals: ['tapping', 'hands-fine'], color: '#8FA8C8' },
+  { id: 'symptoms', name: 'Symptoms', what: 'numbness, tingling, pain you rated', signals: ['feet', 'hands'], color: '#A3AE7E' },
 ];
-const ringWord = (f) => (f >= 80 ? 'Close to where you started' : f >= 50 ? 'Some change' : f >= 25 ? 'More change' : 'The most change');
+const ringWord = (f) => (f >= 80 ? 'Close to your start' : f >= 50 ? 'Some change' : f >= 25 ? 'More change' : 'The most change');
+// Concentric rings (outer = walking), with a legend beside them. A full ring is the first check-in.
 function Rings({ step }) {
+  const rows = AREAS.map((a) => {
+    const vals = step.signals.filter((g) => a.signals.includes(g.id) && g.value != null).map((g) => g.value);
+    const fill = vals.length ? Math.max(0, Math.min(100, 100 - vals.reduce((x, y) => x + y, 0) / vals.length)) : 100;
+    return { ...a, fill, has: vals.length > 0 };
+  });
+  const S = 9, GAP = 3.5;
   return (
-    <div className="arings" role="list">
-      {AREAS.map((a) => {
-        const vals = step.signals.filter((g) => a.signals.includes(g.id) && g.value != null).map((g) => g.value);
-        const fill = vals.length ? Math.max(0, Math.min(100, 100 - vals.reduce((x, y) => x + y, 0) / vals.length)) : 100;
-        const C = 2 * Math.PI * 40;
-        return (
-          <div key={a.id} className="aring" role="listitem" aria-label={`${a.name}: ${ringWord(fill)}`}>
-            <svg viewBox="0 0 100 100" aria-hidden="true">
-              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--tint)" strokeWidth="11" />
-              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--navy)" strokeWidth="11" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - fill / 100)} transform="rotate(-90 50 50)" className="ring-fill" style={{ '--from': C, '--to': C * (1 - fill / 100) }} />
-            </svg>
-            <b>{a.name}</b>
-            <small>{ringWord(fill)}</small>
-          </div>
-        );
-      })}
+    <div className="crings">
+      <svg viewBox="0 0 120 120" className="crings-svg" aria-hidden="true">
+        {rows.map((r, k) => {
+          const rad = 54 - k * (S + GAP), C = 2 * Math.PI * rad, off = C * (1 - r.fill / 100);
+          return <g key={r.id}>
+            <circle cx="60" cy="60" r={rad} fill="none" stroke={r.color} strokeOpacity="0.16" strokeWidth={S} />
+            <circle cx="60" cy="60" r={rad} fill="none" stroke={r.color} strokeWidth={S} strokeLinecap="round" strokeDasharray={C} strokeDashoffset={off} transform="rotate(-90 60 60)" className="ring-fill" style={{ '--from': C, '--to': off, animationDelay: `${0.1 + k * 0.12}s` }} />
+          </g>;
+        })}
+      </svg>
+      <ul className="crings-key">
+        {rows.map((r) => (
+          <li key={r.id} aria-label={`${r.name}: ${r.has ? ringWord(r.fill) : 'not measured'}`}>
+            <i style={{ background: r.color }} aria-hidden="true" />
+            <div><b>{r.name}</b><small>{r.what}</small></div>
+            <span>{r.has ? ringWord(r.fill) : 'Not measured'}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -399,8 +410,8 @@ export default function Report({ go }) {
         {showRingHelp && <section className="score-explain" id="ring-help" aria-labelledby="se-h">
           <h2 id="se-h">How to read the rings</h2>
           <ul>
-            <li><b>A full ring is your starting point.</b> It’s how your walking, balance, and hands were at cycle {first.cycle}, your first check-in.</li>
-            <li><b>The ring opens up as things change.</b> Walking uses your pace, steadiness, and foot symptoms; balance uses standing still with eyes open and closed; hands use tapping, buttons, and hand symptoms.</li>
+            <li><b>A full ring is your starting point.</b> It’s how you were at cycle {first.cycle}, your first check-in. Outer ring is walking, then balance, hands, and the symptoms you rated.</li>
+            <li><b>The ring opens up as things change.</b> Each row in the key says which measures go into that ring.</li>
             <li><b>It isn’t a grade.</b> Some change during chemo is common. The rings help you see where it’s happening, so you know what to mention.</li>
             <li><b>It isn’t a diagnosis.</b> It doesn’t measure nerves directly or say why something changed. That’s for you and your care team.</li>
           </ul>
