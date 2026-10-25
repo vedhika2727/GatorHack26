@@ -111,12 +111,14 @@ function ReadView({ s, onOpenImage }) {
 }
 
 /** One spot across doctors: a thin bar per doctor, labeled with their name, as long as the size they gave. */
+const READER_COLORS = ['var(--navy)', 'var(--rose)', 'var(--forest)', 'var(--ink-2)', '#8A7A55', '#6B5A8E'];
+const readerColor = (i) => READER_COLORS[i % READER_COLORS.length];
 function Bars({ values, reads, max }) {
   return (
     <div className="dbars">
       {values.map((v, i) => (
-        <div key={i} className="dbar">
-          <span className="dbar-who">{reads[i].reader}</span>
+        <div key={i} className="dbar" style={{ '--c': readerColor(i) }}>
+          <span className="sr-only">{reads[i].reader}: </span>
           <span className="dbar-track" aria-hidden="true">{v != null && <i style={{ width: `${Math.max(2, (v / max) * 100)}%` }} />}</span>
           <span className="dbar-v">{v != null ? `${v} mm` : 'not measured'}</span>
         </div>
@@ -139,20 +141,22 @@ function CompareView({ reads }) {
     <div className="read cmp">
       <p className="compare-lead">{reads.length} radiologists read this {reads[0].kind}. {cmp.rows.length ? `They agree on ${agree} of ${cmp.rows.length} spots${differ ? ` and see ${differ} differently` : ''}.` : ''}</p>
 
-      <p className="muted read-by">Read by {reads.map((r, i) => <span key={r.id}>{i ? (i === reads.length - 1 ? ' and ' : ', ') : ''}<b>{r.reader}</b> ({fmtDate(r.date)})</span>)}.</p>
+      <ul className="reader-key" aria-label="Who read it">
+        {reads.map((r, i) => <li key={r.id} style={{ '--c': readerColor(i) }}><i aria-hidden="true" /><b>{r.reader}</b><span>{fmtDate(r.date)}</span></li>)}
+      </ul>
 
       <div className="spots-cmp">
         {cmp.rows.map((x, k) => (
           <div key={k} className={`cspot ${x.status}`}>
             <div className="cspot-name">
-              <b>{x.location}</b>
-              <small>{note(x)}</small>
+              <b>{x.location[0].toUpperCase() + x.location.slice(1)}</b>
+              <span className="cspot-status">{note(x)}</span>
             </div>
             <Bars values={x.values} reads={reads} max={max} />
           </div>
         ))}
-        <p className="fine">Bars are drawn to the same scale, so bars that end in the same place mean the doctors agree. Radiologists often measure the same spot a few millimeters apart; bigger gaps are worth asking about.</p>
-      </div>
+        </div>
+      <p className="fine cmp-note">Each color is one doctor. Bars that end in the same place mean they agree. A few millimeters apart is common; bigger gaps are worth asking about.</p>
 
       <div className="also">
         <div className="also-row"><span className="also-k">New finding mentioned</span>{cmp.newFinding.map((v, i) => <span key={i}><small>{reads[i].reader}</small>{v ? 'Yes' : 'No'}</span>)}</div>

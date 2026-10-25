@@ -882,3 +882,64 @@ h1, h2, h3, .display { color: #2A405A; }
 .btn { border-color: rgba(46, 69, 96, 0.35); }
 .chip.notable .dot, .chip.notable svg, .chip.notable i { color: #A2453B; fill: #A2453B; background: #A2453B; }
 .wordmark .wm-i::before { margin-left: -0.17em; }
+
+/* Scans compare: doctor key, then one small card per spot with bars colored by doctor */
+.scan-detail { padding: 28px 30px 30px; border-radius: 24px; }
+@media (max-width: 600px) { .scan-detail { padding: 20px 16px 22px; } }
+.compare-lead { font-size: 1.15rem; line-height: 1.45; margin: 4px 0 12px; color: var(--ink); }
+.reader-key { list-style: none; padding: 0; margin: 0 0 18px; display: flex; flex-wrap: wrap; gap: 8px 10px; }
+.reader-key li { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,.7); font-size: 0.92rem; }
+.reader-key i { width: 18px; height: 6px; border-radius: 3px; background: var(--c); }
+.reader-key b { font-weight: 600; }
+.reader-key span { color: var(--ink-2); }
+.spots-cmp { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.cspot { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px 18px; border: 0; border-radius: 16px; background: rgba(255,255,255,.7); }
+.cspot-name { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.cspot-name b { font-size: 1.02rem; }
+.cspot-status { flex: 0 0 auto; font-size: 0.82rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--forest-wash); color: var(--forest); white-space: nowrap; }
+.cspot.differ .cspot-status, .cspot.some .cspot-status { background: var(--navy-wash); color: var(--ink); }
+.dbars { gap: 8px; }
+.dbar { grid-template-columns: minmax(0, 1fr) 4.6rem; gap: 12px; font-size: 0.95rem; }
+.dbar-track { height: 10px; border-radius: 5px; background: rgba(46, 69, 96, 0.08); }
+.dbar-track i { background: var(--c); border-radius: 5px; }
+.dbar-v { color: var(--ink); }
+.cmp-note { margin: 12px 2px 4px; }
+.also { margin-top: 18px; }
+
+/* ===================== Warmer balance: cream page, sky only as a hint ===================== */
+:root {
+  --bg: #F1EEE6;
+  --ink: #3A3F44; --ink-2: #767C82; --night-ink: #3A3F44; --night-ink-2: #767C82;
+  --line: rgba(58, 63, 68, 0.10);
+  --navy: #4A74A8; --navy-2: #5B84B8; --navy-wash: #E6EDF5; --focus: #4A74A8;
+  --forest: #6B7D45; --forest-wash: #ECEFE1; --forest-glow: #6B7D45;
+  --rose: #6B7D45; --rose-wash: #ECEFE1; --rose-glow: #6B7D45;   /* scans and "worth mentioning": meadow olive */
+  --tint: rgba(58, 63, 68, 0.06); --night-2: rgba(58, 63, 68, 0.06);
+  --glass: rgba(255, 255, 255, 0.66); --glass-line: rgba(255, 255, 255, 0.9);
+}
+#root::before {
+  background:
+    radial-gradient(46vw 12vw at 14% 6%, rgba(255,255,255,.8), transparent 70%),
+    radial-gradient(38vw 10vw at 84% 12%, rgba(255,255,255,.6), transparent 70%),
+    linear-gradient(180deg, #CFDDEC 0%, #E3E7E8 22%, #EFECE4 48%, #F2EEE5 100%);
+}
+h1, h2, h3, .display { color: #363B40; }
+.btn.primary, .topbar .btn.primary { background: #3A3F44; border-color: #3A3F44; }
+.btn.primary:hover { background: #4A5056; }
+.btn { border-color: rgba(58, 63, 68, 0.3); }
+.topbar { background: rgba(250, 248, 243, 0.6); }
+/* the check-in prompt: clear glass, not a mint box */
+.next-card { background: var(--glass); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-line); color: var(--ink); }
+.notice.rose, .explain { background: rgba(255,255,255,.7); }
+/* Scans chart in its own clear box so it doesn't get lost */
+.lightbox { background: rgba(255, 255, 255, 0.72); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-line); border-radius: 22px; padding: 18px 16px 8px; box-shadow: 0 18px 40px -28px rgba(60, 55, 40, 0.35); }
+/* the selected scan date: soft charcoal */
+.frame[aria-selected="true"] { background: #3A3F44; border-color: #3A3F44; }
+.frame[aria-selected="true"] em { color: #DCE4C8; }
+.frame { background: rgba(255,255,255,.6); }
+/* bars: second doctor in olive, status pills neutral */
+.cspot.differ .cspot-status, .cspot.some .cspot-status { background: var(--navy-wash); color: #3A4E68; }
+.btn.sky-btn { background: #fff; border-color: #fff; color: #3A3F44; }
+.btn.sky-btn:hover { background: #F4F2EC; }
+.btn.sky-ghost { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.7); color: #fff; }
+.btn.sky-ghost:hover { background: rgba(255,255,255,.28); }
