@@ -214,6 +214,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .k-prior { width: 10px; height: 10px; border: 1.5px dashed var(--ink); border-radius: 50%; }
 .k-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-2); opacity: 0.45; }
 .k-red { width: 10px; height: 10px; border-radius: 50%; background: var(--red); }
+.k-model { width: 10px; height: 10px; border-radius: 50%; background: var(--ink-2); }
 .beads { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; }
 .bead { flex: 0 0 auto; min-width: 64px; min-height: 64px; border-radius: 999px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: grid; place-content: center; text-align: center; font-weight: 700; line-height: 1.1; padding: 6px; }
 .bead small { display: block; font-weight: 400; color: var(--ink-2); font-size: 0.72rem; }

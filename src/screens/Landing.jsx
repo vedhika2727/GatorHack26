@@ -41,7 +41,7 @@ export default function Landing({ go }) {
             <Chip level="notable" />
           </div>
           <BandChart steps={twin} selected={twin.length - 1} />
-          <figcaption className="fine">The twin’s estimate across six chemo cycles. The red point was worse than the twin expected.</figcaption>
+          <figcaption className="fine">The fictional demo’s experimental estimate across six cycles. The gray point marks a model discrepancy, not a measured decline.</figcaption>
         </figure>
       </section>
 

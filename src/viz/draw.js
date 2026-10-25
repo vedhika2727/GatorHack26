@@ -189,10 +189,17 @@ function bandChart(svg, steps, selected) {
   steps.forEach((s, i) => { if (i) el('circle', { cx: x(i), cy: y(s.priorMean), r: 5, fill: 'none', stroke: ink, 'stroke-width': 1.5, 'stroke-dasharray': '2 2', opacity: 0.6 }, svg); });
   el('polyline', { points: steps.map((s, i) => `${x(i)},${y(s.mean)}`).join(' '), fill: 'none', stroke: teal, 'stroke-width': 3, 'stroke-linejoin': 'round' }, svg);
   steps.forEach((s, i) => {
-    const worse = s.surprise === 'worse';
-    el('circle', { cx: x(i), cy: y(s.mean), r: i === selected ? 7 : 5, fill: worse ? css('--red') : teal, stroke: css('--surface'), 'stroke-width': 2 }, svg);
+    const discrepancy = s.surprise !== 'none';
+    el('circle', { cx: x(i), cy: y(s.mean), r: i === selected ? 7 : 5, fill: discrepancy ? css('--ink-2') : teal, stroke: css('--surface'), 'stroke-width': 2 }, svg);
     txt(svg, x(i), H - 10, 'C' + s.cycle, { 'text-anchor': 'middle', 'font-weight': i === selected ? 700 : 400, fill: i === selected ? ink : css('--ink-2') });
-    if (worse) txt(svg, x(i), y(s.high) - 8, 'worse than expected', { 'text-anchor': 'middle', fill: css('--red'), 'font-size': 14, 'font-weight': 700 });
+    if (discrepancy) {
+      const labelX = Math.max(L + 4, Math.min(W - R - 4, x(i)));
+      const labelY = Math.max(T + 16, y(s.high) - 8);
+      txt(svg, labelX, labelY, 'model discrepancy', {
+        'text-anchor': x(i) < W / 2 ? 'start' : 'end',
+        fill: ink, 'font-size': 14, 'font-weight': 700,
+      });
+    }
   });
 }
 
@@ -232,14 +239,14 @@ function dualTimeline(svg, tumor, nerve) {
   // Panel B: nerve twin
   const ymaxN = 100;
   const yb = (v) => Bp.t + (1 - Math.min(ymaxN, v) / ymaxN) * (Bp.b - Bp.t);
-  txt(svg, L, Bp.t - 18, 'Change in walking, balance, and hand function: twin estimate (0–100)', { 'font-weight': 700, fill: ink });
+  txt(svg, L, Bp.t - 18, 'Experimental function twin estimate (0–100)', { 'font-weight': 700, fill: ink });
   el('line', { x1: L, x2: W - R, y1: Bp.b, y2: Bp.b, stroke: line }, svg);
   if (nerve.length) {
     const up = nerve.map((s) => `${x(s.date)},${yb(s.high)}`), dn = nerve.map((s) => `${x(s.date)},${yb(s.low)}`).reverse();
     el('polygon', { points: up.concat(dn).join(' '), fill: css('--navy-wash') }, svg);
     el('polyline', { points: nerve.map((s) => `${x(s.date)},${yb(s.mean)}`).join(' '), fill: 'none', stroke: teal, 'stroke-width': 3 }, svg);
     for (const s of nerve) {
-      el('circle', { cx: x(s.date), cy: yb(s.mean), r: 4.5, fill: s.surprise === 'worse' ? css('--red') : teal }, svg);
+      el('circle', { cx: x(s.date), cy: yb(s.mean), r: 4.5, fill: s.surprise !== 'none' ? css('--ink-2') : teal }, svg);
       txt(svg, x(s.date), Bp.b + 16, 'C' + s.cycle, { 'text-anchor': 'middle', 'font-size': 14 });
     }
   }
