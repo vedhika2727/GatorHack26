@@ -43,6 +43,20 @@ const STATUS = { notable: 'Large change', watch: 'Some change' };
 const plain = (t) => t.replace(/than at baseline/g, 'than at your first check-in').replace(/\(baseline:? /g, '(first check-in: ').replace(/× baseline/g, '× your first check-in').replace(/ since the last check-in/g, '');
 const show = (v, unit) => (v == null ? '–' : unit && typeof v === 'number' ? (/^[%/×]/.test(unit) ? `${v}${unit}` : `${v} ${unit}`) : String(v));
 
+function TwinSpark({ twin }) {
+  if (twin.length < 2) return null;
+  const W = 260, H = 64, P = 6, top = Math.max(40, ...twin.map((t) => t.high));
+  const x = (i) => P + (i / (twin.length - 1)) * (W - 2 * P), y = (v) => H - P - (v / top) * (H - 2 * P);
+  const band = twin.map((t, i) => `${x(i)},${y(t.high)}`).concat(twin.map((t, i) => `${x(i)},${y(t.low)}`).reverse()).join(' ');
+  return (
+    <svg className="twin-spark" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+      <polygon points={band} fill="var(--rose-wash)" />
+      <polyline points={twin.map((t, i) => `${x(i)},${y(t.mean)}`).join(' ')} fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round" />
+      {twin.map((t, i) => <circle key={i} cx={x(i)} cy={y(t.mean)} r={t.surprise === 'worse' ? 4.5 : 2.6} fill={t.surprise === 'worse' ? 'var(--red)' : 'var(--ink)'} />)}
+    </svg>
+  );
+}
+
 function Spark({ values, lo, hi }) {
   const W = 120, H = 30, P = 4;
   const pts = values.map((v, i) => ({ v: typeof v === 'number' ? v : null, i })).filter((p) => p.v != null);
@@ -115,20 +129,26 @@ export default function Report({ go }) {
 
   return (
     <div className="wrap wide sheet-page">
-      <div className="sheet-actions no-print">
-        <button type="button" className="btn primary" onClick={copy}><Icon name="copy" size={18} /> Copy report text</button>
-        {!HOSTED_PREVIEW && <button type="button" className="btn" onClick={() => window.print()}><Icon name="printer" size={18} /> Print</button>}
-        {copied && <span className="fine" role="status">{copied}</span>}
-      </div>
-
       <article className="sheet">
         <header className="sheet-head">
-          <h1>{user.name}</h1>
-          <p className="muted">Report before cycle {last.cycle + 1}, {fmtDate(first.date)} to {fmtDate(last.date)}{user.mode === 'demo' ? ', demo patient' : ''}</p>
+          <div className="who">
+            <p className="kicker-line">Report for your care team</p>
+            <h1>{user.name}</h1>
+            <p className="muted">Before cycle {last.cycle + 1}. Check-ins {fmtDate(first.date)} to {fmtDate(last.date)}{user.mode === 'demo' ? ', demo patient' : ''}.</p>
+            <div className="sheet-actions no-print">
+              <button type="button" className="btn primary small" onClick={copy}><Icon name="copy" size={16} /> Copy report text</button>
+              {!HOSTED_PREVIEW && <button type="button" className="btn small" onClick={() => window.print()}><Icon name="printer" size={16} /> Print</button>}
+            </div>
+            {copied && <p className="fine" role="status">{copied}</p>}
+          </div>
+          <div className="score-block">
+            <div className="score-num"><b>{r0(step.mean)}</b><span>of 100</span></div>
+            <TwinSpark twin={twin} />
+            <p className="fine">Change in walking, balance, and hand function since cycle {first.cycle}. Likely {r0(step.low)} to {r0(step.high)}.</p>
+          </div>
         </header>
 
-        <p className="headline">{headline}</p>
-        <p className="muted sub">Likely {r0(step.low)} to {r0(step.high)}.{worse.length ? ` Cycle ${worse.join(' and ')} was worse than expected.` : ''}</p>
+        <p className="headline">{checkins.length > 1 ? `${changed.size} of ${GROUPS.reduce((n, g) => n + g.rows.length, 0)} measures have changed since cycle ${first.cycle}.` : 'Your first check-in sets the baseline.'}{worse.length ? <> <span className="warn">Cycle {worse.join(' and ')} was worse than expected.</span></> : null}</p>
 
         {checkins.length > 1 && <>
           <div className="cols-head"><span />{['Trend', `Cycle ${first.cycle}`, `Cycle ${last.cycle}`, ''].map((h, k) => <span key={k}>{h}</span>)}</div>
@@ -170,7 +190,7 @@ export default function Report({ go }) {
 
         {questions.length > 0 && <section className="mgroup" aria-label="Questions">
           <h2>Questions for the next visit</h2>
-          <ol className="qs">{questions.map((q) => <li key={q}>{q}</li>)}</ol>
+          <ul className="checks">{questions.map((q) => <li key={q}>{q}</li>)}</ul>
         </section>}
 
         <details className="quiet">
