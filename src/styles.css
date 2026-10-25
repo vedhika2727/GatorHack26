@@ -744,3 +744,19 @@ main[data-view="report"] { background: var(--surface); }
 .section-intro.optional::before { content: ""; width: 1px; height: 34px; background: linear-gradient(var(--line), var(--ink-2)); margin-bottom: 14px; }
 .opt-tag { color: var(--rose) !important; font-weight: 600; font-size: 0.9rem; margin: 0 0 4px !important; }
 .section-intro.optional p:last-child { max-width: 56ch; }
+
+/* Twin: what changed, grouped by area */
+.chg-intro { margin: -4px 0 14px; }
+.changes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.chg-group { background: var(--surface); border-radius: 16px; padding: 16px 18px 6px; }
+.chg-group h3 { margin: 0 0 4px; font-size: 1.05rem; display: flex; justify-content: space-between; align-items: baseline; }
+.chg-group h3 span { font-size: 0.82rem; font-weight: 500; color: var(--ink-2); }
+.chg-group ul { list-style: none; margin: 0; padding: 0; }
+.chg-group li { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 11px 0; border-top: 1px solid var(--line); }
+.chg-group li:first-child { border-top: 0; }
+.chg-group li > div { display: grid; min-width: 0; }
+.chg-group li > div b { font-weight: 600; }
+.chg-group li > div span { color: var(--ink-2); font-size: 0.9rem; }
+.chg-vals { margin: 0; display: flex; align-items: baseline; gap: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 0.92rem; }
+.chg-vals span { color: var(--ink-2); }
+.chg-vals i { font-style: normal; color: var(--ink-2); }

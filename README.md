@@ -1,4 +1,4 @@
-# Chemo Nerve Check
+# Steadi (formerly Chemo Nerve Check)
 
 A React web app that helps people on chemotherapy notice and share changes in their **walking, balance, and hand function** between infusions, next to the nerve symptoms they report and how their tumor is responding on scans.
 

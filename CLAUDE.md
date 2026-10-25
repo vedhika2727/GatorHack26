@@ -1,6 +1,6 @@
 # Notes for Claude Code
 
-Chemo Nerve Check: React (Vite) web app for people on chemotherapy. Read README.md first.
+Steadi (formerly Chemo Nerve Check): React (Vite) web app for people on chemotherapy. Read README.md first.
 
 - Run: `npm install`, `npm run dev` (Vite serves the app and mounts the Gemma API routes from `lib/routes.js` via a plugin in `vite.config.js`). Tests: `npm test`.
 - Plain JavaScript (no TypeScript), React 18, no UI library, no router library (hash-based views in `src/App.jsx`). Icons are hand-drawn in `src/components/Icon.jsx`.

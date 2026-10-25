@@ -38,7 +38,7 @@ export default function App() {
     <>
       <header className="topbar">
         <div className="wrap wide topbar-inner">
-          <button type="button" className="brand" onClick={() => go(signedIn ? 'home' : 'welcome')} aria-label="Chemo Nerve Check home"><Logo /><span className="brand-name">Chemo Nerve Check</span></button>
+          <button type="button" className="brand" onClick={() => go(signedIn ? 'home' : 'welcome')} aria-label="Steadi home"><Logo /><span className="brand-name">Steadi</span></button>
           {signedIn ? <>
             <nav className="topnav" aria-label="Sections">
               {NAV.map((n) => <button key={n.id} type="button" aria-current={v === n.id ? 'page' : undefined} onClick={() => go(n.id)}><Icon name={n.icon} size={18} />{n.label}</button>)}
