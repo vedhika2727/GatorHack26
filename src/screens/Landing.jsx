@@ -62,64 +62,55 @@ export default function Landing({ go }) {
         </div>
       </section>
 
-      <section className="wrap wide land-panel">
-        <p className="mono kicker-mono">01 / Under two minutes</p>
-        <h2>A check-in, start to finish</h2>
-        <p className="muted" style={{ marginTop: 0 }}>Under two minutes from start to finish.</p>
-        <ol className="route">
-          {CLOCK.map((st) => (
-            <li key={st.title} style={{ flexGrow: st.s }}>
-              <span className="stop" aria-hidden="true" />
-              <span className="t">{st.at}</span>
-              <h3>{st.title} <small>{st.s} s</small></h3>
-              <p className="muted">{st.text}</p>
-            </li>
-          ))}
-          <li className="done">
-            <span className="stop" aria-hidden="true" />
-            <span className="t">1:50</span>
-            <h3>Done</h3>
-            <p className="muted">Your twin updates and the report is ready to share.</p>
-          </li>
-        </ol>
-      </section>
+      <div className="wrap wide land-ed">
+        <ul className="ed-stats" aria-label="At a glance">
+          <li><span className="mono">[01]</span><b>2 min</b><small>per check-in, before each infusion</small></li>
+          <li><span className="mono">[02]</span><b>4</b><small>quick tests: questions, walk, balance, tapping</small></li>
+          <li><span className="mono">[03]</span><b>Every</b><small>scan size checked against the report’s own words</small></li>
+          <li><span className="mono">[04]</span><b>1 page</b><small>for your oncologist, ready to share</small></li>
+        </ul>
 
-      <section className="wrap wide land-panel">
-        <p className="mono kicker-mono">02 / Six tools, one app</p>
-        <h2>What’s inside</h2>
-        <div className="feature-list">
-          {FEATURES.map((f) => (
-            <div className="feature" key={f.title}>
-              <FeatureArt kind={f.art} twin={twin} checkins={demo} />
-              <div><h3>{f.title}</h3><p className="muted">{f.text}</p></div>
-            </div>
-          ))}
-        </div>
-      </section>
+        <section className="land-sec" aria-labelledby="ls1">
+          <div className="land-head"><div><p className="mono">01 / Under two minutes</p><h2 id="ls1">A check-in, start to finish</h2></div><p>Your phone guides you through each part out loud. Skip anything that doesn’t feel safe.</p></div>
+          <ol className="land-route">
+            {CLOCK.map((st) => (
+              <li key={st.title} style={{ flexGrow: st.s }}>
+                <p className="mono">{st.at} · {st.s} s</p>
+                <span className="bar" aria-hidden="true" />
+                <h3>{st.title}</h3>
+                <p>{st.text}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-      <section className="wrap wide land-panel">
-        <p className="mono kicker-mono">03 / Honest about limits</p>
-        <h2>Where it stops</h2>
-        <div className="safety">
-          <p>The phone measures how you walk, balance, and tap. Those can change from chemo side effects, and also from tiredness, anemia, pain, and plenty else. Only your care team can say why. This is a hackathon prototype, not a medical device, and it hasn’t been clinically validated.</p>
-          <p className="fine">The tests follow a published smartphone study in people on chemotherapy (NeuroDetect, JMIR 2025). Explanations are written by Gemma 4, Google’s open AI model.</p>
-        </div>
-      </section>
-
-      <section className="sky-hero sky-end" aria-labelledby="end-h">
-        <div className="sky" aria-hidden="true">
-          <span className="cloud c1" /><span className="cloud c3" />
-          <span className="meadow" />
-        </div>
-        <div className="wrap wide sky-inner">
-          <p className="mono sky-ml">Before your next infusion</p>
-          <h2 id="end-h">Bring something concrete to your next appointment.</h2>
-          <div className="actions">
-            <button type="button" className="btn sky-btn" onClick={() => go('signup')}>Create an account</button>
-            <button type="button" className="btn sky-ghost" onClick={() => go('signin')}>I already have one</button>
+        <section className="land-sec" aria-labelledby="ls2">
+          <div className="land-head"><div><p className="mono">02 / Six tools, one app</p><h2 id="ls2">What’s inside</h2></div><p>Everything is measured against your own first check-in, not against other people.</p></div>
+          <div className="land-grid">
+            {FEATURES.map((f, i) => (
+              <div className="land-cell" key={f.title}>
+                <p className="mono">0{i + 1}</p>
+                <FeatureArt kind={f.art} twin={twin} checkins={demo} />
+                <h3>{f.title}</h3>
+                <p>{f.text}</p>
+              </div>
+            ))}
           </div>
-        </div>
-      </section>
+        </section>
+
+        <section className="land-sec" aria-labelledby="ls3">
+          <div className="land-head"><div><p className="mono">03 / Honest about limits</p><h2 id="ls3">Where it stops</h2></div><p /></div>
+          <div className="land-limits">
+            <p>The phone measures how you walk, balance, and tap. Those can change from chemo side effects, and also from tiredness, anemia, pain, and plenty else. Only your care team can say why.</p>
+            <p className="fine">This is a hackathon prototype, not a medical device, and it hasn’t been clinically validated. The tests follow a published smartphone study in people on chemotherapy (NeuroDetect, JMIR 2025). Explanations are written by Gemma 4, Google’s open AI model.</p>
+          </div>
+          <div className="land-end">
+            <h2>Bring something concrete to your next appointment.</h2>
+            <div className="actions"><button type="button" className="btn" onClick={() => go('signup')}>Create an account <Icon name="arrowRight" size={18} /></button><button type="button" className="btn ghost" onClick={() => go('signin')}>I already have one</button></div>
+          </div>
+        </section>
+      </div>
+      <p className="ed-watermark" aria-hidden="true">steadi</p>
     </>
   );
 }
