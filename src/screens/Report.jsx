@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import FunctionTwin from '../core/twin.js';
+import Trends from '../core/trends.js';
+import { checkinsForTwin, hasExcludedPhysicalMeasurements, personalMeasurementInputs } from '../core/checkinSource.js';
 import { useStore, HOSTED_PREVIEW } from '../store.jsx';
 import { writeReport } from '../lib/api.js';
 import { fmtDate } from '../lib/format.js';
@@ -10,7 +12,13 @@ export default function Report({ go }) {
   const [out, setOut] = useState(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState('');
-  const twin = useMemo(() => FunctionTwin.run(checkins), [checkins]);
+  const demoMode = user?.mode === 'demo';
+  const twinInputs = useMemo(() => checkinsForTwin(checkins, demoMode), [checkins, demoMode]);
+  const measurementInputs = useMemo(
+    () => demoMode ? checkins : personalMeasurementInputs(checkins),
+    [checkins, demoMode],
+  );
+  const twin = useMemo(() => FunctionTwin.run(twinInputs), [twinInputs]);
 
   if (!checkins.length) return (
     <div className="wrap"><h1>Report for your care team</h1>
@@ -54,16 +62,26 @@ export default function Report({ go }) {
           <h3>For the oncology team</h3><div className="pre">{out.clinician}</div>
           <h3>Questions for the next visit</h3><ul>{out.questions.map((q) => <li key={q}>{q}</li>)}</ul>
           <h3>Measurements</h3>
+          <p className="fine">Twin estimates are experimental and unvalidated; the displayed ranges represent model uncertainty, not clinical confidence intervals.</p>
+          {demoMode
+            ? <p className="fine">Fictional demo data; simulated measurements are used for the demo estimate.</p>
+            : hasExcludedPhysicalMeasurements(checkins)
+              ? <p className="fine">Personal estimates use symptom answers and verified phone-sensor measurements. Sample, simulated, and unknown-source physical measurements are excluded.</p>
+              : null}
           <div className="table-wrap"><table>
             <thead><tr>{['Cycle', 'Date', 'Twin estimate', 'Feet /10', 'Hands /10', 'Pain /10', 'Steps/min', 'Evenness', 'Timing var. %', 'Pauses', 'Sway', 'Eyes-closed ratio', 'Taps/s R', 'Taps/s L', 'Falls'].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
             <tbody>{checkins.map((c, k) => {
-              const g = c.gait?.ok ? c.gait : null, b = c.balance?.ok ? c.balance : null, t = twin[k];
-              return <tr key={c.id}>{[c.cycle, c.date, `${t.mean} (${t.low}–${t.high})${t.surprise === 'worse' ? ' worse than expected' : ''}`, c.symptoms.feetNumb, c.symptoms.handsNumb, c.symptoms.feetPain, g?.cadence ?? '—', g?.stepRegularity ?? '—', g?.stepTimeCV ?? '—', g?.hesitations ?? '—', b ? (b.swayRms * 100).toFixed(1) : '—', b && c.balanceClosed?.ok ? (c.balanceClosed.swayRms / b.swayRms).toFixed(2) : '—', c.tapping?.right?.ok ? c.tapping.right.rate : '—', c.tapping?.left?.ok ? c.tapping.left.rate : '—', { none: 'No', near: 'Near-fall', fall: 'Fall' }[c.falls]].map((v, j) => <td key={j}>{v}</td>)}</tr>;
+              const input = measurementInputs[k];
+              const g = input.gait?.ok ? input.gait : null, b = input.balance?.ok ? input.balance : null, t = twin[k];
+              const tap = input.tapping;
+              const recordedChanges = k > 0 ? Trends.compare(twinInputs[0], twinInputs[k]) : [];
+              const estimateLabel = `${t.mean} (${t.low}–${t.high})${recordedChanges.length ? ' · recorded baseline change' : t.surprise !== 'none' ? ' · model discrepancy only' : ''}`;
+              return <tr key={c.id}>{[c.cycle, c.date, estimateLabel, c.symptoms.feetNumb, c.symptoms.handsNumb, c.symptoms.feetPain, g?.cadence ?? '—', g?.stepRegularity ?? '—', g?.stepTimeCV ?? '—', g?.hesitations ?? '—', b ? (b.swayRms * 100).toFixed(1) : '—', b && input.balanceClosed?.ok ? (input.balanceClosed.swayRms / b.swayRms).toFixed(2) : '—', tap?.right?.ok ? tap.right.rate : '—', tap?.left?.ok ? tap.left.rate : '—', { none: 'No', near: 'Near-fall', fall: 'Fall' }[c.falls]].map((v, j) => <td key={j}>{v}</td>)}</tr>;
             })}</tbody>
           </table></div>
           <p className="fine" style={{ marginTop: 14 }}>
             {out.source === 'gemma' ? <><span className="chip navy">Written by Gemma 4 ({out.model})</span> from the measurements above. Which changes are flagged is decided by fixed rules, and the twin is a fixed model, not AI. </> : <><span className="chip watch">Template text, Gemma not connected</span> {out.note} </>}
-            Phone measurements are approximate and measure function, not nerves directly. Not a diagnosis.
+            Experimental twin estimates are unvalidated; their ranges represent model uncertainty, not clinical confidence intervals. Phone measurements are approximate and measure function, not nerves directly. Not a diagnosis.
           </p>
         </article>
       )}

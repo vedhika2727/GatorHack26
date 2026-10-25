@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import Gait from '../core/gait.js';
 import Trends from '../core/trends.js';
-import { setMeasurementSource, skipMeasurements, sourceFromMeasurements } from '../core/checkinSource.js';
+import { checkinsForTwin, setMeasurementSource, skipMeasurements, sourceFromMeasurements } from '../core/checkinSource.js';
 import { useStore, HOSTED_PREVIEW } from '../store.jsx';
 import { requestMotion, record, speak, buzz } from '../lib/sensors.js';
 import { today } from '../lib/format.js';
@@ -155,15 +155,28 @@ export default function CheckIn({ go }) {
   }
 
   async function finish(extra) {
-    const c = { ...d, ...extra, source: sourceFromMeasurements(measurementSources.current), id: 'c' + Date.now() };
+    const c = {
+      ...d, ...extra,
+      source: sourceFromMeasurements(measurementSources.current),
+      measurementSources: { ...measurementSources.current },
+      id: 'c' + Date.now(),
+    };
     if (user.mode === 'demo') c.demo = true;
     setSaveErr('');
     try { await addCheckin(c); setSaved(c); goStep(5); }
     catch (e) { setSaveErr(e.message); }
   }
 
-  const all = saved ? [...checkins] : checkins;
-  const flags = saved && all.length > 1 ? Trends.compare(all[0], saved) : [];
+  const comparedCheckins = saved
+    ? checkinsForTwin(
+      [...checkins.filter((checkin) => checkin.id !== saved.id), saved].sort((a, b) => a.cycle - b.cycle),
+      user.mode === 'demo',
+    )
+    : [];
+  const comparedSaved = comparedCheckins.find((checkin) => checkin.id === saved?.id);
+  const flags = comparedCheckins.length > 1
+    ? Trends.compare(comparedCheckins[0], comparedSaved)
+    : [];
 
   return (
     <div className="wrap">

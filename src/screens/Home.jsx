@@ -5,16 +5,21 @@ import { BandChart } from '../components/Viz.jsx';
 import FunctionTwin from '../core/twin.js';
 import Trends from '../core/trends.js';
 import Scans from '../core/scans.js';
+import { checkinsForTwin, hasExcludedPhysicalMeasurements } from '../core/checkinSource.js';
 import { useStore } from '../store.jsx';
 import { fmtDate, greeting, today } from '../lib/format.js';
 
 export default function Home({ go }) {
   const { user, checkins, scans } = useStore();
-  const twin = useMemo(() => FunctionTwin.run(checkins), [checkins]);
+  const twinInputs = useMemo(
+    () => checkinsForTwin(checkins, user?.mode === 'demo'),
+    [checkins, user?.mode],
+  );
+  const twin = useMemo(() => FunctionTwin.run(twinInputs), [twinInputs]);
   const last = checkins[checkins.length - 1];
   const step = twin[twin.length - 1];
-  const flags = checkins.length > 1 ? Trends.compare(checkins[0], last) : [];
-  const level = checkins.length > 1 ? (step.surprise === 'worse' ? 'notable' : Trends.overall(flags)) : null;
+  const flags = checkins.length > 1 ? Trends.compare(twinInputs[0], twinInputs[twinInputs.length - 1]) : [];
+  const level = flags.length ? Trends.overall(flags) : null;
   const lastScan = scans[scans.length - 1];
   const doneToday = last?.date === today() && !last.demo;
   const groups = Scans.groupOpinions(scans);
@@ -42,14 +47,21 @@ export default function Home({ go }) {
           <div className="score-row" style={{ justifyContent: 'space-between' }}>
             <div>
               <h2 id="twin-sum" style={{ margin: 0, fontSize: '1.2rem' }}>Your function twin</h2>
-              <div className="score-row"><span className="score">{Math.round(step.mean)}</span><span className="muted">/100 change since your first check-in</span></div>
+              <div className="score-row"><span className="score">{Math.round(step.mean)}</span><span className="muted">/100 experimental {user?.mode === 'demo' ? 'demo' : 'personal'} estimate</span></div>
             </div>
             {level && <Chip level={level} />}
           </div>
           <p className="muted" style={{ marginTop: 6 }}>
             {checkins.length === 1 ? 'Your baseline is set. Your twin starts learning at your next check-in.'
-              : `Likely between ${Math.round(step.low)} and ${Math.round(step.high)} at cycle ${last.cycle}.${step.surprise === 'worse' ? ' This check-in was worse than your twin expected.' : ''}`}
+              : `Experimental model uncertainty range ${Math.round(step.low)}–${Math.round(step.high)} at cycle ${last.cycle}.`}
           </p>
+          {step.surprise !== 'none' && <p className="fine">{FunctionTwin.interpretation(step, flags.length > 0)}</p>}
+          <p className="fine">Experimental, unvalidated estimate; its range is model uncertainty, not a clinical confidence interval.</p>
+          {user?.mode === 'demo'
+            ? <p className="fine">This is a fictional demo estimate using simulated measurements.</p>
+            : hasExcludedPhysicalMeasurements(checkins)
+              ? <p className="fine">Sample or unverified physical measurements are excluded from this personal estimate.</p>
+              : null}
           {checkins.length > 1 && <BandChart steps={twin} selected={twin.length - 1} />}
           <div className="actions" style={{ marginBottom: 0 }}><button type="button" className="btn" onClick={() => go('twin')}>Open my twin <Icon name="arrowRight" size={18} /></button></div>
         </section>
@@ -67,8 +79,8 @@ export default function Home({ go }) {
         <section className="card">
           <h3>What changed</h3>
           {checkins.length < 2 ? <p className="muted">Changes appear after your second check-in.</p>
-            : flags.length ? <><p className="muted">{flags.length} change{flags.length > 1 ? 's' : ''} since your first check-in, including:</p><p>{flags[0].text}</p></>
-            : <p className="muted">Nothing has changed beyond normal day-to-day variation.</p>}
+            : flags.length ? <><p className="muted">{flags.length} recorded change{flags.length > 1 ? 's' : ''} from baseline, including:</p><p>{flags[0].text}</p></>
+            : <p className="muted">No recorded symptom or sensor change crossed the comparison thresholds.</p>}
           {checkins.length > 1 && <button type="button" className="linkish" onClick={() => go('twin')}>See every change</button>}
         </section>
         <section className="card">

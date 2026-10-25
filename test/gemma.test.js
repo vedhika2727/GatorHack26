@@ -5,7 +5,7 @@ process.env.GEMINI_API_KEY = 'test-key';
 let lastReq = null, reply = null;
 global.fetch = async (url, opt) => { lastReq = { url, body: JSON.parse(opt.body), headers: opt.headers }; return { ok: true, json: async () => reply }; };
 const { extractReport, explainOpinions } = await import('../lib/scans-ai.js');
-const { explain } = await import('../lib/explain.js');
+const { explain, buildPayload } = await import('../lib/explain.js');
 const { default: G } = await import('../src/core/gait.js');
 let failed = 0;
 const check = (n, c, d = '') => { console.log(`${c ? 'PASS' : 'FAIL'}  ${n}  ${d}`); if (!c) failed++; };
@@ -38,9 +38,33 @@ const wrap = (obj, thought) => ({ candidates: [{ content: { parts: [...(thought 
   check('report: twin estimates included in prompt', /likely_range/.test(sent));
   check('report: Gemma output returned', e.source === 'gemma' && e.twin === 't');
 
+  const sourced = [
+    {
+      ...ck[0], source: 'sample',
+      gait: G.analyze(G.synthesizeWalk({ cadence: 60, seed: 21 }).samples),
+    },
+    {
+      ...ck[1], source: 'mixed',
+      gait: G.analyze(G.synthesizeWalk({ cadence: 65, seed: 22 }).samples),
+      balance: { ok: true, swayRms: 0.2 },
+      measurementSources: { gait: 'sample', balance: 'sensor' },
+    },
+    {
+      ...ck[2], source: 'sensor',
+      gait: G.analyze(G.synthesizeWalk({ cadence: 105, seed: 23 }).samples),
+      balance: { ok: true, swayRms: 0.04 },
+    },
+  ];
+  const reportPayload = buildPayload(sourced);
+  check('report: sample physical values are excluded from rows', reportPayload.rows[0].walk.startsWith('excluded from personal estimate') && reportPayload.rows[1].walk.startsWith('excluded from personal estimate'));
+  check('report: sensor measurements in mixed entries remain available', typeof reportPayload.rows[1].balance === 'object');
+  check('report: genuine symptoms remain in personal twin flags', reportPayload.flags.some((flag) => flag.id === 'feetNumb'));
+  check('report: demo entries retain simulated physical measurements', typeof buildPayload(ck.map((c) => ({ ...c, demo: true, source: 'simulated' }))).rows[0].walk === 'object');
+
   reply = { candidates: [{ content: { parts: [{ text: 'not json at all' }] } }] };
   const bad = await explain(ck, []);
   check('report: bad Gemma output falls back to template', bad.source === 'template');
+  check('report fallback labels model uncertainty without claiming the model proves decline', /model uncertainty range/.test(bad.twin) && !/worse than the twin expected/i.test(bad.twin));
 
   global.fetch = async () => ({ ok: false, status: 429, text: async () => 'quota' });
   const q = await extractReport({ text });

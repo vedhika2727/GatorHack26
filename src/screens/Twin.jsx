@@ -5,6 +5,7 @@ import { BandChart, BodyMap, Walker, Sparkline, DualTimeline } from '../componen
 import FunctionTwin from '../core/twin.js';
 import Trends from '../core/trends.js';
 import Scans from '../core/scans.js';
+import { checkinsForTwin } from '../core/checkinSource.js';
 import { useStore } from '../store.jsx';
 import { fmtDate } from '../lib/format.js';
 
@@ -25,6 +26,12 @@ const METRICS = [
 ];
 
 function sourceKind(checkin) {
+  const taskSources = Object.values(checkin.measurementSources || {});
+  const hasSample = taskSources.includes('sample');
+  const hasSensor = taskSources.includes('sensor');
+  if (hasSample && (hasSensor || checkin.source === 'sensor')) return 'mixed';
+  if (hasSample) return 'sample';
+  if (hasSensor && checkin.source === 'sample') return 'mixed';
   return checkin.source || (checkin.demo ? 'simulated' : 'unknown');
 }
 
@@ -39,6 +46,7 @@ function sourceDescription(checkin) {
 }
 
 function walkingDescription(checkin) {
+  if (!checkin.gait?.ok) return 'Walking was not measured.';
   switch (sourceKind(checkin)) {
     case 'sample': return 'Sample footsteps are simulated, not real recorded steps.';
     case 'sensor': return 'Illustration of detected step timing, not a reconstruction of actual movement.';
@@ -49,10 +57,15 @@ function walkingDescription(checkin) {
 }
 
 export default function Twin({ go }) {
-  const { checkins, scans } = useStore();
+  const { checkins, scans, user } = useStore();
+  const demoMode = user?.mode === 'demo';
   const [sel, setSel] = useState(checkins.length - 1);
   useEffect(() => { setSel(checkins.length - 1); }, [checkins.length]);
-  const twin = useMemo(() => FunctionTwin.run(checkins), [checkins]);
+  const twinInputs = useMemo(
+    () => checkinsForTwin(checkins, demoMode),
+    [checkins, demoMode],
+  );
+  const twin = useMemo(() => FunctionTwin.run(twinInputs), [twinInputs]);
   const tumor = useMemo(() => Scans.tumorSeries(scans), [scans]);
 
   if (!checkins.length) {
@@ -66,42 +79,54 @@ export default function Twin({ go }) {
   }
   const i = Math.min(sel, checkins.length - 1);
   const base = checkins[0], cur = checkins[i], step = twin[i];
-  const flags = Trends.compare(base, cur);
-  const level = i === 0 ? null : step.surprise === 'worse' ? 'notable' : Trends.overall(flags);
+  const personalBase = twinInputs[0] || base;
+  const personalCur = twinInputs[i] || cur;
+  const flags = Trends.compare(personalBase, personalCur);
+  const level = i === 0 || !flags.length ? null : Trends.overall(flags);
   const gnum = (g) => (g?.ok ? `${Math.round(g.cadence)} steps/min` : 'no walk');
   const sourceNotes = checkins
     .map((c) => ({ cycle: c.cycle, source: sourceKind(c), description: sourceDescription(c) }))
-    .filter((c) => c.source !== 'sensor');
+    .filter((c, index) => c.source !== 'sensor'
+      || Object.values(checkins[index].measurementSources || {}).includes('sample'));
   const sourceNotice = sourceNotes.length
-    ? sourceNotes.map((c) => `Cycle ${c.cycle}: ${c.description}`).join(' ')
+    ? `${sourceNotes.map((c) => `Cycle ${c.cycle}: ${c.description}`).join(' ')} ${demoMode
+      ? 'This is a fictional demo estimate.'
+      : 'Sample and simulated physical measurements are excluded from this personal estimate. For older mixed or unknown-source entries without task details, all physical measurements are excluded; saved values and symptom answers are retained.'}`
     : '';
   const baselineMessage = checkins.length === 1
     ? 'Baseline recorded. Add another check-in to compare changes.'
     : `Cycle ${base.cycle} is your baseline, so the twin starts at 0.`;
+  const symptomsOnly = !personalCur.gait?.ok && !personalCur.balance?.ok && !personalCur.balanceClosed?.ok
+    && !personalCur.tapping?.right?.ok && !personalCur.tapping?.left?.ok;
+  const sampleOnlyPhysical = symptomsOnly && (cur.gait?.ok || cur.balance?.ok || cur.balanceClosed?.ok
+    || cur.tapping?.right?.ok || cur.tapping?.left?.ok);
 
   return (
     <div className="wrap">
       <h1>Your function twin</h1>
       <p className="lede">Each test on its own is noisy: a tired day or different shoes can change one result. Your twin combines all your signals, trusts the reliable ones more, and estimates how much your walking, balance, and hand function have changed since your first check-in.</p>
 
+      {demoMode && <p className="notice rose" role="note">Demo estimate. This fictional timeline uses simulated measurements and does not describe a real person.</p>}
       {sourceNotice && <p className="notice rose" role="note">{sourceNotice} Chart values include these sample or simulated measurements.</p>}
 
       <section className="card twin-hero" aria-label="Twin estimate">
         <div className="score-row" style={{ justifyContent: 'space-between' }}>
-          <div className="score-row"><span className="score">{Math.round(step.mean)}</span><span className="muted">/100 change in function at cycle {cur.cycle}</span></div>
+          <div className="score-row"><span className="score">{Math.round(step.mean)}</span><span className="muted">/100 experimental {demoMode ? 'demo' : 'personal'} estimate at cycle {cur.cycle}</span></div>
           {level && <Chip level={level} />}
         </div>
         <p>{i === 0 ? baselineMessage
-          : `Likely between ${Math.round(step.low)} and ${Math.round(step.high)} on ${fmtDate(cur.date)}. Before this check-in, the twin expected about ${Math.round(step.priorMean)}.`}</p>
+          : `Experimental model uncertainty range: ${Math.round(step.low)}–${Math.round(step.high)} on ${fmtDate(cur.date)}. Its prior estimate was about ${Math.round(step.priorMean)}.`}</p>
         {i === 0 && <p className="fine">A baseline score of 0 means no change has been calculated yet; it does not mean you have no symptoms.</p>}
-        {step.surprise === 'worse' && <p className="notice red"><strong>Worse than your twin expected.</strong> This is worth telling your care team before your next infusion.</p>}
-        {step.surprise === 'better' && <p className="notice">This check-in was better than your twin expected.</p>}
+        <p className="fine">Experimental, unvalidated model estimate—not a measured physical decline. The range is model uncertainty, not a clinical confidence interval.</p>
+        {symptomsOnly && !sampleOnlyPhysical && <p className="notice rose" role="note">Symptoms-only check-in. Walking, balance, and hand performance were not measured.</p>}
+        {sampleOnlyPhysical && <p className="notice rose" role="note">No personal physical measurements are available for this check-in. Sample or unverified physical results are excluded from your personal estimate.</p>}
+        {step.surprise !== 'none' && <p className="notice">{FunctionTwin.interpretation(step, flags.length > 0)}</p>}
         <BandChart steps={twin} selected={i} />
         <ul className="legend" aria-label="Chart key">
           <li><span className="k k-line" />Twin’s estimate</li>
-          <li><span className="k k-band" />Likely range</li>
+          <li><span className="k k-band" />Model uncertainty range</li>
           <li><span className="k k-prior" />What it expected</li>
-          <li><span className="k k-red" />Worse than expected</li>
+          <li><span className="k k-model" />Model discrepancy</li>
           <li><span className="k k-dot" />Individual signals</li>
         </ul>
       </section>
@@ -109,7 +134,8 @@ export default function Twin({ go }) {
       <h2>Your infusions</h2>
       <div className="beads" role="tablist" aria-label="Choose a check-in">
         {checkins.map((c, k) => {
-          const lv = k === 0 ? 'steady' : twin[k].surprise === 'worse' ? 'notable' : Trends.overall(Trends.compare(base, c));
+          const checkinFlags = Trends.compare(personalBase, twinInputs[k]);
+          const lv = k === 0 ? 'steady' : checkinFlags.length ? Trends.overall(checkinFlags) : 'steady';
           return <button key={c.id} type="button" role="tab" aria-selected={k === i} className={`bead ${lv}`} onClick={() => setSel(k)} aria-label={`Cycle ${c.cycle}, ${fmtDate(c.date)}`}>C{c.cycle}<small>{fmtDate(c.date)}</small></button>;
         })}
       </div>
@@ -117,7 +143,7 @@ export default function Twin({ go }) {
       {i > 0 && <>
         <h2>What changed since your first check-in</h2>
         {flags.length ? <ul className="flags">{flags.map((f) => <li key={f.id} className={f.level}>{f.text}</li>)}</ul>
-          : <p className="muted">Nothing has changed beyond normal day-to-day variation.</p>}
+          : <p className="muted">No recorded symptom or sensor change crossed the comparison thresholds.</p>}
 
         <h2>What the twin is listening to</h2>
         <p className="muted">{FunctionTwin.disagreements(step)} The bar shows each signal; the pink tick is the twin’s combined estimate. “Counts” is how much each signal contributes, based on how noisy it tends to be.</p>
@@ -140,10 +166,14 @@ export default function Twin({ go }) {
         <figure className="body-fig"><BodyMap symptoms={cur.symptoms} /><figcaption className="fine">Glow shows the numbness, tingling, or pain you reported</figcaption></figure>
         <div>
           <div className="walker-label"><span>Baseline (cycle {base.cycle})</span><span className="muted num">{gnum(base.gait)}</span></div>
-          <Walker stepTimes={base.gait?.ok ? base.gait.stepTimes : []} label="Baseline walking rhythm" />
+          {base.gait?.ok
+            ? <Walker stepTimes={base.gait.stepTimes} label="Baseline walking step-timing illustration" />
+            : <p className="fine">Walking was not measured at baseline.</p>}
           <div className="walker-label" style={{ marginTop: 10 }}><span>Cycle {cur.cycle}</span><span className="muted num">{gnum(cur.gait)}</span></div>
-          <Walker stepTimes={cur.gait?.ok ? cur.gait.stepTimes : []} label={`Cycle ${cur.cycle} walking rhythm`} />
-          <p className="fine">Baseline: {walkingDescription(base)} Cycle {cur.cycle}: {walkingDescription(cur)} Uneven gaps show uneven timing.</p>
+          {cur.gait?.ok
+            ? <Walker stepTimes={cur.gait.stepTimes} label={`Cycle ${cur.cycle} walking step-timing illustration`} />
+            : <p className="fine">Walking was not measured for this check-in.</p>}
+          {(base.gait?.ok || cur.gait?.ok) && <p className="fine">Baseline: {walkingDescription(base)} Cycle {cur.cycle}: {walkingDescription(cur)} Uneven gaps show uneven timing.</p>}
         </div>
       </section>
 
@@ -172,8 +202,8 @@ export default function Twin({ go }) {
 
       <details className="more" style={{ marginTop: 18 }}>
         <summary>How the twin works</summary>
-        <p>The twin is a state-space model (a Kalman filter), the kind of model engineers use to track things they can’t see directly. It assumes each chemo cycle may bring a little change. At each check-in it compares that expectation with your signals and trusts the less noisy ones more. When a check-in is much worse than it expected, it flags it.</p>
-        <p>It measures function, not your nerves directly. Changes can come from nerve side effects, tiredness, anemia, pain, or other causes, which is why they’re worth showing your care team. Its settings are reasonable starting values for this prototype, not clinically calibrated, and it doesn’t predict your future.</p>
+        <p>The twin is an experimental state-space model (a Kalman filter), the kind of model engineers use to track things they can’t see directly. It assumes each chemo cycle may bring a little change. At each check-in it compares that expectation with your signals and trusts the less noisy ones more. A model discrepancy is not, by itself, evidence of deterioration.</p>
+        <p>It estimates function, not your nerves directly. Changes can come from nerve side effects, tiredness, anemia, pain, or other causes. Its settings are illustrative, not clinically calibrated, and it doesn’t predict your future. The displayed range represents model uncertainty, not a clinical confidence interval.</p>
       </details>
 
       <div className="actions">

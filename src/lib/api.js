@@ -2,6 +2,7 @@
 import Trends from '../core/trends.js';
 import FunctionTwin from '../core/twin.js';
 import Scans from '../core/scans.js';
+import { checkinsForTwin, hasExcludedPhysicalMeasurements, isDemoCheckins } from '../core/checkinSource.js';
 import { HOSTED_PREVIEW } from '../store.jsx';
 import { fmtDate } from './format.js';
 
@@ -37,17 +38,24 @@ export async function readReport({ text, image }) {
 }
 
 export function localReport(list, scanList, why) {
-  const flags = Trends.compare(list[0], list[list.length - 1]);
-  const tw = FunctionTwin.run(list), t = tw[tw.length - 1], last = list[list.length - 1];
-  const worse = tw.filter((x) => x.surprise === 'worse').map((x) => x.cycle);
+  const demo = isDemoCheckins(list);
+  const excludedMeasurements = !demo && hasExcludedPhysicalMeasurements(list);
+  const twinInputs = checkinsForTwin(list);
+  const flags = Trends.compare(twinInputs[0], twinInputs[twinInputs.length - 1]);
+  const tw = FunctionTwin.run(twinInputs), t = tw[tw.length - 1], last = list[list.length - 1];
   const groups = Scans.groupOpinions(scanList);
+  const exclusionNote = 'Sample or unverified physical measurements were excluded from the personal estimate; symptom answers were retained.';
+  const modelNote = FunctionTwin.interpretation(t, flags.length > 0)
+    || 'No recorded symptom or sensor change crossed the comparison thresholds.';
   return {
     patient: flags.length
       ? `Since your first check-in, a few things have changed. ${flags.slice(0, 2).map((f) => f.text).join(' ')} Changes like these can happen during chemotherapy and are worth mentioning. Please share this report with your care team before your next infusion.`
-      : "Your walking, balance, hand tests, and symptoms look about the same as at your first check-in. That's useful information for your care team. Keep checking in before each infusion, and share this report at your next visit.",
-    twin: `The twin estimates that walking, balance, and hand function have changed by ${t.mean} out of 100 (likely between ${t.low} and ${t.high}) at cycle ${last.cycle}.${worse.length ? ` The check-in at cycle ${worse.join(', ')} was worse than the twin expected.` : ''} Only your care team can tell what is causing a change.`,
+      : excludedMeasurements
+        ? 'Some physical measurements were excluded because they were sample or their source was not verified. Your symptom answers were retained. Please share this report with your care team.'
+        : "Your walking, balance, hand tests, and symptoms look about the same as at your first check-in. That's useful information for your care team. Keep checking in before each infusion, and share this report at your next visit.",
+    twin: `The ${demo ? 'fictional demo' : 'personal'} experimental twin estimates that walking, balance, and hand function have changed by ${t.mean} out of 100 (model uncertainty range ${t.low}–${t.high}) at cycle ${last.cycle}. ${modelNote} ${excludedMeasurements ? exclusionNote : ''} Only your care team can tell what is causing a change.`,
     scans: groups.map((g) => `${g[0].kind} on ${fmtDate(g[0].date)}: ${g.map((x) => `${x.reader || 'radiologist'} said "${x.extracted.impression.slice(0, 160)}"`).join('; ')}`).join(' '),
-    clinician: [`Phone-based check-ins: ${list.length} (cycles ${list.map((c) => c.cycle).join(', ')}).`, `Function-change twin (uncalibrated Kalman filter; not nerve-specific): ${tw.map((x) => `C${x.cycle} ${x.mean} [${x.low}–${x.high}]`).join(', ')}.`, ...(flags.length ? flags.map((f) => `• ${f.text}`) : ['• No changes beyond thresholds versus baseline.']), "Unvalidated smartphone measures; interpret against the patient's own trend only."].join('\n'),
+    clinician: [`Phone-based check-ins: ${list.length} (cycles ${list.map((c) => c.cycle).join(', ')}).`, `Experimental function-change twin (uncalibrated Kalman filter; function, not nerve-specific): ${tw.map((x) => `C${x.cycle} ${x.mean} [model uncertainty ${x.low}–${x.high}]`).join(', ')}.`, ...(flags.length ? flags.map((f) => `• ${f.text}`) : ['• No recorded symptom or sensor change crossed comparison thresholds.']), ...(discrepancies.length && !flags.length ? [`• Model discrepancy at cycle ${discrepancies.join(', ')}; not evidence of deterioration by itself.`] : []), ...(excludedMeasurements ? [exclusionNote] : []), "Unvalidated smartphone measures; interpret against the patient's own trend only."].join('\n'),
     questions: flags.length ? ['Are the changes in my walking, balance, or hands something to watch?', 'Should I be doing anything to stay safe from falls at home?', 'Who should I call if my numbness gets worse between visits?'] : ['What nerve symptoms should I watch for during treatment?', 'Who should I call if I notice numbness or tingling?', 'How often should I do these check-ins?'],
     source: 'template', note: why,
   };
