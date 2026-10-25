@@ -21,7 +21,16 @@ const SHORT = { first: 'Baseline', mixed: 'Mixed', smaller: 'Smaller', larger: '
 const pct = (now, before) => (before ? Math.round(((now - before) / before) * 100) : null);
 const signed = (v) => (v > 0 ? `+${v}%` : `${v}%`);
 
-function Measurements({ ex }) {
+function Quote({ src }) {
+  if (!src) return <span className="muted">This size couldn’t be matched to one sentence. Check the full report text.</span>;
+  const out = []; let at = 0;
+  src.marks.forEach(([x, y], k) => { out.push(src.sentence.slice(at, x), <mark key={k}>{src.sentence.slice(x, y)}</mark>); at = y; });
+  out.push(src.sentence.slice(at));
+  return <>“{out}”</>;
+}
+
+function Measurements({ ex, text }) {
+  const [open, setOpen] = useState(null);
   if (!ex.lesions.length) return <p className="muted">No sizes were found in this report.</p>;
   const big = Math.max(...ex.lesions.map((l) => Math.max(l.sizeMm, l.previousMm || 0)));
   return (
@@ -30,24 +39,21 @@ function Measurements({ ex }) {
         <thead><tr><th scope="col">Spot</th><th scope="col">Before</th><th scope="col">Now</th><th scope="col">Change</th></tr></thead>
         <tbody>{ex.lesions.map((l, k) => {
           const c = pct(l.sizeMm, l.previousMm);
-          return (
-            <tr key={k}>
+          const on = open === k;
+          return [
+            <tr key={k} className={on ? 'src-open' : ''}>
               <td><Glossed text={l.location} /></td>
               <td className="muted">{l.previousMm ? `${l.previousMm} mm` : '–'}</td>
-              <td><b>{l.sizeMm} mm</b><span className="sizebar" aria-hidden="true"><span style={{ width: `${(l.sizeMm / big) * 100}%` }} />{l.previousMm && <i style={{ left: `${(l.previousMm / big) * 100}%` }} />}</span></td>
+              <td><button type="button" className="size-btn" aria-expanded={on} aria-controls={`src-${k}`} onClick={() => setOpen(on ? null : k)}>{l.sizeMm} mm</button><span className="sizebar" aria-hidden="true"><span style={{ width: `${(l.sizeMm / big) * 100}%` }} />{l.previousMm && <i style={{ left: `${(l.previousMm / big) * 100}%` }} />}</span></td>
               <td className={c == null ? 'muted' : c < 0 ? 'down' : c > 0 ? 'up' : ''}>{c == null ? 'new here' : signed(c)}</td>
-            </tr>
-          );
+            </tr>,
+            on && <tr key={k + 's'} className="src-row" id={`src-${k}`}><td colSpan={4}><span className="src-label">From the report</span><Quote src={Scans.sourceOf(text, l)} /></td></tr>,
+          ];
         })}</tbody>
       </table>
+      <p className="fine table-note">Tap a size to see the sentence it was taken from.</p>
     </div>
   );
-}
-
-function verifiedLine(ex) {
-  const n = ex.lesions.length;
-  if (!n) return null;
-  return <span className="verified"><Icon name="check" size={15} stroke={3} />{n === 1 ? 'The size' : `All ${n} sizes`} found word for word in the report</span>;
 }
 
 function Words({ text }) {
@@ -95,8 +101,7 @@ function ReadView({ s, onOpenImage }) {
         <footer>Radiologist’s conclusion. Tap an underlined word to see what it means.</footer>
       </blockquote>
       {ex.plain && <p className="plain">{ex.plain}</p>}
-      <Measurements ex={ex} />
-      {verifiedLine(ex)}
+      <Measurements ex={ex} text={s.text} />
       {!!s.images?.length && <div className="thumbs">{s.images.map((src, k) => <button key={k} type="button" aria-label={`Open scan picture ${k + 1}`} onClick={() => onOpenImage(src)}><img src={src} alt="" /></button>)}</div>}
       <Words text={s.text} />
       <details className="more"><summary>Full report text</summary><div className="report-text"><Glossed text={s.text} /></div></details>
@@ -188,8 +193,7 @@ function AddScan({ onDone, onCancel }) {
       <div aria-labelledby="check-title">
         <h2 id="check-title">Check the numbers</h2>
         <p className="muted">Compare these with your report before saving.</p>
-        <Measurements ex={ex} />
-        {verifiedLine(ex)}
+        <Measurements ex={ex} text={pending.scan.text} />
         {!!ex.droppedCount && <p className="fine">{ex.droppedCount} size{ex.droppedCount > 1 ? 's were' : ' was'} left out because {ex.droppedCount > 1 ? 'they don’t' : 'it doesn’t'} appear word for word in the report.</p>}
         {pending.scan.fromPhoto && <p className="fine">Read from a photo, so check each number against the printed report.</p>}
         <p className="fine">{pending.out.source === 'gemma' ? `Read by Gemma 4 (${pending.out.model}).` : `Read by built-in rules. ${pending.out.note || ''}`}</p>

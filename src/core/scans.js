@@ -189,8 +189,33 @@ function lesionTracks(scans) {
   };
 }
 
+/**
+ * Where a measurement came from: the report sentence that states this size, preferring
+ * the sentence that also names the same place. Returns { sentence, marks: [[start, end]] } or null.
+ * marks are the character ranges of the matching size (and previous size) inside the sentence.
+ */
+function sourceOf(text, lesion) {
+  const near = (mm) => (v) => v != null && Math.abs(v - mm) < 0.6;
+  let best = null;
+  for (const s of sentences(String(text || ''))) {
+    SIZE_RE.lastIndex = 0;
+    const ms = [...s.matchAll(SIZE_RE)];
+    const sizes = (m) => [m[1], m[2], m[3]].filter(Boolean).map(Number).map((d) => toMm(d, m[4]));
+    const hit = ms.find((m) => sizes(m).some(near(lesion.sizeMm)));
+    if (!hit) continue;
+    const score = 1 + Math.max(siteScore(lesion.location, s), siteScore(s, lesion.location)) + (/^impression/i.test(s) ? -0.5 : 0);
+    if (!best || score > best.score) {
+      const marks = [[hit.index, hit.index + hit[0].length]];
+      const prev = lesion.previousMm != null && ms.find((m) => m !== hit && sizes(m).some(near(lesion.previousMm)));
+      if (prev) marks.push([prev.index, prev.index + prev[0].length]);
+      best = { sentence: s, marks: marks.sort((a, b) => a[0] - b[0]), score };
+    }
+  }
+  return best && { sentence: best.sentence, marks: best.marks };
+}
+
 const CHANGE_WORDS = { first: 'First scan (nothing to compare with)', mixed: 'Some smaller, some larger', smaller: 'Smaller than before', larger: 'Larger than before', stable: 'About the same', unclear: 'Not stated clearly' };
 
-const api = { extractRules, verify, groupOpinions, compareReads, tumorSeries, lesionTracks, allSizesMm, CHANGE_WORDS };
+const api = { extractRules, verify, sourceOf, groupOpinions, compareReads, tumorSeries, lesionTracks, allSizesMm, CHANGE_WORDS };
 export const Scans = api;
 export default api;

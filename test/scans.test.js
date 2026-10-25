@@ -14,6 +14,11 @@ const last = seg7?.points[2];
 check('second read adds a range', last && last.min === 18 && last.max === 22, last && `${last.min}-${last.max}`);
 const nodule = tracks.find((t) => /lobe/.test(t.location));
 check('a spot first seen later starts a new track', nodule && !nodule.points[0] && nodule.points[2]?.mm === 4);
+const rep = 'FINDINGS:\nLiver: Segment 7 lesion measures 1.8 cm, previously 2.4 cm. Segment 4 lesion measures 0.9 cm.\nIMPRESSION: Decrease.';
+const src = Scans.sourceOf(rep, { location: 'Segment 7 lesion', sizeMm: 18, previousMm: 24 });
+check('source: finds the sentence that states the size', src && /Segment 7/.test(src.sentence), src?.sentence);
+check('source: marks the size and the previous size', src?.marks.length === 2 && src.sentence.slice(...src.marks[0]) === '1.8 cm' && src.sentence.slice(...src.marks[1]) === '2.4 cm');
+check('source: none for a size not in the report', Scans.sourceOf(rep, { location: 'lung', sizeMm: 33 }) === null);
 check('no tracks from no scans', Scans.lesionTracks([]).tracks.length === 0);
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');
