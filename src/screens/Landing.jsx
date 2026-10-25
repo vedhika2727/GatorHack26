@@ -2,22 +2,30 @@ import { useMemo } from 'react';
 import Icon from '../components/Icon.jsx';
 import { BandChart } from '../components/Viz.jsx';
 import Chip from '../components/Chip.jsx';
+import FeatureArt from '../components/FeatureArt.jsx';
 import { buildDemoCheckins } from '../core/demo.js';
 import FunctionTwin from '../core/twin.js';
 import { useStore } from '../store.jsx';
 
 const FEATURES = [
-  { icon: 'pulse', tone: 'navy', title: 'Function twin', text: 'Walking, balance, tapping, and your own symptom ratings, combined into one number with a range around it.' },
-  { icon: 'walk', tone: 'forest', title: 'Your walk, replayed', text: 'Footprints in the real timing of your steps. Cycle 1 on top, today underneath.' },
-  { icon: 'scan', tone: 'rose', title: 'Scan reports, spot by spot', text: 'Paste or photograph a radiology report. A size only appears if it’s written in the report.' },
-  { icon: 'doctors', tone: 'rose', title: 'Second opinions, lined up', text: 'Two radiologists read the same CT? See each spot side by side and where they disagree.' },
-  { icon: 'report', tone: 'navy', title: 'One page for your oncologist', text: 'What changed, your scans, and the questions you want to ask, ready to print or send.' },
-  { icon: 'shield', tone: 'forest', title: 'No diagnosis, no treatment advice', text: 'It shows what changed. What it means is for you and your care team to decide.' },
+  { art: 'twin', title: 'Function twin', text: 'Walking, balance, tapping, and your own symptom ratings, combined into one number with a range around it.' },
+  { art: 'walk', title: 'Your walk, replayed', text: 'Footprints in the real timing of your steps. Cycle 1 on top, today underneath.' },
+  { art: 'spots', title: 'Scan reports, spot by spot', text: 'Paste or photograph a radiology report. A size only appears if it’s written in the report.' },
+  { art: 'opinions', title: 'Second opinions, lined up', text: 'Two radiologists read the same CT? See each spot side by side and where they disagree.' },
+  { art: 'page', title: 'One page for your oncologist', text: 'What changed, your scans, and the questions you want to ask, ready to print or send.' },
+  { art: 'limits', title: 'No diagnosis, no treatment advice', text: 'It shows what changed. What it means is for you and your care team to decide.' },
+];
+
+const CLOCK = [
+  { at: '0:00', title: 'Three questions', text: 'Numbness, tingling, and pain in feet and hands, 0 to 10. Any falls.', parts: [{ label: 'rate', s: 20 }] },
+  { at: '0:20', title: 'Walk, then stand still', text: 'Phone in your pocket. 30 seconds walking, then 20 seconds standing with eyes open and 20 closed.', parts: [{ label: 'walk', s: 30 }, { label: 'eyes open', s: 20 }, { label: 'eyes closed', s: 20 }] },
+  { at: '1:30', title: 'Tap, each hand', text: 'Two circles, back and forth, 10 seconds a hand.', parts: [{ label: 'right', s: 10 }, { label: 'left', s: 10 }] },
 ];
 
 export default function Landing({ go }) {
   const { startDemo } = useStore();
-  const twin = useMemo(() => FunctionTwin.run(buildDemoCheckins()), []);
+  const demo = useMemo(() => buildDemoCheckins(), []);
+  const twin = useMemo(() => FunctionTwin.run(demo), [demo]);
   const last = twin[twin.length - 1];
   return (
     <>
@@ -47,11 +55,17 @@ export default function Landing({ go }) {
 
       <section className="wrap wide">
         <h2>A check-in, start to finish</h2>
-        <div className="steps">
-          <div className="step-card"><div className="n">1</div><h3>Answer three questions</h3><p className="muted">Numbness, tingling, and pain in your feet and hands, rated 0 to 10. Plus any falls or near-falls.</p></div>
-          <div className="step-card"><div className="n">2</div><h3>Walk and stand still</h3><p className="muted">30 seconds of walking with the phone in your pocket, then standing still with eyes open and closed.</p></div>
-          <div className="step-card"><div className="n">3</div><h3>Tap with each hand</h3><p className="muted">Ten seconds per hand, tapping two circles back and forth as fast as you can.</p></div>
-        </div>
+        <p className="muted" style={{ marginTop: 0 }}>Drawn to scale. The whole thing takes under two minutes.</p>
+        <ol className="clock">
+          {CLOCK.map((ph) => (
+            <li key={ph.title} style={{ flexGrow: ph.parts.reduce((t, x) => t + x.s, 0) }}>
+              <span className="stamp">{ph.at}</span>
+              <span className="bar">{ph.parts.map((x) => <span key={x.label} style={{ flexGrow: x.s }} title={`${x.label}, ${x.s} s`}><em>{x.label}</em></span>)}</span>
+              <h3>{ph.title}</h3>
+              <p className="muted">{ph.text}</p>
+            </li>
+          ))}
+        </ol>
       </section>
 
       <section className="wrap wide">
@@ -59,7 +73,7 @@ export default function Landing({ go }) {
         <div className="feature-list">
           {FEATURES.map((f) => (
             <div className="feature" key={f.title}>
-              <span className={`ic ${f.tone}`}><Icon name={f.icon} /></span>
+              <FeatureArt kind={f.art} twin={twin} checkins={demo} />
               <div><h3>{f.title}</h3><p className="muted">{f.text}</p></div>
             </div>
           ))}

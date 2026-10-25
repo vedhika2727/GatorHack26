@@ -146,14 +146,33 @@ main[data-view="welcome"] { padding-top: 0; }
 .btn.on-night { background: transparent; border-color: var(--night-line); color: var(--night-ink); }
 .btn.on-night:hover { background: rgba(255, 255, 255, 0.08); }
 .hero-visual { background: var(--surface); color: var(--ink); border-radius: 24px; box-shadow: var(--lift); padding: 20px; margin-bottom: -40px !important; position: relative; }
-.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; counter-reset: s; }
-@media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
-.step-card { background: var(--surface); border-radius: var(--r-lg); padding: 20px; border: 1px solid var(--line); }
-.step-card .n { font-family: var(--display); font-size: 2.6rem; font-weight: 800; color: var(--rose); line-height: 1; letter-spacing: -0.04em; }
+/* Check-in clock: phases sized by how many seconds they take */
+.clock { list-style: none; padding: 0; margin: 18px 0 0; display: flex; gap: 6px; }
+.clock li { flex-basis: 0; min-width: 0; position: relative; padding-right: 14px; }
+.clock li:last-child::after { content: "1:50"; position: absolute; right: 0; top: 0; font: 700 0.9rem/1 var(--display); color: var(--ink-2); }
+.clock .stamp { display: block; font: 700 0.9rem/1 var(--display); color: var(--ink-2); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+.clock .bar { display: flex; gap: 3px; height: 30px; margin-bottom: 14px; }
+.clock .bar span { flex-basis: 0; min-width: 0; border-radius: 6px; background: var(--navy); display: flex; align-items: center; padding: 0 8px; overflow: hidden; }
+.clock li:nth-child(2) .bar span { background: var(--navy-2); }
+.clock li:nth-child(3) .bar span { background: #6F87B5; }
+.clock li:last-child .bar { margin-right: -14px; }
+.clock em { font-style: normal; font-size: 0.78rem; font-weight: 600; color: #fff; white-space: nowrap; }
+.clock h3 { font-size: 1.12rem; margin: 0 0 4px; }
+.clock p { margin: 0; font-size: 0.95rem; max-width: 34ch; }
+@media (max-width: 760px) {
+  .clock { flex-direction: column; gap: 22px; }
+  .clock li { padding: 0 0 0 64px; }
+  .clock li:last-child::after { display: none; }
+  .clock .stamp { position: absolute; left: 0; top: 8px; }
+  .clock .bar { height: 26px; margin-bottom: 10px; }
+  .clock li:last-child .bar { margin-right: 0; }
+  .clock li:nth-child(1) .bar { width: 29%; } .clock li:nth-child(3) .bar { width: 29%; }
+}
 .feature-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
 @media (max-width: 760px) { .feature-list { grid-template-columns: 1fr; } }
-.feature { display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: start; padding: 18px 4px; border-top: 1px solid var(--line); }
-.feature .ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; }
+.feature { display: grid; grid-template-columns: 200px 1fr; gap: 22px; align-items: center; padding: 22px 4px; border-top: 1px solid var(--line); }
+.feature-art { width: 100%; height: auto; display: block; overflow: visible; }
+@media (max-width: 520px) { .feature { grid-template-columns: 1fr; gap: 12px; } .feature-art { max-width: 220px; } }
 .ic.navy { background: var(--navy-wash); color: var(--navy); }
 .ic.rose { background: var(--rose-wash); color: var(--rose); }
 .ic.forest { background: var(--forest-wash); color: var(--forest); }
