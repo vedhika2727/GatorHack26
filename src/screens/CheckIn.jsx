@@ -48,18 +48,37 @@ function PreviewNote() {
 /** Runs a motion recording with a countdown ring. */
 function useRecorder(seconds) {
   const [state, setState] = useState({ busy: false, remaining: seconds, progress: 0, msg: '', error: '' });
+  const controllerRef = useRef(null);
+  useEffect(() => () => controllerRef.current?.abort(), []);
+  function cancel() {
+    const controller = controllerRef.current;
+    if (!controller) return;
+    controllerRef.current = null;
+    controller.abort();
+    setState({ busy: false, remaining: seconds, progress: 0, msg: '', error: '' });
+  }
   async function run(startWord, during, analyzeFn) {
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    const { signal } = controller;
     setState({ busy: true, remaining: 5, progress: 0, msg: 'Put your phone in your pocket. Starting in 5…', error: '' });
     try {
-      await requestMotion();
-      const samples = await record({ seconds, startWord, onTick: ({ phase, remaining, progress }) => setState((s) => ({ ...s, remaining, progress, msg: phase === 'leadin' ? `Put your phone in your pocket. Starting in ${remaining}…` : during })) });
+      await requestMotion({ signal });
+      const samples = await record({ seconds, startWord, signal, onTick: ({ phase, remaining, progress }) => {
+        if (!signal.aborted) setState((s) => ({ ...s, remaining, progress, msg: phase === 'leadin' ? `Put your phone in your pocket. Starting in ${remaining}…` : during }));
+      } });
       const r = analyzeFn(samples);
       if (!r.ok) { setState({ busy: false, remaining: seconds, progress: 0, msg: '', error: r.reason + ' Tap start to try again.' }); return null; }
       setState({ busy: false, remaining: 0, progress: 1, msg: 'Done.', error: '' });
       return r;
-    } catch (e) { setState({ busy: false, remaining: seconds, progress: 0, msg: '', error: e.message }); return null; }
+    } catch (e) {
+      if (!signal.aborted) setState({ busy: false, remaining: seconds, progress: 0, msg: '', error: e.message });
+      return null;
+    } finally {
+      if (controllerRef.current === controller) controllerRef.current = null;
+    }
   }
-  return [state, run];
+  return [state, run, cancel];
 }
 
 export default function CheckIn({ go }) {
@@ -70,18 +89,29 @@ export default function CheckIn({ go }) {
   const [d, setD] = useState({ cycle: lastCycle + 1, date: today(), symptoms: { feetNumb: 0, handsNumb: 0, feetPain: 0 }, buttons: false, falls: 'none', source: 'sensor' });
   const [saved, setSaved] = useState(null);
   const [saveErr, setSaveErr] = useState('');
-  const [walkRec, runWalk] = useRecorder(WALK_S);
-  const [balRec, runBal] = useRecorder(BAL_S);
-  const [closedRec, runClosed] = useRecorder(BAL_S);
+  const [walkRec, runWalk, cancelWalk] = useRecorder(WALK_S);
+  const [balRec, runBal, cancelBalance] = useRecorder(BAL_S);
+  const [closedRec, runClosed, cancelClosed] = useRecorder(BAL_S);
   const [showClosed, setShowClosed] = useState(false);
   const set = (patch) => setD((x) => ({ ...x, ...patch }));
   const sym = (k, v) => setD((x) => ({ ...x, symptoms: { ...x.symptoms, [k]: v } }));
-  const goStep = (n) => { setStep(n); window.scrollTo(0, 0); };
+  const goStep = (n) => {
+    cancelWalk();
+    cancelBalance();
+    cancelClosed();
+    if (n !== 4) cancelTap();
+    setStep(n);
+    window.scrollTo(0, 0);
+  };
 
   // ---- tapping ----
   const tap = useRef({ hand: 'right', taps: [], start: 0, target: 0, timer: 0, results: {}, done: false });
   const [tapUi, setTapUi] = useState({ hand: 'right', remaining: TAP_S, target: 0, msg: 'Rest your phone on a table. Start whenever you’re ready.', error: '' });
   useEffect(() => () => clearInterval(tap.current.timer), []);
+  function cancelTap() {
+    clearInterval(tap.current.timer);
+    tap.current = { hand: 'right', taps: [], start: 0, target: 0, timer: 0, results: {}, done: false };
+  }
   function endHand() {
     const t = tap.current; clearInterval(t.timer);
     const r = Gait.analyzeTapping(t.taps, TAP_S);
