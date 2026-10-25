@@ -2,6 +2,7 @@
 import Trends from '../core/trends.js';
 import FunctionTwin from '../core/twin.js';
 import Scans from '../core/scans.js';
+import Glossary from '../core/glossary.js';
 import { HOSTED_PREVIEW } from '../store.jsx';
 import { fmtDate } from './format.js';
 
@@ -26,6 +27,13 @@ export async function writeReport(checkins, scans) {
 export async function explainOpinions(a, b) {
   try { return await post('/api/opinions', { a: { reader: a.reader, text: a.text, extracted: a.extracted }, b: { reader: b.reader, text: b.text, extracted: b.extracted } }); }
   catch (_) { return localOpinions(a, b, NO_SERVER); }
+}
+
+export async function explainTerm(term, context) {
+  const known = Glossary.lookup(term);
+  if (known) return { term, plain: known.plain, source: 'glossary' };
+  try { return await post('/api/term', { term, context }); }
+  catch (_) { return { term, plain: null, source: 'none', note: HOSTED_PREVIEW ? 'That word isn’t in the built-in list. In the full app, Gemma explains any word.' : 'That word isn’t in the built-in list, and Gemma couldn’t be reached.' }; }
 }
 
 export async function readReport({ text, image }) {

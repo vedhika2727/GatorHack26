@@ -5,7 +5,9 @@ import { SpotChart } from '../components/Viz.jsx';
 import Scans from '../core/scans.js';
 import { useStore } from '../store.jsx';
 import { useConfirm } from '../components/Confirm.jsx';
-import { readReport, explainOpinions } from '../lib/api.js';
+import { readReport, explainOpinions, explainTerm } from '../lib/api.js';
+import Glossed, { niceWord } from '../components/Glossed.jsx';
+import Glossary from '../core/glossary.js';
 import { downscale, pdfText } from '../lib/files.js';
 import { fmtDate, today } from '../lib/format.js';
 
@@ -30,7 +32,7 @@ function Measurements({ ex }) {
           const c = pct(l.sizeMm, l.previousMm);
           return (
             <tr key={k}>
-              <td>{l.location}</td>
+              <td><Glossed text={l.location} /></td>
               <td className="muted">{l.previousMm ? `${l.previousMm} mm` : '–'}</td>
               <td><b>{l.sizeMm} mm</b><span className="sizebar" aria-hidden="true"><span style={{ width: `${(l.sizeMm / big) * 100}%` }} />{l.previousMm && <i style={{ left: `${(l.previousMm / big) * 100}%` }} />}</span></td>
               <td className={c == null ? 'muted' : c < 0 ? 'down' : c > 0 ? 'up' : ''}>{c == null ? 'new here' : signed(c)}</td>
@@ -48,6 +50,32 @@ function verifiedLine(ex) {
   return <span className="verified"><Icon name="check" size={15} stroke={3} />{n === 1 ? 'The size' : `All ${n} sizes`} found word for word in the report</span>;
 }
 
+function Words({ text }) {
+  const terms = Glossary.termsIn(text);
+  const [q, setQ] = useState('');
+  const [ans, setAns] = useState(null);
+  const [busy, setBusy] = useState(false);
+  async function ask(e) {
+    e.preventDefault();
+    const term = q.trim(); if (!term) return;
+    setBusy(true);
+    const line = text.split(/(?<=[.:])\s+|\n/).find((x) => x.toLowerCase().includes(term.toLowerCase()));
+    setAns(await explainTerm(term, line)); setBusy(false);
+  }
+  return (
+    <details className="more words">
+      <summary>Words in this report{terms.length ? ` (${terms.length})` : ''}</summary>
+      {terms.length > 0 && <dl>{terms.map((t) => <div key={t.word}><dt>{niceWord(t.as)}</dt><dd>{t.plain}</dd></div>)}</dl>}
+      <form className="ask-word" onSubmit={ask}>
+        <label className="field" style={{ margin: 0 }}>Look up another word<input value={q} onChange={(e) => { setQ(e.target.value); setAns(null); }} placeholder="For example: attenuation" maxLength={60} /></label>
+        <button type="submit" className="btn small" disabled={busy || !q.trim()}>{busy ? 'Looking up…' : 'Explain'}</button>
+      </form>
+      {ans && <p className="word-answer" role="status">{ans.plain ? <><b>{ans.term}</b> {ans.plain} <span className="fine">{ans.source === 'gemma' ? `Explained by Gemma 4 (${ans.model}).` : 'From the built-in word list.'}</span></> : <span className="muted">{ans.note}</span>}</p>}
+      <p className="fine">These explain what words mean in general. What they mean for you is a question for your care team.</p>
+    </details>
+  );
+}
+
 function ReadView({ s, onOpenImage }) {
   const { removeScan, user } = useStore();
   const confirm = useConfirm();
@@ -63,14 +91,15 @@ function ReadView({ s, onOpenImage }) {
         {ex.newLesions && <Chip level="watch">Mentions a new finding</Chip>}
       </div>
       <blockquote className="impression">
-        <p>{ex.impression}</p>
-        <footer>Radiologist’s conclusion</footer>
+        <p><Glossed text={ex.impression} /></p>
+        <footer>Radiologist’s conclusion. Tap an underlined word to see what it means.</footer>
       </blockquote>
       {ex.plain && <p className="plain">{ex.plain}</p>}
       <Measurements ex={ex} />
       {verifiedLine(ex)}
       {!!s.images?.length && <div className="thumbs">{s.images.map((src, k) => <button key={k} type="button" aria-label={`Open scan picture ${k + 1}`} onClick={() => onOpenImage(src)}><img src={src} alt="" /></button>)}</div>}
-      <details className="more"><summary>Full report text</summary><div className="report-text">{s.text}</div></details>
+      <Words text={s.text} />
+      <details className="more"><summary>Full report text</summary><div className="report-text"><Glossed text={s.text} /></div></details>
       {user.mode !== 'demo' && <button type="button" className="btn ghost small" style={{ marginTop: 10 }} onClick={async () => { if (await confirm('Remove this scan report?', 'Remove report', true)) removeScan(s.id); }}><Icon name="trash" size={16} /> Remove report</button>}
     </div>
   );
