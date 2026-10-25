@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import Gait from '../core/gait.js';
 import Trends from '../core/trends.js';
+import { withSampleData } from '../core/checkinSource.js';
 import { useStore, HOSTED_PREVIEW } from '../store.jsx';
 import { requestMotion, record, speak, buzz } from '../lib/sensors.js';
 import { today } from '../lib/format.js';
@@ -170,7 +171,7 @@ export default function CheckIn({ go }) {
           {walkRec.error && <p className="error" role="alert">{walkRec.error}</p>}
           <div className="actions">
             <button type="button" className="btn primary" disabled={walkRec.busy} onClick={async () => { const g = await runWalk('Start walking', 'Walking… keep going at your usual pace.', (s) => Gait.analyze(s)); if (g) { set({ gait: g }); goStep(3); } }}><Icon name="play" size={16} /> Start walking test</button>
-            <button type="button" className="btn" disabled={walkRec.busy} onClick={() => { set({ gait: Gait.analyze(Gait.synthesizeWalk({ cadence: 105 + Math.random() * 10, cv: 2 + Math.random(), seed: Date.now() % 100000 }).samples), source: 'sample' }); goStep(3); }}>Use a sample instead</button>
+            <button type="button" className="btn" disabled={walkRec.busy} onClick={() => { set({ gait: Gait.analyze(Gait.synthesizeWalk({ cadence: 105 + Math.random() * 10, cv: 2 + Math.random(), seed: Date.now() % 100000 }).samples), source: withSampleData(d.source, !!(d.balance?.ok || d.balanceClosed?.ok)) }); goStep(3); }}>Use a sample instead</button>
           </div>
         </section>
       )}
@@ -193,7 +194,7 @@ export default function CheckIn({ go }) {
             {balRec.error && <p className="error" role="alert">{balRec.error}</p>}
             <div className="actions">
               <button type="button" className="btn primary" disabled={balRec.busy} onClick={async () => { const b = await runBal('Feet together. Stand still.', 'Standing still… hold on to the wall if you need to.', (s) => Gait.analyzeBalance(s, { trimSeconds: 1 })); if (b) { set({ balance: b }); setShowClosed(true); } }}><Icon name="play" size={16} /> Start balance test</button>
-              <button type="button" className="btn" disabled={balRec.busy} onClick={() => { set({ balance: Gait.analyzeBalance(Gait.synthesizeStand({ sway: 0.03 + Math.random() * 0.02, seed: Date.now() % 100000, seconds: 20 }).samples, { trimSeconds: 1 }), source: d.source === 'sample' ? 'sample' : 'mixed' }); setShowClosed(true); }}>Use a sample instead</button>
+              <button type="button" className="btn" disabled={balRec.busy} onClick={() => { set({ balance: Gait.analyzeBalance(Gait.synthesizeStand({ sway: 0.03 + Math.random() * 0.02, seed: Date.now() % 100000, seconds: 20 }).samples, { trimSeconds: 1 }), source: withSampleData(d.source, !!(d.gait?.ok || d.balanceClosed?.ok)) }); setShowClosed(true); }}>Use a sample instead</button>
               <button type="button" className="btn ghost" disabled={balRec.busy} onClick={() => { set({ balance: null }); goStep(4); }}>Skip this test</button>
             </div>
           </> : <>
@@ -209,7 +210,7 @@ export default function CheckIn({ go }) {
               {closedRec.error && <p className="error" role="alert">{closedRec.error}</p>}
               <div className="actions" style={{ marginBottom: 0 }}>
                 <button type="button" className="btn primary" disabled={closedRec.busy} onClick={async () => { const b = await runClosed('Feet together. Close your eyes.', 'Eyes closed, standing still… open your eyes and hold on if you feel unsteady.', (s) => Gait.analyzeBalance(s, { trimSeconds: 1 })); speak('Open your eyes. Well done.'); if (b) { set({ balanceClosed: b }); goStep(4); } }}><Icon name="play" size={16} /> Start eyes-closed test</button>
-                <button type="button" className="btn" disabled={closedRec.busy} onClick={() => { set({ balanceClosed: Gait.analyzeBalance(Gait.synthesizeStand({ sway: (d.balance?.swayRms || 0.04) * 1.6, seed: Date.now() % 100000, seconds: 20 }).samples, { trimSeconds: 1 }) }); goStep(4); }}>Use a sample instead</button>
+                <button type="button" className="btn" disabled={closedRec.busy} onClick={() => { set({ balanceClosed: Gait.analyzeBalance(Gait.synthesizeStand({ sway: (d.balance?.swayRms || 0.04) * 1.6, seed: Date.now() % 100000, seconds: 20 }).samples, { trimSeconds: 1 }), source: withSampleData(d.source, !!(d.gait?.ok || d.balance?.ok)) }); goStep(4); }}>Use a sample instead</button>
                 <button type="button" className="btn ghost" onClick={() => { set({ balanceClosed: null }); goStep(4); }}>Skip</button>
               </div>
             </div>
@@ -230,7 +231,7 @@ export default function CheckIn({ go }) {
           {tapUi.error && <p className="error" role="alert">{tapUi.error}</p>}
           {saveErr && <p className="error" role="alert">{saveErr}</p>}
           <div className="actions">
-            <button type="button" className="btn" onClick={() => { clearInterval(tap.current.timer); const s = Date.now() % 100000; finish({ tapping: { right: Gait.analyzeTapping(Gait.synthesizeTaps({ seed: s }), 10), left: Gait.analyzeTapping(Gait.synthesizeTaps({ seed: s + 1, rate: 4.1 }), 10) } }); }}>Use a sample instead</button>
+            <button type="button" className="btn" onClick={() => { clearInterval(tap.current.timer); const s = Date.now() % 100000; finish({ tapping: { right: Gait.analyzeTapping(Gait.synthesizeTaps({ seed: s }), 10), left: Gait.analyzeTapping(Gait.synthesizeTaps({ seed: s + 1, rate: 4.1 }), 10) }, source: withSampleData(d.source, !!(d.gait?.ok || d.balance?.ok || d.balanceClosed?.ok)) }); }}>Use a sample instead</button>
             <button type="button" className="btn ghost" onClick={() => { clearInterval(tap.current.timer); finish({ tapping: null }); }}>Skip hand test</button>
           </div>
         </section>

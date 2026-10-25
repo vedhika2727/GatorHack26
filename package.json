@@ -13,7 +13,7 @@
     "build": "vite build",
     "start": "node server.js",
     "preview-file": "vite build --mode preview && node scripts-preview.mjs",
-    "test": "node test/gait.test.js && node test/twin.test.js && node test/gemma.test.js"
+    "test": "node test/gait.test.js && node test/twin.test.js && node test/gemma.test.js && node test/checkin-source.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
