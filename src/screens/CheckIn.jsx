@@ -14,8 +14,6 @@ function Scale({ id, n, tag, label, value, onChange }) {
   return (
     <fieldset className="sym-card">
       <legend className="sr-only">{label}</legend>
-      <p className="mono sym-tag"><span>{n}</span>{tag}</p>
-      <p className="sym-q" aria-hidden="true">{label}</p>
       <p className="sym-read" aria-live="polite"><b>{value}</b><span>/10</span><em>{WORD(value)}</em></p>
       <div className="sym-scale" role="group" aria-label={label}>
         {Array.from({ length: 11 }, (_, i) => (
@@ -69,6 +67,7 @@ export default function CheckIn({ go }) {
   const real = checkins.filter((c) => !c.demo);
   const lastCycle = (user.mode === 'demo' ? checkins : real).slice(-1)[0]?.cycle || 0;
   const [step, setStep] = useState(1);
+  const [q, setQ] = useState(0);
   const [d, setD] = useState({ cycle: lastCycle + 1, date: today(), symptoms: { feetNumb: 0, handsNumb: 0, feetPain: 0 }, buttons: false, falls: 'none', source: 'sensor' });
   const [saved, setSaved] = useState(null);
   const [saveErr, setSaveErr] = useState('');
@@ -122,60 +121,53 @@ export default function CheckIn({ go }) {
   const flags = saved && all.length > 1 ? Trends.compare(all[0], saved) : [];
 
   return (
-    <div className={step === 1 ? 'wrap wide ci-ed' : 'wrap'}>
+    <div className={step === 1 ? 'wrap ci-ed' : 'wrap'}>
       <div className="wizard-head">
-        <button type="button" className="btn ghost small" onClick={() => (step > 1 && step < 5 ? goStep(step - 1) : go('home'))}><Icon name="arrowLeft" size={18} /> {step > 1 && step < 5 ? 'Back' : 'Home'}</button>
+        <button type="button" className="btn ghost small" onClick={() => (step === 1 && q > 0 ? setQ(q - 1) : step > 1 && step < 5 ? (step === 2 && setQ(4), goStep(step - 1)) : go('home'))}><Icon name="arrowLeft" size={18} /> {(step === 1 && q > 0) || (step > 1 && step < 5) ? 'Back' : 'Home'}</button>
         <span className="step-label">Step {step} of 5: {STEP_NAMES[step - 1]}</span>
       </div>
       <div className="progress" aria-hidden="true">{STEP_NAMES.map((n, i) => <span key={n} className={i < step ? 'on' : ''} />)}</div>
 
-      {step === 1 && (
-        <form onSubmit={(e) => { e.preventDefault(); goStep(2); }}>
-          <div className="ci-intro">
-            <p className="mono ci-dot">Three questions · about 20 seconds</p>
-            <h1>How have your feet and hands <span>been this week?</span></h1>
-            <div className="ci-pills">
-              <label className="pill-field">Cycle<input id="ci-cycle" type="number" min="1" max="60" inputMode="numeric" value={d.cycle} onChange={(e) => set({ cycle: Math.max(1, parseInt(e.target.value || '1', 10)) })} /></label>
-              <label className="pill-field">Date<input id="ci-date" type="date" value={d.date} onChange={(e) => set({ date: e.target.value || today() })} /></label>
+      {step === 1 && (() => {
+        const QS = [
+          { tag: 'Feet', title: 'How much numbness or tingling have you had in your feet this week?', body: <Scale id="feet" label="Numbness or tingling in my feet" value={d.symptoms.feetNumb} onChange={(v) => sym('feetNumb', v)} /> },
+          { tag: 'Hands', title: 'How much numbness or tingling have you had in your hands this week?', body: <Scale id="hands" label="Numbness or tingling in my hands" value={d.symptoms.handsNumb} onChange={(v) => sym('handsNumb', v)} /> },
+          { tag: 'Feet', title: 'How much burning or pain have you had in your feet this week?', body: <Scale id="pain" label="Burning or pain in my feet" value={d.symptoms.feetPain} onChange={(v) => sym('feetPain', v)} /> },
+          { tag: 'Hands', title: 'Any trouble with buttons, zips, or picking up small things?', body: (
+            <div className="tag-choices" role="group" aria-label="Trouble with buttons or small things">
+              <button type="button" aria-pressed={!d.buttons} onClick={() => set({ buttons: false })}>No</button>
+              <button type="button" aria-pressed={d.buttons} onClick={() => set({ buttons: true })}>Yes</button>
+            </div>) },
+          { tag: 'Falls', title: 'Have you fallen or tripped since your last check-in?', body: (<>
+            <div className="tag-choices" role="group" aria-label="Falls since last check-in">
+              <button type="button" aria-pressed={d.falls === 'none'} onClick={() => set({ falls: 'none' })}>No</button>
+              <button type="button" aria-pressed={d.falls === 'near'} onClick={() => set({ falls: 'near' })}>Tripped or caught myself</button>
+              <button type="button" aria-pressed={d.falls === 'fall'} onClick={() => set({ falls: 'fall' })}>Fallen</button>
             </div>
-          </div>
-
-          <div className="sym-grid">
-            <Scale id="feet" n="01" tag="Feet" label="Numbness or tingling in my feet" value={d.symptoms.feetNumb} onChange={(v) => sym('feetNumb', v)} />
-            <Scale id="hands" n="02" tag="Hands" label="Numbness or tingling in my hands" value={d.symptoms.handsNumb} onChange={(v) => sym('handsNumb', v)} />
-            <Scale id="pain" n="03" tag="Feet" label="Burning or pain in my feet" value={d.symptoms.feetPain} onChange={(v) => sym('feetPain', v)} />
-          </div>
-
-          <div className="sym-grid two">
-            <fieldset className="sym-card">
-              <legend className="sr-only">Any trouble with buttons, zips, or picking up small things?</legend>
-              <p className="mono sym-tag"><span>04</span>Hands</p>
-              <p className="sym-q" aria-hidden="true">Any trouble with buttons, zips, or picking up small things?</p>
-              <div className="tag-choices">
-                <button type="button" aria-pressed={!d.buttons} onClick={() => set({ buttons: false })}>No</button>
-                <button type="button" aria-pressed={d.buttons} onClick={() => set({ buttons: true })}>Yes</button>
-              </div>
-            </fieldset>
-            <fieldset className="sym-card">
-              <legend className="sr-only">Since your last check-in, have you…</legend>
-              <p className="mono sym-tag"><span>05</span>Since your last check-in</p>
-              <p className="sym-q" aria-hidden="true">Have you fallen or tripped?</p>
-              <div className="tag-choices">
-                <button type="button" aria-pressed={d.falls === 'none'} onClick={() => set({ falls: 'none' })}>Not fallen or tripped</button>
-                <button type="button" aria-pressed={d.falls === 'near'} onClick={() => set({ falls: 'near' })}>Tripped or caught myself</button>
-                <button type="button" aria-pressed={d.falls === 'fall'} onClick={() => set({ falls: 'fall' })}>Fallen</button>
-              </div>
-              {d.falls === 'fall' && <p className="notice red" style={{ marginTop: 12 }}>If you fell and were hurt, or your numbness came on suddenly, call your care team today rather than waiting for your next visit.</p>}
-            </fieldset>
-          </div>
-
-          <button type="submit" className="ci-next">
-            <span className="mono">Next · Step 2 of 5</span>
-            <b>Walking test <Icon name="arrowRight" size={22} /></b>
-            <small>30 seconds with your phone in your pocket.</small>
-          </button>
-        </form>
-      )}
+            {d.falls === 'fall' && <p className="notice red" style={{ marginTop: 14 }}>If you fell and were hurt, or your numbness came on suddenly, call your care team today rather than waiting for your next visit.</p>}
+          </>) },
+        ];
+        const cur = QS[q], lastQ = q === QS.length - 1;
+        return (
+          <form onSubmit={(e) => { e.preventDefault(); if (lastQ) goStep(2); else setQ(q + 1); }}>
+            <div className="ci-top">
+              <p className="mono ci-dot">Question {q + 1} of {QS.length} · {cur.tag}</p>
+              {q === 0 ? <div className="ci-pills">
+                <label className="pill-field">Cycle<input id="ci-cycle" type="number" min="1" max="60" inputMode="numeric" value={d.cycle} onChange={(e) => set({ cycle: Math.max(1, parseInt(e.target.value || '1', 10)) })} /></label>
+                <label className="pill-field">Date<input id="ci-date" type="date" value={d.date} onChange={(e) => set({ date: e.target.value || today() })} /></label>
+              </div> : <p className="mono ci-dot ci-when">Cycle {d.cycle}</p>}
+            </div>
+            <section className="q-card" key={q} aria-labelledby="q-title">
+              <h1 id="q-title">{cur.title}</h1>
+              {cur.body}
+            </section>
+            <div className="q-nav">
+              <div className="q-dots" aria-hidden="true">{QS.map((_, i) => <span key={i} className={i === q ? 'on' : i < q ? 'done' : ''} />)}</div>
+              <button type="submit" className="btn primary">{lastQ ? 'Next: walking test' : 'Next'} <Icon name="arrowRight" size={18} /></button>
+            </div>
+          </form>
+        );
+      })()}
 
       {step === 2 && (
         <section>
