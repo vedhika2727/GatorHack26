@@ -36,7 +36,7 @@ export default function Landing({ go }) {
           <span className="meadow" />
         </div>
         <div className="wrap wide sky-inner">
-          <p className="mono sky-tr">Walking, balance, and hands,<br />checked each cycle,<br />next to what your<br />scans say</p>
+          <p className="mono sky-tr">Know what’s changing.<br />Understand what it means.</p>
           <div className="sky-grid">
             <div>
               <p className="mono sky-ml">Steadi, for people<br />on chemotherapy</p>
