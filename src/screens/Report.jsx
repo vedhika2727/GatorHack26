@@ -374,6 +374,7 @@ export default function Report({ go }) {
             <p className="kicker-line">Report for your care team</p>
             <h1>{user.name}</h1>
             <p className="muted">{fullRange ? `Before cycle ${last.cycle + 1}. ` : ''}Check-ins {fmtDate(first.date)} to {fmtDate(last.date)}{fullRange ? '' : ` (cycles ${first.cycle} to ${last.cycle})`}{user.mode === 'demo' ? ', demo patient' : ''}.</p>
+            <p className="for-team">This is made for your oncologist. It has every measurement from your check-ins and scans, so your care team can see what changed. <b>You don’t need to read it yourself.</b> Copy it or show it at your next appointment.</p>
             {allCheckins.length > 1 && <div className="range no-print" role="group" aria-label="Date range">
               <label>From<select value={from} onChange={(e) => setRange([+e.target.value, Math.max(+e.target.value, to)])}>{allCheckins.map((c, k) => <option key={c.id} value={k}>C{c.cycle}, {fmtDate(c.date)}</option>)}</select></label>
               <label>To<select value={to} onChange={(e) => setRange([Math.min(from, +e.target.value), +e.target.value])}>{allCheckins.map((c, k) => <option key={c.id} value={k} disabled={k < from}>C{c.cycle}, {fmtDate(c.date)}</option>)}</select></label>
@@ -404,9 +405,10 @@ export default function Report({ go }) {
 
 
 
-        {checkins.length > 1 && <div className="section-intro">
-          <h2>Look closer at each measure</h2>
-          <p>Pick anything on the left to see it at every check-in: the overall picture, each walking, balance, hand, and symptom measure, and each spot on your scans.</p>
+        {checkins.length > 1 && <div className="section-intro optional">
+          <p className="opt-tag">Only if you want to</p>
+          <h2>Look through it yourself</h2>
+          <p>Everything from here down is the detail your care team uses. Pick anything on the left to see it at every check-in. It’s fine to skip it.</p>
         </div>}
         {checkins.length > 1 ? <Explorer key={`${from}-${to}`} checkins={checkins} twin={twin} tracks={tracks} /> : <p className="headline">Pick at least two check-ins to see how things changed.</p>}
 

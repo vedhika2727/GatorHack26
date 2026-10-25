@@ -736,3 +736,11 @@ main[data-view="report"] { background: var(--surface); }
   .spots .draw, .lc .draw { stroke-dashoffset: 0; }
   .frame:hover, .aring:hover svg { transform: none; }
 }
+
+/* report: who it's for, then an "only if you want to" handoff into the details */
+.for-team { margin: 14px 0 0; max-width: 52ch; font-size: 1.05rem; line-height: 1.5; }
+.for-team b { font-weight: 600; }
+.section-intro.optional { margin-top: 44px; text-align: center; display: grid; justify-items: center; }
+.section-intro.optional::before { content: ""; width: 1px; height: 34px; background: linear-gradient(var(--line), var(--ink-2)); margin-bottom: 14px; }
+.opt-tag { color: var(--rose) !important; font-weight: 600; font-size: 0.9rem; margin: 0 0 4px !important; }
+.section-intro.optional p:last-child { max-width: 56ch; }
