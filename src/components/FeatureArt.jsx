@@ -3,12 +3,12 @@
 const W = 240, H = 84;
 
 function TwinArt({ twin }) {
-  const n = twin.length, x = (i) => 10 + (i / (n - 1)) * (W - 20), y = (v) => H - 10 - (v / 80) * (H - 20);
-  const up = twin.map((s, i) => `${x(i)},${y(s.high)}`), dn = twin.map((s, i) => `${x(i)},${y(s.low)}`).reverse();
+  const n = twin.length, x = (i) => 10 + (i / (n - 1)) * (W - 20), y = (v) => 10 + ((100 - v) / 80) * (H - 20);
+  const up = twin.map((s, i) => `${x(i)},${y(s.scoreHigh)}`), dn = twin.map((s, i) => `${x(i)},${y(s.scoreLow)}`).reverse();
   return <>
     <polygon points={up.concat(dn).join(' ')} fill="var(--navy-wash)" />
-    <polyline points={twin.map((s, i) => `${x(i)},${y(s.mean)}`).join(' ')} fill="none" stroke="var(--navy)" strokeWidth="2.5" strokeLinejoin="round" />
-    {twin.map((s, i) => <circle key={i} cx={x(i)} cy={y(s.mean)} r="3.5" fill={s.surprise === 'worse' ? 'var(--red)' : 'var(--navy)'} />)}
+    <polyline points={twin.map((s, i) => `${x(i)},${y(s.score)}`).join(' ')} fill="none" stroke="var(--navy)" strokeWidth="2.5" strokeLinejoin="round" />
+    {twin.map((s, i) => <circle key={i} cx={x(i)} cy={y(s.score)} r="3.5" fill={s.surprise === 'worse' ? 'var(--red)' : 'var(--navy)'} />)}
   </>;
 }
 

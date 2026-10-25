@@ -168,11 +168,12 @@ function bandChart(svg, steps, selected) {
   const W = 600, H = 250, L = 38, R = 14, T = 26, B = 34;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   const n = steps.length;
-  const top = Math.min(100, Math.max(40, Math.ceil((Math.max(...steps.map((s) => s.high)) + 10) / 20) * 20));
+  // Function score: 100 = same as the first check-in, so the line falls as function changes.
+  const bottom = Math.max(0, Math.min(60, Math.floor((Math.min(...steps.map((s) => s.scoreLow)) - 10) / 20) * 20));
   const x = (i) => n === 1 ? (L + W - R) / 2 : L + (i / (n - 1)) * (W - L - R);
-  const y = (v) => T + (1 - Math.max(0, Math.min(top, v)) / top) * (H - T - B);
+  const y = (v) => T + (1 - (Math.max(bottom, Math.min(100, v)) - bottom) / (100 - bottom)) * (H - T - B);
   const line = css('--line'), teal = css('--navy'), ink = css('--ink');
-  for (let v = 0; v <= top; v += 20) {
+  for (let v = bottom; v <= 100; v += 20) {
     el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: line, 'stroke-width': 1 }, svg);
     txt(svg, L - 6, y(v) + 4, v, { 'text-anchor': 'end', 'font-size': 14 });
   }
@@ -180,19 +181,19 @@ function bandChart(svg, steps, selected) {
   // Raw signals, faint
   steps.forEach((s, i) => s.signals.forEach((g, j) => {
     if (g.value == null) return;
-    el('circle', { cx: x(i) + (j - 3) * 3, cy: y(g.value), r: 2.6, fill: css('--ink-2'), opacity: 0.25 }, svg);
+    el('circle', { cx: x(i) + (j - 3) * 3, cy: y(g.score), r: 2.6, fill: css('--ink-2'), opacity: 0.25 }, svg);
   }));
   // Uncertainty band
-  const up = steps.map((s, i) => `${x(i)},${y(s.high)}`), dn = steps.map((s, i) => `${x(i)},${y(s.low)}`).reverse();
+  const up = steps.map((s, i) => `${x(i)},${y(s.scoreHigh)}`), dn = steps.map((s, i) => `${x(i)},${y(s.scoreLow)}`).reverse();
   el('polygon', { points: up.concat(dn).join(' '), fill: css('--navy-wash'), stroke: 'none', opacity: 0.95 }, svg);
   // Expected-before-check-in markers
-  steps.forEach((s, i) => { if (i) el('circle', { cx: x(i), cy: y(s.priorMean), r: 5, fill: 'none', stroke: ink, 'stroke-width': 1.5, 'stroke-dasharray': '2 2', opacity: 0.6 }, svg); });
-  el('polyline', { points: steps.map((s, i) => `${x(i)},${y(s.mean)}`).join(' '), fill: 'none', stroke: teal, 'stroke-width': 3, 'stroke-linejoin': 'round' }, svg);
+  steps.forEach((s, i) => { if (i) el('circle', { cx: x(i), cy: y(s.scorePrior), r: 5, fill: 'none', stroke: ink, 'stroke-width': 1.5, 'stroke-dasharray': '2 2', opacity: 0.6 }, svg); });
+  el('polyline', { points: steps.map((s, i) => `${x(i)},${y(s.score)}`).join(' '), fill: 'none', stroke: teal, 'stroke-width': 3, 'stroke-linejoin': 'round' }, svg);
   steps.forEach((s, i) => {
     const worse = s.surprise === 'worse';
-    el('circle', { cx: x(i), cy: y(s.mean), r: i === selected ? 7 : 5, fill: worse ? css('--red') : teal, stroke: css('--surface'), 'stroke-width': 2 }, svg);
+    el('circle', { cx: x(i), cy: y(s.score), r: i === selected ? 7 : 5, fill: worse ? css('--red') : teal, stroke: css('--surface'), 'stroke-width': 2 }, svg);
     txt(svg, x(i), H - 10, 'C' + s.cycle, { 'text-anchor': 'middle', 'font-weight': i === selected ? 700 : 400, fill: i === selected ? ink : css('--ink-2') });
-    if (worse) txt(svg, x(i), y(s.high) - 8, 'worse than expected', { 'text-anchor': 'middle', fill: css('--red'), 'font-size': 14, 'font-weight': 700 });
+    if (worse) txt(svg, x(i), Math.min(H - B - 4, y(s.scoreLow) + 18), 'worse than expected', { 'text-anchor': 'middle', fill: css('--red'), 'font-size': 14, 'font-weight': 700 });
   });
 }
 
@@ -232,14 +233,14 @@ function dualTimeline(svg, tumor, nerve) {
   // Panel B: nerve twin
   const ymaxN = 100;
   const yb = (v) => Bp.t + (1 - Math.min(ymaxN, v) / ymaxN) * (Bp.b - Bp.t);
-  txt(svg, L, Bp.t - 18, 'Change in walking, balance, and hand function: twin estimate (0–100)', { 'font-weight': 700, fill: ink });
+  txt(svg, L, Bp.t - 18, 'Function score: 100 = same as your first check-in', { 'font-weight': 700, fill: ink });
   el('line', { x1: L, x2: W - R, y1: Bp.b, y2: Bp.b, stroke: line }, svg);
   if (nerve.length) {
-    const up = nerve.map((s) => `${x(s.date)},${yb(s.high)}`), dn = nerve.map((s) => `${x(s.date)},${yb(s.low)}`).reverse();
+    const up = nerve.map((s) => `${x(s.date)},${yb(s.scoreHigh)}`), dn = nerve.map((s) => `${x(s.date)},${yb(s.scoreLow)}`).reverse();
     el('polygon', { points: up.concat(dn).join(' '), fill: css('--navy-wash') }, svg);
-    el('polyline', { points: nerve.map((s) => `${x(s.date)},${yb(s.mean)}`).join(' '), fill: 'none', stroke: teal, 'stroke-width': 3 }, svg);
+    el('polyline', { points: nerve.map((s) => `${x(s.date)},${yb(s.score)}`).join(' '), fill: 'none', stroke: teal, 'stroke-width': 3 }, svg);
     for (const s of nerve) {
-      el('circle', { cx: x(s.date), cy: yb(s.mean), r: 4.5, fill: s.surprise === 'worse' ? css('--red') : teal }, svg);
+      el('circle', { cx: x(s.date), cy: yb(s.score), r: 4.5, fill: s.surprise === 'worse' ? css('--red') : teal }, svg);
       txt(svg, x(s.date), Bp.b + 16, 'C' + s.cycle, { 'text-anchor': 'middle', 'font-size': 14 });
     }
   }

@@ -44,14 +44,14 @@ const show = (v, unit) => (v == null ? '–' : unit && typeof v === 'number' ? (
 
 function TwinSpark({ twin }) {
   if (twin.length < 2) return null;
-  const W = 260, H = 64, P = 6, top = Math.max(40, ...twin.map((t) => t.high));
-  const x = (i) => P + (i / (twin.length - 1)) * (W - 2 * P), y = (v) => H - P - (v / top) * (H - 2 * P);
-  const band = twin.map((t, i) => `${x(i)},${y(t.high)}`).concat(twin.map((t, i) => `${x(i)},${y(t.low)}`).reverse()).join(' ');
+  const W = 260, H = 64, P = 6, bottom = Math.min(60, ...twin.map((t) => t.scoreLow));
+  const x = (i) => P + (i / (twin.length - 1)) * (W - 2 * P), y = (v) => P + ((100 - v) / (100 - bottom)) * (H - 2 * P);
+  const band = twin.map((t, i) => `${x(i)},${y(t.scoreHigh)}`).concat(twin.map((t, i) => `${x(i)},${y(t.scoreLow)}`).reverse()).join(' ');
   return (
     <svg className="twin-spark" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
       <polygon points={band} fill="var(--navy-wash)" />
-      <polyline points={twin.map((t, i) => `${x(i)},${y(t.mean)}`).join(' ')} fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round" />
-      {twin.map((t, i) => <circle key={i} cx={x(i)} cy={y(t.mean)} r={i === twin.length - 1 ? 4 : 2.6} fill="var(--ink)" />)}
+      <polyline points={twin.map((t, i) => `${x(i)},${y(t.score)}`).join(' ')} fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round" />
+      {twin.map((t, i) => <circle key={i} cx={x(i)} cy={y(t.score)} r={i === twin.length - 1 ? 4 : 2.6} fill="var(--ink)" />)}
     </svg>
   );
 }
@@ -66,7 +66,7 @@ const sAgo = (a, c) => `at cycle ${c}`;
 function describe(id, a, b, c1) {
   const at1 = sAgo(a, c1);
   switch (id) {
-    case 'twin': return `Overall change in walking, balance, and hand function is ${b} out of 100. Zero means no change since cycle ${c1}.`;
+    case 'twin': return `Your function score is ${b} out of 100. 100 is how you were at cycle ${c1}; the lower it goes, the more your walking, balance, and hands have changed.`;
     case 'cadence': return `You walked ${b} steps a minute, ${b < a ? `down from ${a}` : b > a ? `up from ${a}` : 'the same as'} ${at1}.`;
     case 'variability': return `The time between your steps varied by ${b}%, compared with ${a}% ${at1}. Lower means steadier steps.`;
     case 'regularity': return `Your steps scored ${b} for evenness, compared with ${a} ${at1}. 1 would mean every step is exactly alike.`;
@@ -84,7 +84,7 @@ function describe(id, a, b, c1) {
   }
 }
 
-function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, sel, onSel, label }) {
+function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, bounds, sel, onSel, label }) {
   const box = useRef(null);
   const [W, setW] = useState(640);
   useEffect(() => {
@@ -96,6 +96,7 @@ function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, sel, 
   const all = nums.concat(band ? band.flatMap((b) => [b.low, b.high]) : []).filter((v) => v != null);
   let lo = cats ? 0 : Math.min(...all), hi = cats ? cats.length - 1 : Math.max(...all);
   if (!cats) { const pad = (hi - lo || Math.abs(hi) || 1) * 0.15; lo = Math.max(0, lo - pad); hi += pad; }
+  if (bounds) { lo = Math.max(bounds[0], lo); hi = Math.min(bounds[1], hi); }
   if (hi - lo < 1e-6) hi = lo + 1;
   const n = values.length;
   const x = (k) => (n === 1 ? (L + W - R) / 2 : L + (k / (n - 1)) * (W - L - R));
@@ -105,6 +106,7 @@ function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, sel, 
   else {
     const raw = (hi - lo) / 3, mag = 10 ** Math.floor(Math.log10(raw)), stepN = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((m) => m >= raw) || raw;
     lo = Math.floor(lo / stepN) * stepN; hi = Math.ceil(hi / stepN) * stepN;
+    if (bounds) { lo = Math.max(bounds[0], lo); hi = Math.min(bounds[1], hi); }
     ticks = []; for (let t = lo; t <= hi + 1e-9; t += stepN) ticks.push(+t.toFixed(4));
   }
   const pts = nums.map((v, k) => (v == null ? null : [x(k), y(v)]));
@@ -196,7 +198,7 @@ function Explorer({ checkins, twin, tracks }) {
   const first = checkins[0];
   const cyc = checkins.map((c) => `C${c.cycle}`);
   const items = [
-    { group: 'Overall', id: 'twin', label: 'Overall function', values: twin.map((t) => r0(t.mean)), band: twin.map((t) => ({ low: t.low, high: t.high })), xLabels: cyc, unit: 'of 100' },
+    { group: 'Overall', id: 'twin', label: 'Overall function', values: twin.map((t) => r0(t.score)), band: twin.map((t) => ({ low: t.scoreLow, high: t.scoreHigh })), xLabels: cyc, unit: 'of 100' },
     ...GROUPS.flatMap((g) => g.rows.map((r) => ({ group: g.name, id: r.id, label: r.label, unit: r.unit, raw: checkins.map(r.get), values: checkins.map((c) => num(r.id, r.get(c))), xLabels: cyc, cats: CATS[r.id] }))),
     ...tracks.tracks.map((t, k) => ({ group: 'Scans', id: `spot-${k}`, label: t.location, unit: 'mm', values: t.points.map((p) => (p ? p.mm : null)), xLabels: tracks.dates.map(fmtDate), spot: t })),
   ];
@@ -229,7 +231,7 @@ function Explorer({ checkins, twin, tracks }) {
         <p className="ex-group-name">{it.group}</p>
         <h2>{it.label}</h2>
         <p className="ex-sentence">{sentence}</p>
-        <LineChart key={it.id} values={it.values} xLabels={it.xLabels} band={it.band} cats={it.cats} fmt={fmt} sel={sel} onSel={setSel}
+        <LineChart key={it.id} values={it.values} xLabels={it.xLabels} band={it.band} cats={it.cats} fmt={fmt} sel={sel} onSel={setSel} bounds={it.id === 'twin' ? [0, 100] : null}
           axisFmt={(v) => { const r = Math.abs(v) >= 10 ? Math.round(v) : Math.round(v * 10) / 10; return String(r); }} unitLabel={it.cats ? '' : it.id === 'twin' ? 'of 100' : it.unit === '×' ? 'times' : it.unit}
           label={`${it.label}: ${it.values.map((v, k) => `${it.xLabels[k]} ${v == null ? 'none' : it.cats ? it.cats[v] : fmt(v)}`).join(', ')}`} />
         <p className="fine">{it.id === 'twin' ? 'The shaded area is the likely range. ' : ''}Hover or tap the graph to see each {it.spot ? 'scan' : 'check-in'}.</p>
@@ -276,11 +278,11 @@ export default function Report({ go }) {
   const worse = twin.filter((t) => t.surprise === 'worse').map((t) => t.cycle);
   const questions = [...(out?.questions || []), ...scans.flatMap((s) => s.opinion?.questions || [])].filter((q, k, a) => a.indexOf(q) === k);
   const twoReads = groups.filter((g) => g.length > 1);
-  const headline = `Walking, balance, and hand function have changed ${r0(step.mean)} out of 100 since cycle ${first.cycle}.`;
+  const headline = `Function score ${r0(step.score)} out of 100, where 100 is how things were at cycle ${first.cycle}.`;
 
   const asText = () => [
     `Report for ${user.name}, ${fullRange ? `before cycle ${last.cycle + 1}` : `cycles ${first.cycle} to ${last.cycle}`} (${fmtDate(first.date)} to ${fmtDate(last.date)})`, '',
-    `${headline} Likely ${r0(step.low)} to ${r0(step.high)}.${worse.length ? ` Cycle ${worse.join(', ')} was worse than expected.` : ''}`, '',
+    `${headline} Likely ${r0(step.scoreLow)} to ${r0(step.scoreHigh)}.${worse.length ? ` Cycle ${worse.join(', ')} was worse than expected.` : ''}`, '',
     ...(out?.patient ? ['Summary', plain(out.patient), ''] : []),
     `Changes since cycle ${first.cycle} (cycle ${first.cycle} → cycle ${last.cycle})`, '',
     ...GROUPS.flatMap((g) => [g.name, ...g.rows.map((r) => `- ${r.label}: ${show(r.get(first), r.unit)} → ${show(r.get(last), r.unit)}${changed.has(r.id) ? '  (changed)' : ''}`), '']),
@@ -317,11 +319,21 @@ export default function Report({ go }) {
             {copied && <p className="fine" role="status">{copied}</p>}
           </div>
           <div className="score-block">
-            <div className="score-num"><b>{r0(step.mean)}</b><span>of 100</span></div>
+            <div className="score-num"><b>{r0(step.score)}</b><span>of 100</span></div>
             <TwinSpark twin={twin} />
-            <p className="fine">Overall change in walking, balance, and hand function since cycle {first.cycle}. Likely {r0(step.low)} to {r0(step.high)}.</p>
+            <p className="fine">Function score. 100 is how you were at cycle {first.cycle}; lower means bigger changes in walking, balance, and hands. Likely {r0(step.scoreLow)} to {r0(step.scoreHigh)}.</p>
           </div>
         </header>
+
+        <section className="score-explain" aria-labelledby="se-h">
+          <h2 id="se-h">How to read the score</h2>
+          <ul>
+            <li><b>100 is your starting point.</b> It’s how your walking, balance, and hands were at cycle {first.cycle}, your first check-in.</li>
+            <li><b>Lower means more change.</b> The score drops as your walking pace, steadiness, balance, tapping speed, and the numbness or pain you report move away from where you started.</li>
+            <li><b>It combines every test.</b> One test can be thrown off by a tired day, so the score weighs all of them together and trusts the steadier ones more. The “likely” range shows how sure it is.</li>
+            <li><b>It isn’t a diagnosis.</b> It doesn’t measure nerves directly or say why something changed. That’s a conversation for you and your care team.</li>
+          </ul>
+        </section>
 
         {checkins.length > 1 ? <Explorer key={`${from}-${to}`} checkins={checkins} twin={twin} tracks={tracks} /> : <p className="headline">Pick at least two check-ins to see how things changed.</p>}
 
@@ -340,7 +352,7 @@ export default function Report({ go }) {
 
         <details className="quiet">
           <summary>Every number, for the oncology team</summary>
-          <p className="fine">Function twin: an uncalibrated Kalman filter over phone measures and symptom ratings, not nerve-specific. Per cycle, with likely range: {twin.map((t) => `C${t.cycle} ${r0(t.mean)} (${r0(t.low)}–${r0(t.high)})`).join(', ')}. Changes are marked by fixed thresholds against the patient’s own first check-in. Unvalidated smartphone measures.</p>
+          <p className="fine">Function twin: an uncalibrated Kalman filter over phone measures and symptom ratings, not nerve-specific. Function score per cycle (100 = first check-in), with likely range: {twin.map((t) => `C${t.cycle} ${r0(t.score)} (${r0(t.scoreLow)}–${r0(t.scoreHigh)})`).join(', ')}. Changes are marked by fixed thresholds against the patient’s own first check-in. Unvalidated smartphone measures.</p>
           <div className="table-wrap"><table className="changes-table all">
             <thead><tr><th scope="col"><span className="sr-only">Measure</span></th>{checkins.map((c) => <th key={c.id} scope="col">C{c.cycle}</th>)}</tr></thead>
             <tbody>{GROUPS.flatMap((g) => g.rows).map((r) => <tr key={r.id}><th scope="row">{r.label}{r.unit ? <span className="u"> {r.unit}</span> : null}</th>{checkins.map((c) => <td key={c.id}>{r.get(c) ?? '–'}</td>)}</tr>)}</tbody>

@@ -44,7 +44,7 @@ export default function Landing({ go }) {
           <div className="score-row" style={{ justifyContent: 'space-between' }}>
             <div>
               <div className="fine">Demo patient, cycle 6</div>
-              <div className="score-row"><span className="score">{Math.round(last.mean)}</span><span className="muted">of 100, change in function</span></div>
+              <div className="score-row"><span className="score">{Math.round(last.score)}</span><span className="muted">of 100, function score</span></div>
             </div>
             <Chip level="notable" />
           </div>

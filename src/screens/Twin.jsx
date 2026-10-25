@@ -49,15 +49,15 @@ export default function Twin({ go }) {
   return (
     <div className="wrap">
       <h1>Your function twin</h1>
-      <p className="lede">Each test on its own is noisy: a tired day or different shoes can change one result. Your twin combines all your signals, trusts the reliable ones more, and estimates how much your walking, balance, and hand function have changed since your first check-in.</p>
+      <p className="lede">Each test on its own is noisy: a tired day or different shoes can change one result. Your twin combines all your signals, trusts the reliable ones more, and turns that into one function score: 100 is how your walking, balance, and hands were at your first check-in, and it drops as they change.</p>
 
       <section className="card twin-hero" aria-label="Twin estimate">
         <div className="score-row" style={{ justifyContent: 'space-between' }}>
-          <div className="score-row"><span className="score">{Math.round(step.mean)}</span><span className="muted">/100 change in function at cycle {cur.cycle}</span></div>
+          <div className="score-row"><span className="score">{Math.round(step.score)}</span><span className="muted">of 100 at cycle {cur.cycle}. 100 is how you were at your first check-in.</span></div>
           {level && <Chip level={level} />}
         </div>
-        <p>{i === 0 ? (checkins.length === 1 ? 'This is your baseline. The twin starts learning at your next check-in.' : `Cycle ${base.cycle} is your baseline, so the twin starts at 0.`)
-          : `Likely between ${Math.round(step.low)} and ${Math.round(step.high)} on ${fmtDate(cur.date)}. Before this check-in, the twin expected about ${Math.round(step.priorMean)}.`}</p>
+        <p>{i === 0 ? (checkins.length === 1 ? 'This is your baseline. The twin starts learning at your next check-in.' : `Cycle ${base.cycle} is your baseline, so the twin starts at 100.`)
+          : `Likely between ${Math.round(step.scoreLow)} and ${Math.round(step.scoreHigh)} on ${fmtDate(cur.date)}. Before this check-in, the twin expected about ${Math.round(step.scorePrior)}.`}</p>
         {step.surprise === 'worse' && <p className="notice red"><strong>Worse than your twin expected.</strong> This is worth telling your care team before your next infusion.</p>}
         {step.surprise === 'better' && <p className="notice">This check-in was better than your twin expected.</p>}
         <BandChart steps={twin} selected={i} />
@@ -87,11 +87,11 @@ export default function Twin({ go }) {
         <p className="muted">{FunctionTwin.disagreements(step)} The bar shows each signal; the pink tick is the twin’s combined estimate. “Counts” is how much each signal contributes, based on how noisy it tends to be.</p>
         <div className="card drivers">
           {step.signals.map((g) => {
-            const v = g.value == null ? null : Math.max(0, Math.min(100, g.value));
+            const v = g.score == null ? null : Math.max(0, Math.min(100, g.score));
             return (
               <div key={g.id} className={`driver${v == null ? ' missing' : ''}`}>
                 <span>{g.label}</span>
-                <span className="track" aria-hidden="true">{v != null && <span className="fill" style={{ width: `${v}%` }} />}<span className="est" style={{ left: `${Math.min(99, step.mean)}%` }} /></span>
+                <span className="track" aria-hidden="true">{v != null && <span className="fill" style={{ width: `${v}%` }} />}<span className="est" style={{ left: `${Math.min(99, step.score)}%` }} /></span>
                 <span className="v">{v == null ? 'not measured' : `${Math.round(v)}, counts ${Math.round(g.share * 100)}%`}</span>
               </div>
             );

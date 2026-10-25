@@ -42,13 +42,13 @@ export default function Home({ go }) {
           <div className="score-row" style={{ justifyContent: 'space-between' }}>
             <div>
               <h2 id="twin-sum" style={{ margin: 0, fontSize: '1.2rem' }}>Your function twin</h2>
-              <div className="score-row"><span className="score">{Math.round(step.mean)}</span><span className="muted">/100 change since your first check-in</span></div>
+              <div className="score-row"><span className="score">{Math.round(step.score)}</span><span className="muted">of 100. 100 is how you were at your first check-in.</span></div>
             </div>
             {level && <Chip level={level} />}
           </div>
           <p className="muted" style={{ marginTop: 6 }}>
             {checkins.length === 1 ? 'Your baseline is set. Your twin starts learning at your next check-in.'
-              : `Likely between ${Math.round(step.low)} and ${Math.round(step.high)} at cycle ${last.cycle}.${step.surprise === 'worse' ? ' This check-in was worse than your twin expected.' : ''}`}
+              : `Likely between ${Math.round(step.scoreLow)} and ${Math.round(step.scoreHigh)} at cycle ${last.cycle}. Lower means bigger changes in walking, balance, or hands.${step.surprise === 'worse' ? ' This check-in was worse than your twin expected.' : ''}`}
           </p>
           {checkins.length > 1 && <BandChart steps={twin} selected={twin.length - 1} />}
           <div className="actions" style={{ marginBottom: 0 }}><button type="button" className="btn" onClick={() => go('twin')}>Open my twin <Icon name="arrowRight" size={18} /></button></div>
