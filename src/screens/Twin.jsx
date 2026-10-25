@@ -151,25 +151,24 @@ export default function Twin({ go }) {
     || cur.tapping?.right?.ok || cur.tapping?.left?.ok);
 
   return (
-    <div className="wrap">
-      <h1>Your function twin</h1>
-      <p className="lede">Each test on its own is noisy: a tired day or different shoes can change one result. Your twin combines all your signals, trusts the reliable ones more, and turns that into one function score: 100 is how your walking, balance, and hands were at your first check-in, and it drops as they change.</p>
-
+    <div className="wrap wide page-ed tw-page">
+      <section className="tw-hero" aria-labelledby="twin-h">
+        <p className="mono tw-k">Function twin · cycle {cur.cycle} · {fmtDate(cur.date)}</p>
+        <h1 id="twin-h">Your function twin</h1>
+        <div className="tw-score">
+          <b>{Math.round(step.score)}</b>
+          <span>of 100<em>{i === 0 ? 'your starting point' : `likely ${Math.round(step.scoreLow)}–${Math.round(step.scoreHigh)}`}</em></span>
+        </div>
+        <p className="tw-sub">Each test on its own is noisy. Your twin combines them, trusts the reliable ones more, and gives one score. 100 is how you were at your first check-in.</p>
+        <p className="fine">{i === 0 ? baselineMessage : `Experimental model uncertainty range: ${Math.round(step.scoreLow)}–${Math.round(step.scoreHigh)} on ${fmtDate(cur.date)}.`} The estimate is unvalidated; its range is model uncertainty, not a clinical confidence interval or measured decline.</p>
+      </section>
       {demoMode && <p className="notice rose" role="note">Demo estimate. This fictional timeline uses simulated measurements and does not describe a real person.</p>}
       {sourceNotice && <p className="notice rose" role="note">{sourceNotice} Chart values include these sample or simulated measurements.</p>}
-
-      <section className="card twin-hero" aria-label="Twin estimate">
-        <div className="score-row" style={{ justifyContent: 'space-between' }}>
-          <div className="score-row"><span className="score">{Math.round(step.score)}</span><span className="muted">of 100, experimental {demoMode ? 'demo' : 'personal'} function estimate at cycle {cur.cycle}. 100 is the first check-in.</span></div>
-          {level && <Chip level={level} />}
-        </div>
-        <p>{i === 0 ? baselineMessage
-          : `Experimental model uncertainty range: ${Math.round(step.scoreLow)}–${Math.round(step.scoreHigh)} on ${fmtDate(cur.date)}.`}</p>
-        {i === 0 && <p className="fine">A baseline function score of 100 means this is the starting point; no change has been calculated yet. It does not mean you have no symptoms.</p>}
-        <p className="fine">Experimental, unvalidated model estimate—not a measured physical decline. The range is model uncertainty, not a clinical confidence interval.</p>
-        {symptomsOnly && !sampleOnlyPhysical && <p className="notice rose" role="note">Symptoms-only check-in. Walking, balance, and hand performance were not measured.</p>}
-        {sampleOnlyPhysical && <p className="notice rose" role="note">No personal physical measurements are available for this check-in. Sample or unverified physical results are excluded from your personal estimate.</p>}
-        {step.surprise !== 'none' && <p className="notice">{FunctionTwin.interpretation(step, flags.length > 0)}</p>}
+      {symptomsOnly && !sampleOnlyPhysical && <p className="notice rose" role="note">Symptoms-only check-in. Walking, balance, and hand performance were not measured.</p>}
+      {sampleOnlyPhysical && <p className="notice rose" role="note">No personal physical measurements are available for this check-in. Sample or unverified physical results are excluded from your personal estimate.</p>}
+      {step.surprise !== 'none' && <p className="fine">{FunctionTwin.interpretation(step, flags.length > 0)}</p>}
+      <section className="tw-chart" aria-label="Twin estimate over time">
+        <div className="tw-chart-top"><p className="mono">Cycle {base.cycle} → {checkins[checkins.length - 1].cycle}</p>{level && <Chip level={level} />}</div>
         <BandChart steps={twin} selected={i} />
         <ul className="legend" aria-label="Chart key">
           <li><span className="k k-line" />Twin’s estimate</li>
@@ -178,6 +177,7 @@ export default function Twin({ go }) {
           <li><span className="k k-dot" />Individual signals</li>
         </ul>
       </section>
+      <div className="page-ed-body">
 
       <h2>Your infusions</h2>
       <div className="beads" role="tablist" aria-label="Choose a check-in">
@@ -257,6 +257,7 @@ export default function Twin({ go }) {
       <div className="actions">
         <button type="button" className="btn primary" onClick={() => go('checkin')}><Icon name="plus" size={18} /> New check-in</button>
         <button type="button" className="btn" onClick={() => go('report')}><Icon name="report" size={18} /> Make a report for my care team</button>
+      </div>
       </div>
     </div>
   );

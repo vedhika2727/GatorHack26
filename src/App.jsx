@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import Icon from './components/Icon.jsx';
-import Logo from './components/Logo.jsx';
+import { Wordmark } from './components/Logo.jsx';
 import { useStore, HOSTED_PREVIEW } from './store.jsx';
 import Landing from './screens/Landing.jsx';
 import Auth from './screens/Auth.jsx';
@@ -38,7 +38,7 @@ export default function App() {
     <>
       <header className="topbar">
         <div className="wrap wide topbar-inner">
-          <button type="button" className="brand" onClick={() => go(signedIn ? 'home' : 'welcome')} aria-label="Steadi home"><Logo /><span className="brand-name">Steadi</span></button>
+          <button type="button" className="brand" onClick={() => go(signedIn ? 'home' : 'welcome')} aria-label="Steadi home"><Wordmark /></button>
           {signedIn ? <>
             <nav className="topnav" aria-label="Sections">
               {NAV.map((n) => <button key={n.id} type="button" aria-current={v === n.id ? 'page' : undefined} onClick={() => go(n.id)}><Icon name={n.icon} size={18} />{n.label}</button>)}
@@ -55,6 +55,7 @@ export default function App() {
         {HOSTED_PREVIEW && !signedIn && <div className="strip"><div className="wrap wide">Preview mode. Accounts, Gemma, and motion sensors run in the full app.</div></div>}
       </header>
 
+      {v !== 'welcome' && <div className="app-sky" aria-hidden="true"><span className="cloud c1" /><span className="cloud c2" /><span className="cloud c3" /></div>}
       <main className="page" id="main" data-view={v}>
         {v === 'welcome' && <Landing go={go} />}
         {(v === 'signin' || v === 'signup') && <Auth key={v} mode={v} go={go} />}
@@ -66,6 +67,7 @@ export default function App() {
         {v === 'account' && <Account go={go} />}
       </main>
 
+      {v !== 'welcome' && <div className="app-meadow" aria-hidden="true" />}
       {!signedIn && <footer className="site-foot"><div className="wrap wide"><p className="fine">Prototype built for Gator Hack V. Not a medical device. Explanations by Gemma 4. Measurements are approximate and only meaningful compared with your own earlier check-ins.</p></div></footer>}
 
       {signedIn && (

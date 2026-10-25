@@ -12,18 +12,28 @@ import { today } from '../lib/format.js';
 const WALK_S = 30, BAL_S = 20, TAP_S = 10;
 const STEP_NAMES = ['Symptoms', 'Walk', 'Balance', 'Hands', 'Done'];
 
+const WORD = (v) => (v === 0 ? 'None' : v <= 3 ? 'Mild' : v <= 6 ? 'Moderate' : 'Severe');
 function Scale({ id, label, value, onChange }) {
-  const word = value === 0 ? 'None' : value <= 3 ? 'Mild' : value <= 6 ? 'Moderate' : 'Severe';
   return (
-    <fieldset className="panel" style={{ margin: '12px 0' }}>
-      <legend style={{ fontWeight: 700, padding: '0 4px' }}>{label}</legend>
-      <div className="scale" role="group" aria-label={label}>
+    <fieldset className="nrs">
+      <legend className="sr-only">{label}</legend>
+      <div className="nrs-row" role="radiogroup" aria-label={label}>
         {Array.from({ length: 11 }, (_, i) => (
-          <button key={i} id={`${id}-${i}`} type="button" aria-pressed={value === i} className={i >= 7 ? 'high' : i >= 4 ? 'mid' : ''} onClick={() => onChange(i)}>{i}</button>
+          <button key={i} id={`${id}-${i}`} type="button" role="radio" aria-checked={value === i} aria-pressed={value === i} aria-label={`${i} out of 10, ${WORD(i)}`} onClick={() => onChange(i)}>{i}</button>
         ))}
       </div>
-      <div className="scale-ends"><span>0 = none</span><strong style={{ color: 'var(--ink)' }}>{value}: {word}</strong><span>10 = worst imaginable</span></div>
+      <div className="nrs-bands" aria-hidden="true"><span style={{ flex: 1 }}>None</span><span style={{ flex: 3 }}>Mild</span><span style={{ flex: 3 }}>Moderate</span><span style={{ flex: 4 }}>Severe</span></div>
+      <p className="nrs-val" aria-live="polite">Selected: <b>{value}</b> ({WORD(value)})</p>
     </fieldset>
+  );
+}
+function Options({ label, options, value, onChange }) {
+  return (
+    <div className="opts" role="radiogroup" aria-label={label}>
+      {options.map(([v, t]) => (
+        <button key={String(v)} type="button" role="radio" aria-checked={value === v} aria-pressed={value === v} onClick={() => onChange(v)}><span className="rb" aria-hidden="true" />{t}</button>
+      ))}
+    </div>
   );
 }
 
@@ -88,6 +98,7 @@ export default function CheckIn({ go }) {
   const real = checkins.filter((c) => !c.demo);
   const lastCycle = (user.mode === 'demo' ? checkins : real).slice(-1)[0]?.cycle || 0;
   const [step, setStep] = useState(1);
+  const [q, setQ] = useState(0);
   const [d, setD] = useState({ cycle: lastCycle + 1, date: today(), symptoms: { feetNumb: 0, handsNumb: 0, feetPain: 0 }, buttons: false, falls: 'none', source: 'sensor' });
   const measurementSources = useRef({});
   const [saved, setSaved] = useState(null);
@@ -178,42 +189,57 @@ export default function CheckIn({ go }) {
     : [];
 
   return (
-    <div className="wrap">
+    <div className={step === 1 ? 'wrap wide ci-form' : step < 5 ? 'wrap wide ci-tests' : 'wrap'}>
       <div className="wizard-head">
-        <button type="button" className="btn ghost small" onClick={() => (step > 1 && step < 5 ? goStep(step - 1) : go('home'))}><Icon name="arrowLeft" size={18} /> {step > 1 && step < 5 ? 'Back' : 'Home'}</button>
+        <button type="button" className="btn ghost small" onClick={() => (step === 1 && q > 0 ? setQ(q - 1) : step > 1 && step < 5 ? (step === 2 && setQ(4), goStep(step - 1)) : go('home'))}><Icon name="arrowLeft" size={18} /> {(step === 1 && q > 0) || (step > 1 && step < 5) ? 'Back' : 'Home'}</button>
         <span className="step-label">Step {step} of 5: {STEP_NAMES[step - 1]}</span>
       </div>
       <div className="progress" aria-hidden="true">{STEP_NAMES.map((n, i) => <span key={n} className={i < step ? 'on' : ''} />)}</div>
 
-      {step === 1 && (
-        <form onSubmit={(e) => { e.preventDefault(); goStep(2); }}>
-          <h1>How have your feet and hands been this week?</h1>
-          <div className="grid2">
-            <label className="field">Chemo cycle number<input id="ci-cycle" type="number" min="1" max="60" inputMode="numeric" value={d.cycle} onChange={(e) => set({ cycle: Math.max(1, parseInt(e.target.value || '1', 10)) })} /></label>
-            <label className="field">Date<input id="ci-date" type="date" value={d.date} onChange={(e) => set({ date: e.target.value || today() })} /></label>
-          </div>
-          <Scale id="feet" label="Numbness or tingling in my feet" value={d.symptoms.feetNumb} onChange={(v) => sym('feetNumb', v)} />
-          <Scale id="hands" label="Numbness or tingling in my hands" value={d.symptoms.handsNumb} onChange={(v) => sym('handsNumb', v)} />
-          <Scale id="pain" label="Burning or pain in my feet" value={d.symptoms.feetPain} onChange={(v) => sym('feetPain', v)} />
-          <fieldset className="panel" style={{ margin: '12px 0' }}>
-            <legend style={{ fontWeight: 700, padding: '0 4px' }}>Any trouble with buttons, zips, or picking up small things?</legend>
-            <div className="choices"><Choice pressed={!d.buttons} onClick={() => set({ buttons: false })}>No</Choice><Choice pressed={d.buttons} onClick={() => set({ buttons: true })}>Yes</Choice></div>
-          </fieldset>
-          <fieldset className="panel" style={{ margin: '12px 0' }}>
-            <legend style={{ fontWeight: 700, padding: '0 4px' }}>Since your last check-in, have you…</legend>
-            <div className="choices">
-              <Choice pressed={d.falls === 'none'} onClick={() => set({ falls: 'none' })}>Not fallen or tripped</Choice>
-              <Choice pressed={d.falls === 'near'} onClick={() => set({ falls: 'near' })}>Tripped or caught myself</Choice>
-              <Choice pressed={d.falls === 'fall'} onClick={() => set({ falls: 'fall' })}>Fallen</Choice>
-            </div>
-            {d.falls === 'fall' && <p className="notice red" style={{ marginTop: 10 }}>If you fell and were hurt, or your numbness came on suddenly, call your care team today rather than waiting for your next visit.</p>}
-          </fieldset>
-          <div className="actions"><button type="submit" className="btn primary block">Next: walking test <Icon name="arrowRight" size={18} /></button></div>
-        </form>
-      )}
+      {step === 1 && (() => {
+        const QS = [
+          { short: 'Numbness or tingling, feet', ans: `${d.symptoms.feetNumb}/10`, title: 'Rate the numbness or tingling in your feet over the past 7 days.', body: <Scale id="feet" label="Numbness or tingling in my feet" value={d.symptoms.feetNumb} onChange={(v) => sym('feetNumb', v)} /> },
+          { short: 'Numbness or tingling, hands', ans: `${d.symptoms.handsNumb}/10`, title: 'Rate the numbness or tingling in your hands over the past 7 days.', body: <Scale id="hands" label="Numbness or tingling in my hands" value={d.symptoms.handsNumb} onChange={(v) => sym('handsNumb', v)} /> },
+          { short: 'Burning or pain, feet', ans: `${d.symptoms.feetPain}/10`, title: 'Rate any burning or pain in your feet over the past 7 days.', body: <Scale id="pain" label="Burning or pain in my feet" value={d.symptoms.feetPain} onChange={(v) => sym('feetPain', v)} /> },
+          { short: 'Fine hand tasks', ans: d.buttons ? 'Yes' : 'No', title: 'Have you had trouble with buttons, zips, or picking up small objects?', body: <Options label="Trouble with fine hand tasks" value={d.buttons} onChange={(v) => set({ buttons: v })} options={[[false, 'No'], [true, 'Yes']]} /> },
+          { short: 'Falls', ans: { none: 'None', near: 'Near-fall', fall: 'Fall' }[d.falls], title: 'Since your last check-in, have you fallen or tripped?', body: (<>
+            <Options label="Falls since last check-in" value={d.falls} onChange={(v) => set({ falls: v })} options={[['none', 'No falls or trips'], ['near', 'Tripped or caught myself'], ['fall', 'Fell']]} />
+            {d.falls === 'fall' && <p className="notice red" style={{ marginTop: 14 }}>If you fell and were hurt, or your numbness came on suddenly, call your care team today rather than waiting for your next visit.</p>}
+          </>) },
+        ];
+        return (
+          <form className="form-list" onSubmit={(e) => { e.preventDefault(); goStep(2); }}>
+            <header className="fl-head">
+              <div>
+                <p className="mono form-k">Step 1 of 5 · symptom questionnaire</p>
+                <h1>How have you been this past week?</h1>
+              </div>
+              <dl className="form-meta">
+                <div><dt>Cycle</dt><dd><input id="ci-cycle" type="number" min="1" max="60" inputMode="numeric" value={d.cycle} onChange={(e) => set({ cycle: Math.max(1, parseInt(e.target.value || '1', 10)) })} /></dd></div>
+                <div><dt>Date</dt><dd><input id="ci-date" type="date" value={d.date} onChange={(e) => set({ date: e.target.value || today() })} /></dd></div>
+              </dl>
+            </header>
+            <ol className="fl-items">
+              {QS.map((x, k) => (
+                <li key={k}>
+                  <span className="n mono">{String(k + 1).padStart(2, '0')}</span>
+                  <div>
+                    <h2>{x.title}</h2>
+                    {k < 3 && <p className="fine">0 = none, 10 = worst imaginable</p>}
+                    {x.body}
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <div className="form-foot"><span className="fine">About 20 seconds. Next: a 30-second walk.</span><button type="submit" className="btn primary">Continue to walking test</button></div>
+          </form>
+        );
+      })()}
 
       {step === 2 && (
-        <section>
+        <section className="test-ed">
+          <div className="test-info">
+          <p className="mono test-k">Test 1 of 3 · Walking · 30 s</p>
           <h1>Walk for 30 seconds</h1>
           <PreviewNote />
           <Instructions items={[
@@ -222,7 +248,9 @@ export default function CheckIn({ go }) {
             ['arrowRight', 'navy', 'Walk at your usual pace. Turn around when you need to.'],
             ['info', 'rose', 'Your phone will say “start walking” and “stop” out loud.'],
           ]} />
-          <div className="card recorder">
+          </div>
+          <div className="test-panel">
+          <div className="recorder">
             <Ring remaining={walkRec.remaining} progress={walkRec.progress} />
             <p style={{ margin: 0, fontSize: '1.05rem' }} aria-live="assertive">{walkRec.msg || 'Tap start, then put your phone in your pocket. You’ll have 5 seconds.'}</p>
           </div>
@@ -232,11 +260,14 @@ export default function CheckIn({ go }) {
             <button type="button" className="btn" disabled={walkRec.busy} onClick={() => { set({ gait: Gait.analyze(Gait.synthesizeWalk({ cadence: 105 + Math.random() * 10, cv: 2 + Math.random(), seed: Date.now() % 100000 }).samples) }); setTaskSource('gait', 'sample'); goStep(3); }}>Use a sample instead</button>
             <button type="button" className="btn ghost" onClick={() => { skipTask(['gait'], cancelWalk); goStep(3); }}>Skip this test</button>
           </div>
+          </div>
         </section>
       )}
 
       {step === 3 && (
-        <section>
+        <section className="test-ed">
+          <div className="test-info">
+          <p className="mono test-k">Test 2 of 3 · Balance · 20 s</p>
           <h1>Stand still for 20 seconds</h1>
           <PreviewNote />
           <Instructions items={[
@@ -245,21 +276,25 @@ export default function CheckIn({ go }) {
             ['balance', 'navy', 'Put your feet side by side, close together, eyes open. Look straight ahead.'],
             ['info', 'rose', 'If you feel unsteady at any point, hold on. This test is optional.'],
           ]} />
-          <div className="card recorder">
-            <Ring remaining={balRec.remaining} progress={balRec.progress} />
-            <p style={{ margin: 0, fontSize: '1.05rem' }} aria-live="assertive">{balRec.msg || 'Tap start, put the phone in your pocket, and stand with feet together.'}</p>
           </div>
-          {balRec.error && <p className="error" role="alert">{balRec.error}</p>}
-          <div className="actions">
+          <div className="test-panel">
+            <div className="recorder">
+              <Ring remaining={balRec.remaining} progress={balRec.progress} />
+              <p style={{ margin: 0, fontSize: '1.05rem' }} aria-live="assertive">{balRec.msg || 'Tap start, put the phone in your pocket, and stand with feet together.'}</p>
+            </div>
+            {balRec.error && <p className="error" role="alert">{balRec.error}</p>}
+            <div className="actions">
             <button type="button" className="btn primary" disabled={balRec.busy} onClick={async () => { const b = await runBal('Feet together. Stand still.', 'Standing still… hold on to the wall if you need to.', (s) => Gait.analyzeBalance(s, { trimSeconds: 1 })); if (b) { set({ balance: b }); setTaskSource('balance', 'sensor'); goStep(4); } }}><Icon name="play" size={16} /> Start balance test</button>
             <button type="button" className="btn" disabled={balRec.busy} onClick={() => { set({ balance: Gait.analyzeBalance(Gait.synthesizeStand({ sway: 0.03 + Math.random() * 0.02, seed: Date.now() % 100000, seconds: 20 }).samples, { trimSeconds: 1 }) }); setTaskSource('balance', 'sample'); goStep(4); }}>Use a sample instead</button>
             <button type="button" className="btn ghost" onClick={() => { skipTask(['balance'], cancelBalance); goStep(4); }}>Skip balance test</button>
+            </div>
           </div>
         </section>
       )}
 
       {step === 4 && (
-        <section>
+        <section className="test-ed tap-ed">
+          <p className="mono test-k">Test 3 of 3 · Hands · 10 s each</p>
           <h1>Tap test for your hands</h1>
           <p className="lede">Use your <strong>{tapUi.hand}</strong> index finger. Tap the two circles back and forth, one then the other, as fast as you comfortably can. The 10 seconds start with your first tap.</p>
           <div className="card tap-area">
@@ -278,7 +313,7 @@ export default function CheckIn({ go }) {
       )}
 
       {step === 5 && saved && (
-        <section>
+        <section className="test-ed done-ed">
           <h1>Check-in saved</h1>
           <div className="card">
             <p style={{ fontSize: '1.1rem' }}>

@@ -9,3 +9,11 @@ export function formatReportValue(value, unit = '') {
   }
   return String(value);
 }
+
+export function formatReportCategory(value, categories) {
+  if (isMissingReportValue(value)) return 'Not measured';
+  const category = typeof value === 'number'
+    ? categories[value]
+    : categories.includes(value) ? value : null;
+  return formatReportValue(category);
+}

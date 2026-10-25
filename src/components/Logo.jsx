@@ -1,8 +1,16 @@
-export default function Logo({ size = 32 }) {
+// Steadi mark: a sun resting just above a level horizon (used for the browser tab and small spots).
+export default function Logo({ size = 32, light = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="15" fill="var(--navy)" />
-      <path d="M7 19.5c2.5 0 3-7 5.5-7s2.5 9 5 9 2.5-6 5-6 1.5 2 2.5 2" stroke="var(--rose-wash)" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
+      <circle cx="20" cy="17" r="8" fill={light ? '#FFFFFF' : '#3C68A8'} />
+      <rect x="3" y="28" width="34" height="3.4" rx="1.7" fill={light ? 'rgba(255,255,255,.85)' : '#5F7A3A'} />
     </svg>
+  );
+}
+
+// Steadi wordmark: the dot on the i is a small sun, with a level line under the word.
+export function Wordmark({ light = false }) {
+  return (
+    <span className={`wordmark${light ? ' light' : ''}`} aria-hidden="true">stead<span className="wm-i">ı</span></span>
   );
 }

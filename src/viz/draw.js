@@ -276,16 +276,19 @@ function spotChart(svg, data, opts = {}) {
   const y = (v) => T + (1 - v / top) * (H - T - B);
   const colW = n === 1 ? 120 : (W - L - R - 36) / (n - 1);
   // selected column
-  if (opts.selected != null) el('rect', { x: x(opts.selected) - Math.min(48, colW / 2), y: T - 10, width: Math.min(96, colW), height: H - T - B + 20, rx: 14, fill: raised, class: 'sel-col' }, svg);
+  if (opts.selected != null) el('rect', { x: x(opts.selected) - Math.min(48, colW / 2), y: T - 10, width: Math.min(96, colW), height: H - T - B + 20, rx: 14, fill: 'rgba(107,125,69,.10)', class: 'sel-col' }, svg);
   for (let v = 0; v <= top; v += step) {
     el('line', { x1: L, x2: W - R + (wide ? 10 : 0), y1: y(v), y2: y(v), stroke: line, 'stroke-width': 1 }, svg);
     txt(svg, L - 8, y(v) + 5, v, { 'text-anchor': 'end', fill: ink2, 'font-size': 13 });
   }
   txt(svg, L - 8, T - 8, 'mm', { 'text-anchor': 'end', fill: ink2, 'font-size': 12 });
+  const PAL = ['#4A74A8', '#6B7D45', '#8FA8C8', '#A3AE7E', '#5D6B78', '#B39A6B'];
+  const tc = (i) => PAL[i % PAL.length];
+  const cap = (t) => t[0].toUpperCase() + t.slice(1);
   const order = tracks.map((t, i) => i).sort((a, b) => (a === opts.focus) - (b === opts.focus));
   for (const i of order) {
     const t = tracks[i], on = opts.focus == null || opts.focus === i;
-    const col = opts.focus === i ? hi : ink;
+    const col = tc(i);
     const pts = t.points.map((p, k) => p && { k, p }).filter(Boolean);
     if (pts.length > 1) {
       const d = pts.map(({ k, p }) => `${x(k)},${y(p.mm)}`).join(' ');
@@ -293,7 +296,7 @@ function spotChart(svg, data, opts = {}) {
       el('polyline', { points: d, fill: 'none', stroke: 'transparent', 'stroke-width': 16, 'data-spot': i, style: 'cursor:pointer' }, svg);
     }
     for (const { k, p } of pts) {
-      if (p.max - p.min > 0.5) el('line', { x1: x(k), x2: x(k), y1: y(p.max), y2: y(p.min), stroke: hi, 'stroke-width': 10, 'stroke-linecap': 'round', opacity: on ? 0.6 : 0.18 }, svg);
+      if (p.max - p.min > 0.5) el('line', { x1: x(k), x2: x(k), y1: y(p.max), y2: y(p.min), stroke: tc(i), 'stroke-width': 10, 'stroke-linecap': 'round', opacity: on ? 0.28 : 0.1 }, svg);
       el('circle', { cx: x(k), cy: y(p.mm), r: opts.focus === i ? 6 : 4.5, fill: col, stroke: night, 'stroke-width': 2, opacity: on ? 1 : 0.35, class: intro ? 'pop' : '', style: `--d:${300 + k * 90}ms`, 'data-spot': i }, svg);
     }
   }
@@ -307,8 +310,9 @@ function spotChart(svg, data, opts = {}) {
     const lx = W - R + 22;
     for (const lb of labs) {
       const on = opts.focus == null || opts.focus === lb.i;
-      const name = lb.t.location.length > 24 ? lb.t.location.slice(0, 23) + '…' : lb.t.location;
-      txt(svg, lx, lb.yy - 2, name, { fill: opts.focus === lb.i ? hi : ink, 'font-size': 13.5, 'font-weight': 600, opacity: on ? 1 : 0.45 });
+      const name = cap(lb.t.location.length > 24 ? lb.t.location.slice(0, 23) + '…' : lb.t.location);
+      el('circle', { cx: lx - 12, cy: lb.yy - 6, r: 4.5, fill: tc(lb.i), opacity: on ? 1 : 0.45 }, svg);
+      txt(svg, lx, lb.yy - 2, name, { fill: ink, 'font-size': 13.5, 'font-weight': 600, opacity: on ? 1 : 0.45 });
       txt(svg, lx, lb.yy + 15, lb.t.changePct == null ? `${lb.t.last} mm, new` : `${lb.t.last} mm, ${lb.t.changePct > 0 ? '+' : ''}${lb.t.changePct}% since first`, { fill: ink2, 'font-size': 12.5, opacity: on ? 1 : 0.45 });
     }
   }

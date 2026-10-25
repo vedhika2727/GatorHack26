@@ -25,74 +25,85 @@ export default function Home({ go }) {
   const groups = Scans.groupOpinions(scans);
   const opinionGroups = groups.filter((g) => g.length > 1).length;
 
-  return (
-    <div className="wrap">
-      <div className="greet">
-        <h1>{greeting()}, {user.name}</h1>
-        <p className="muted">{checkins.length ? `${checkins.length} check-in${checkins.length > 1 ? 's' : ''} so far.` : 'Let’s set your baseline with a first check-in.'}</p>
-      </div>
+  const sinceLast = twinInputs.length > 1 ? Trends.compare(twinInputs[twinInputs.length - 2], twinInputs[twinInputs.length - 1]) : [];
+  const stats = [
+    { n: checkins.length, k: checkins.length === 1 ? 'check-in so far' : 'check-ins so far' },
+    { n: last ? `C${last.cycle + (doneToday ? 1 : 1)}` : 'C1', k: doneToday ? 'next check-in' : 'check-in due before this infusion' },
+    { n: scans.length, k: scans.length === 1 ? 'scan report added' : 'scan reports added' },
+    { n: opinionGroups, k: opinionGroups === 1 ? 'scan with a second opinion' : 'scans with a second opinion' },
+  ];
+  const LINKS = [
+    { to: 'checkin', t: 'Check in', d: 'Three questions, a walk, standing still, and a tap test.' },
+    { to: 'twin', t: 'My twin', d: checkins.length ? `Every check-in through cycle ${last.cycle}.` : 'Starts after your first check-in.' },
+    { to: 'scans', t: 'Scans', d: scans.length ? 'Every measured spot, scan after scan.' : 'Add a radiology report.' },
+    { to: 'report', t: 'Report', d: 'One page for your oncologist.' },
+  ];
 
-      <section className="next-card" aria-labelledby="next-title" style={{ marginTop: 18 }}>
+  return (
+    <div className="wrap wide home-ed">
+      <section className="ed-hero" aria-labelledby="greet-h">
         <div>
-          <h2 id="next-title">{doneToday ? 'You’ve checked in today' : checkins.length ? 'Check in before your next infusion' : 'Do your first check-in'}</h2>
-          <p>{doneToday ? 'Nice work. Your twin and report are up to date.' : 'About two minutes: three questions, a short walk, standing still, and a tap test.'}</p>
+          <p className="mono ed-kicker">{fmtDate(today())}{last ? ` · cycle ${last.cycle} done` : ''}</p>
+          <h1 id="greet-h">{greeting()},<br />{user.name}.</h1>
         </div>
-        <button type="button" className="btn" onClick={() => go(doneToday ? 'twin' : 'checkin')}>
-          {doneToday ? <>See my twin <Icon name="arrowRight" size={18} /></> : <>Start check-in <Icon name="arrowRight" size={18} /></>}
-        </button>
+        <div className="ed-next">
+          <p className="mono ed-kicker">{doneToday ? 'Today' : 'Before your next infusion'}</p>
+          <p className="ed-next-t">{doneToday ? 'You’ve checked in today. Your twin and report are up to date.' : checkins.length ? 'A two-minute check-in: three questions, a short walk, standing still, and a tap test.' : 'Set your starting point with a first two-minute check-in.'}</p>
+          <button type="button" className="btn primary" onClick={() => go(doneToday ? 'twin' : 'checkin')}>
+            {doneToday ? 'See my twin' : checkins.length ? 'Start check-in' : 'Do your first check-in'} <Icon name="arrowRight" size={18} />
+          </button>
+        </div>
       </section>
 
+      <ul className="ed-stats" aria-label="At a glance">
+        {stats.map((x, i) => <li key={i}><span className="mono">[0{i + 1}]</span><b>{x.n}</b><small>{x.k}</small></li>)}
+      </ul>
+
       {checkins.length > 0 && (
-        <section className="card" style={{ marginTop: 14 }} aria-labelledby="twin-sum">
-          <div className="score-row" style={{ justifyContent: 'space-between' }}>
-            <div>
-              <h2 id="twin-sum" style={{ margin: 0, fontSize: '1.2rem' }}>Your function twin</h2>
-              <div className="score-row"><span className="score">{Math.round(step.score)}</span><span className="muted">of 100. 100 is how you were at your first check-in.</span></div>
+        <section className="ed-twin" aria-labelledby="twin-sum">
+          <div className="ed-twin-chart">
+            <div className="ed-twin-head">
+              <div>
+                <p className="mono ed-kicker">Your function twin</p>
+                <h2 id="twin-sum">{checkins.length === 1 ? 'Your starting point is set.' : `${Math.round(step.score)} of 100 at cycle ${last.cycle}`}</h2>
+              </div>
+              {level && <Chip level={level} />}
             </div>
-            {level && <Chip level={level} />}
+            <p className="muted">{checkins.length === 1 ? 'Your twin starts learning at your next check-in.' : `100 is how you were at your first check-in. Likely between ${Math.round(step.scoreLow)} and ${Math.round(step.scoreHigh)}.`}</p>
+            {checkins.length > 1 && <BandChart steps={twin} selected={twin.length - 1} />}
           </div>
-          <p className="muted" style={{ marginTop: 6 }}>
-            {checkins.length === 1 ? 'Your baseline is set. Your twin starts learning at your next check-in.'
-              : `Experimental model uncertainty range ${Math.round(step.scoreLow)}–${Math.round(step.scoreHigh)} at cycle ${last.cycle}. Lower means more change in walking, balance, or hands.`}
-          </p>
-          {step.surprise !== 'none' && <p className="fine">{FunctionTwin.interpretation(step, flags.length > 0)}</p>}
-          <p className="fine">Experimental, unvalidated estimate; its range is model uncertainty, not a clinical confidence interval.</p>
-          {user?.mode === 'demo'
-            ? <p className="fine">This is a fictional demo estimate using simulated measurements.</p>
-            : hasExcludedPhysicalMeasurements(checkins)
-              ? <p className="fine">Sample or unverified physical measurements are excluded from this personal estimate.</p>
-              : null}
-          {checkins.length > 1 && <BandChart steps={twin} selected={twin.length - 1} />}
-          <div className="actions" style={{ marginBottom: 0 }}><button type="button" className="btn" onClick={() => go('twin')}>Open my twin <Icon name="arrowRight" size={18} /></button></div>
+          <aside className="ed-side">
+            <p className="mono ed-kicker">Since last time</p>
+            {checkins.length < 2 ? <p className="muted">Changes appear after your second check-in.</p>
+              : sinceLast.length ? <ul className="ed-notes">{sinceLast.slice(0, 4).map((f) => <li key={f.id}>{f.text.replace(/ than at baseline/, ' than last time').replace(/\(baseline:? /, '(last time ')}</li>)}</ul>
+              : <p>No reported symptom or eligible recorded measurement change crossed the comparison thresholds.</p>}
+            {step.surprise !== 'none' && <p className="fine">{FunctionTwin.interpretation(step, flags.length > 0)}</p>}
+            <p className="fine">Experimental, unvalidated estimate; its range is model uncertainty, not a clinical confidence interval.</p>
+            {user?.mode === 'demo'
+              ? <p className="fine">This is a fictional demo estimate using simulated measurements.</p>
+              : hasExcludedPhysicalMeasurements(checkins)
+                ? <p className="fine">Sample or unverified physical measurements are excluded from this personal estimate.</p>
+                : null}
+            <p className="mono ed-kicker" style={{ marginTop: 22 }}>Latest scan</p>
+            {lastScan ? <>
+              <p className="ed-scan"><b>{lastScan.kind}, {fmtDate(lastScan.date)}</b><span>{lastScan.extracted.plain || lastScan.extracted.impression}</span></p>
+              {opinionGroups > 0 && <p className="fine">Second opinion on file.</p>}
+            </> : <p className="muted">Add a radiology report to see measurements next to your check-ins.</p>}
+            <button type="button" className="linkish" onClick={() => go('twin')}>Open my twin</button>
+          </aside>
         </section>
       )}
 
-      <h2>Quick actions</h2>
-      <div className="quick">
-        <button type="button" onClick={() => go('checkin')}><span className="ic navy" style={{ width: 40, height: 40, borderRadius: 12, display: 'grid', placeItems: 'center' }}><Icon name="pulse" /></span><b>New check-in</b><small>Two minutes</small></button>
-        <button type="button" onClick={() => go('twin')}><span className="ic forest" style={{ width: 40, height: 40, borderRadius: 12, display: 'grid', placeItems: 'center' }}><Icon name="timeline" /></span><b>My twin</b><small>{checkins.length ? `Cycle ${last.cycle}` : 'No check-ins yet'}</small></button>
-        <button type="button" onClick={() => go('scans')}><span className="ic rose" style={{ width: 40, height: 40, borderRadius: 12, display: 'grid', placeItems: 'center' }}><Icon name="scan" /></span><b>Scan reports</b><small>{scans.length ? `${scans.length} saved` : 'Add your first'}</small></button>
-        <button type="button" onClick={() => go('report')}><span className="ic navy" style={{ width: 40, height: 40, borderRadius: 12, display: 'grid', placeItems: 'center' }}><Icon name="report" /></span><b>Care-team report</b><small>Share before a visit</small></button>
-      </div>
+      <nav className="ed-links" aria-label="Go to">
+        {LINKS.map((l, i) => (
+          <button key={l.to} type="button" onClick={() => go(l.to)}>
+            <span className="mono">0{i + 1}</span>
+            <b>{l.t} <Icon name="arrowRight" size={18} /></b>
+            <small>{l.d}</small>
+          </button>
+        ))}
+      </nav>
 
-      <div className="grid2" style={{ marginTop: 14 }}>
-        <section className="card">
-          <h3>What changed</h3>
-          {checkins.length < 2 ? <p className="muted">Changes appear after your second check-in.</p>
-            : flags.length ? <><p className="muted">{flags.length} recorded change{flags.length > 1 ? 's' : ''} from baseline, including:</p><p>{flags[0].text}</p></>
-            : <p className="muted">No recorded symptom or sensor change crossed the comparison thresholds.</p>}
-          {checkins.length > 1 && <button type="button" className="linkish" onClick={() => go('twin')}>See every change</button>}
-        </section>
-        <section className="card">
-          <h3>Latest scan</h3>
-          {lastScan ? <>
-            <p className="muted">{lastScan.kind}, {fmtDate(lastScan.date)}, read by {lastScan.reader}</p>
-            <p>{lastScan.extracted.plain || lastScan.extracted.impression}</p>
-            {opinionGroups > 0 && <p><Chip level="watch">Second opinion on file</Chip></p>}
-          </> : <p className="muted">Add a radiology report to see your tumor measurements next to your check-ins.</p>}
-          <button type="button" className="linkish" onClick={() => go('scans')}>{lastScan ? 'View scan reports' : 'Add a scan report'}</button>
-        </section>
-      </div>
     </div>
   );
 }

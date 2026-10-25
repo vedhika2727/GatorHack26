@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { formatReportValue, isMissingReportValue } from '../src/core/reportFormat.js';
+import { formatReportCategory, formatReportValue, isMissingReportValue } from '../src/core/reportFormat.js';
 import { reportInputDescription, reportPatientSummary, reportQuestions } from '../src/core/reportWording.js';
 
 let failed = 0;
@@ -19,6 +19,9 @@ check('undefined percentage has no suffix', formatReportValue(undefined, '%'), '
 check('non-finite value has no suffix', formatReportValue(Number.NaN, 'of 1'), 'Not measured');
 check('valid percent formatting is preserved', formatReportValue(2.5, '%'), '2.5%');
 check('text categories are preserved', formatReportValue('Near-fall'), 'Near-fall');
+check('numeric category index zero maps to its valid category', formatReportCategory(0, ['No', 'Yes']), 'No');
+check('text category is preserved in selector', formatReportCategory('Near-fall', ['None', 'Near-fall', 'Fall']), 'Near-fall');
+check('missing category has no units or numeric fallback', formatReportCategory(null, ['None', 'Near-fall', 'Fall']), 'Not measured');
 const symptomOnly = [
   { symptoms: { feetNumb: 1, handsNumb: 0, feetPain: 0 } },
   { symptoms: { feetNumb: 4, handsNumb: 0, feetPain: 0 } },

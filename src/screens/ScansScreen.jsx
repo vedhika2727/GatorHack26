@@ -111,12 +111,14 @@ function ReadView({ s, onOpenImage }) {
 }
 
 /** One spot across doctors: a thin bar per doctor, labeled with their name, as long as the size they gave. */
+const READER_COLORS = ['var(--navy)', 'var(--rose)', 'var(--forest)', 'var(--ink-2)', '#8A7A55', '#6B5A8E'];
+const readerColor = (i) => READER_COLORS[i % READER_COLORS.length];
 function Bars({ values, reads, max }) {
   return (
     <div className="dbars">
       {values.map((v, i) => (
-        <div key={i} className="dbar">
-          <span className="dbar-who">{reads[i].reader}</span>
+        <div key={i} className="dbar" style={{ '--c': readerColor(i) }}>
+          <span className="sr-only">{reads[i].reader}: </span>
           <span className="dbar-track" aria-hidden="true">{v != null && <i style={{ width: `${Math.max(2, (v / max) * 100)}%` }} />}</span>
           <span className="dbar-v">{v != null ? `${v} mm` : 'not measured'}</span>
         </div>
@@ -139,20 +141,22 @@ function CompareView({ reads }) {
     <div className="read cmp">
       <p className="compare-lead">{reads.length} radiologists read this {reads[0].kind}. {cmp.rows.length ? `They agree on ${agree} of ${cmp.rows.length} spots${differ ? ` and see ${differ} differently` : ''}.` : ''}</p>
 
-      <p className="muted read-by">Read by {reads.map((r, i) => <span key={r.id}>{i ? (i === reads.length - 1 ? ' and ' : ', ') : ''}<b>{r.reader}</b> ({fmtDate(r.date)})</span>)}.</p>
+      <ul className="reader-key" aria-label="Who read it">
+        {reads.map((r, i) => <li key={r.id} style={{ '--c': readerColor(i) }}><i aria-hidden="true" /><b>{r.reader}</b><span>{fmtDate(r.date)}</span></li>)}
+      </ul>
 
       <div className="spots-cmp">
         {cmp.rows.map((x, k) => (
           <div key={k} className={`cspot ${x.status}`}>
             <div className="cspot-name">
-              <b>{x.location}</b>
-              <small>{note(x)}</small>
+              <b>{x.location[0].toUpperCase() + x.location.slice(1)}</b>
+              <span className="cspot-status">{note(x)}</span>
             </div>
             <Bars values={x.values} reads={reads} max={max} />
           </div>
         ))}
-        <p className="fine">Bars are drawn to the same scale, so bars that end in the same place mean the doctors agree. Radiologists often measure the same spot a few millimeters apart; bigger gaps are worth asking about.</p>
-      </div>
+        </div>
+      <p className="fine cmp-note">Each color is one doctor. Bars that end in the same place mean they agree. A few millimeters apart is common; bigger gaps are worth asking about.</p>
 
       <div className="also">
         <div className="also-row"><span className="also-k">New finding mentioned</span>{cmp.newFinding.map((v, i) => <span key={i}><small>{reads[i].reader}</small>{v ? 'Yes' : 'No'}</span>)}</div>
@@ -282,13 +286,19 @@ export default function ScansScreen() {
     <>
       <section className="reading" aria-labelledby="scans-h">
         <div className="wrap wide">
-          <div className="reading-head">
-            <div>
-              <h1 id="scans-h">Scans</h1>
-              <p>{scans.length ? 'Every size your radiologists measured, spot by spot.' : 'Your radiology reports, measured and checked.'}</p>
-            </div>
+          <div className="sc-head">
+            <h1 id="scans-h">Scans</h1>
+            <p className="mono">Every size checked against the report’s own words</p>
           </div>
-          {scans.length ? <>
+          <ul className="sc-stats" aria-label="At a glance">
+            <li><b>{scans.length}</b><span className="mono">reports</span></li>
+            <li><b>{data.tracks.length}</b><span className="mono">spots tracked</span></li>
+            {(() => { const ch = data.tracks.map((t) => t.changePct).filter((v) => v != null); const m = ch.length ? Math.min(...ch) : null; return m != null ? <li><b>{m > 0 ? '+' : ''}{m}%</b><span className="mono">biggest change in size</span></li> : null; })()}
+            {groups.length > 0 && <li><b>{fmtDate(groups[groups.length - 1][0].date)}</b><span className="mono">latest scan</span></li>}
+          </ul>
+          <div hidden>
+          </div>
+          {scans.length ? <div className="sc-room">
             <div className="lightbox"><SpotChart data={data} selected={i} focus={focus} onPick={setSel} onFocus={setFocus} /></div>
             <p className="lightbox-hint">Tap a line to follow one spot. Tap a date to open that scan.</p>
             <div className="film" role="tablist" aria-label="Choose a scan date">
@@ -303,7 +313,7 @@ export default function ScansScreen() {
                 );
               })}
             </div>
-          </> : (
+          </div> : (
             <div className="reading-empty">
               <p>Add a report and you’ll see each measured spot here, scan after scan. If you got a second opinion, add both and they’re compared line by line.</p>
               <button type="button" className="btn light" onClick={() => setAdding(true)}><Icon name="plus" size={18} /> Add your first report</button>
