@@ -14,6 +14,55 @@ function tapRate(c) {
   const v = [t.right, t.left].filter((x) => x?.ok).map((x) => x.rate);
   return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) : null;
 }
+
+// "What changed" grouped by area, one tidy row per change: what it is, how it changed, before → now.
+const AREA_OF = { cadence: 'Walking', regularity: 'Walking', variability: 'Walking', hesitations: 'Walking', sway: 'Balance', romberg: 'Balance', falls: 'Balance', 'tap-right': 'Hands', 'tap-left': 'Hands', buttons: 'Hands' };
+const LABEL = { cadence: 'Walking pace', regularity: 'Step evenness', variability: 'Step timing', hesitations: 'Pauses while walking', sway: 'Sway, standing still', romberg: 'Sway with eyes closed', falls: 'Trips and falls', 'tap-right': 'Right-hand tapping', 'tap-left': 'Left-hand tapping', buttons: 'Buttons and zips' };
+function changeRow(f) {
+  const t = f.text;
+  let m;
+  if ((m = t.match(/Reports (.+) at (\d+)\/10 \(baseline (\d+)\/10\)/))) return { area: 'Symptoms', label: (m[1][0].toUpperCase() + m[1].slice(1)).replace(/ in the (feet|hands)$/, ', $1'), how: '', was: `${m[3]} of 10`, now: `${m[2]} of 10` };
+  const paren = t.match(/\(([^)]*)\)\.?$/);
+  const range = paren && paren[1].match(/^(?:regularity )?(.+?) → (.+)$/);
+  const base = paren?.[1].match(/^baseline: (.+)$/);
+  let how = t.replace(/\s*\([^)]*\)\.?$/, '').replace(/\.$/, '');
+  if ((m = how.match(/is (\d+%) (slower|higher)/))) how = `${m[1]} ${m[2]}`;
+  else if ((m = how.match(/is ([\d.]+×) baseline/))) how = `${m[1]} as much`;
+  else if (/much more/.test(how)) how = 'Much more than before';
+  else if (/varies more|rises more/.test(how)) how = 'More than before';
+  else if (/much less even/.test(how)) how = 'Much less even';
+  else if (/less even/.test(how)) how = 'Less even';
+  else if (f.id === 'hesitations') how = '';
+  else if (f.id === 'buttons') how = 'New since your first check-in';
+  else if (f.id === 'falls') how = /near-fall/.test(t) ? 'A near-fall since last time' : 'A fall since last time';
+  return { area: AREA_OF[f.id] || 'Other', label: LABEL[f.id] || how, how, was: range ? range[1] : base ? base[1] : null, now: range ? range[2].replace(/ eyes-open sway$/, '') : f.id === 'hesitations' ? t.match(/^(\d+)/)[1] : null };
+}
+const AREAS_ORDER = ['Walking', 'Balance', 'Hands', 'Symptoms', 'Other'];
+function ChangeList({ flags }) {
+  const rows = flags.map((f) => ({ ...changeRow(f), id: f.id, notable: f.level === 'notable' }));
+  return (
+    <div className="changes">
+      {AREAS_ORDER.map((a) => {
+        const rs = rows.filter((r) => r.area === a);
+        if (!rs.length) return null;
+        return (
+          <section key={a} className="chg-group" aria-label={a}>
+            <h3>{a}<span>{rs.length} change{rs.length > 1 ? 's' : ''}</span></h3>
+            <ul>
+              {rs.map((r) => (
+                <li key={r.id}>
+                  <div><b>{r.label}</b>{r.how && <span>{r.how}</span>}</div>
+                  {r.was != null && <p className="chg-vals"><span>{r.was}</span><i aria-label="to">→</i><b>{r.now}</b></p>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 const METRICS = [
   { name: 'Walking pace', unit: 'steps/min', get: (c) => (c.gait?.ok ? c.gait.cadence : null), hint: 'Steps per minute' },
   { name: 'Step evenness', unit: 'of 1', get: (c) => (c.gait?.ok ? c.gait.stepRegularity : null), hint: 'Closer to 1 is more even', min: 0, max: 1 },
@@ -141,7 +190,7 @@ export default function Twin({ go }) {
 
       {i > 0 && <>
         <h2>What changed since your first check-in</h2>
-        {flags.length ? <ul className="flags">{flags.map((f) => <li key={f.id} className={f.level}>{f.text}</li>)}</ul>
+        {flags.length ? <><p className="muted chg-intro">Grouped by area. Each row shows your first check-in, then this one.</p><ChangeList flags={flags} /></>
           : <p className="muted">No recorded symptom or sensor change crossed the comparison thresholds.</p>}
 
         <h2>What the twin is listening to</h2>

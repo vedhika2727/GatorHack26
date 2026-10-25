@@ -21,7 +21,7 @@ export default function Account({ go }) {
       </section>
       <section className="card">
         <h3>About this app</h3>
-        <p className="muted">Chemo Nerve Check is a prototype built for Gator Hack V. It isn’t a medical device and hasn’t been clinically validated. It measures walking, balance, and hand function, which can change for many reasons. Only your care team can tell what a change means.</p>
+        <p className="muted">Steadi is a prototype built for Gator Hack V. It isn’t a medical device and hasn’t been clinically validated. It measures walking, balance, and hand function, which can change for many reasons. Only your care team can tell what a change means.</p>
         <p className="muted">AI: Gemma 4 (gemma-4-26b-a4b-it) reads radiology reports and writes the plain-language explanations. The measurements, change flags, and twin are fixed code, not AI.</p>
       </section>
     </div>

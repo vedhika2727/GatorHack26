@@ -30,31 +30,40 @@ export default function Landing({ go }) {
   const last = twin[twin.length - 1];
   return (
     <>
-      <section className="night-hero">
-      <div className="wrap wide hero">
-        <div>
-          <h1>Two minutes on your phone before every infusion.</h1>
-          <p className="lede">Some chemo drugs change how you walk, balance, and use your hands. A short check-in each cycle shows what’s shifting, next to what your scans say, so you have something concrete to bring to your oncologist.</p>
-          <div className="actions">
-            <button type="button" className="btn light" onClick={() => go('signup')}>Create an account</button>
-            <button type="button" className="btn on-night" onClick={() => { startDemo(); go('home'); }}><Icon name="play" size={16} /> Try the demo patient</button>
+      <section className="sky-hero" aria-labelledby="sky-h">
+        <div className="sky" aria-hidden="true">
+          <span className="cloud c1" /><span className="cloud c2" /><span className="cloud c3" /><span className="cloud c4" />
+          <span className="meadow" />
+        </div>
+        <div className="wrap wide sky-inner">
+          <p className="mono sky-tr">Walking, balance, and hands,<br />checked each cycle,<br />next to what your<br />scans say</p>
+          <div className="sky-grid">
+            <div>
+              <p className="mono sky-ml">Steadi, for people<br />on chemotherapy</p>
+              <h1 id="sky-h">Two minutes on your phone before every infusion.</h1>
+              <p className="sky-lede">Some chemo drugs change how you walk, balance, and use your hands. A short check-in each cycle shows what’s shifting, next to what your scans say, so you have something concrete to bring to your oncologist.</p>
+              <div className="actions">
+                <button type="button" className="btn sky-btn" onClick={() => go('signup')}>Create an account</button>
+                <button type="button" className="btn sky-ghost" onClick={() => { startDemo(); go('home'); }}><Icon name="play" size={16} /> Try the demo patient</button>
+              </div>
+            </div>
+            <figure className="hero-visual sky-card" style={{ margin: 0 }}>
+              <div className="score-row" style={{ justifyContent: 'space-between' }}>
+                <div>
+                  <div className="fine">Demo patient, cycle 6</div>
+                  <div className="score-row"><span className="score">{Math.round(last.score)}</span><span className="muted">of 100, function score</span></div>
+                </div>
+                <Chip level="notable" />
+              </div>
+              <BandChart steps={twin} selected={twin.length - 1} />
+              <figcaption className="fine">Six cycles of a fictional demo patient. 100 is how they were at their first check-in. Any gray point marks a model discrepancy, not a measured decline.</figcaption>
+            </figure>
           </div>
         </div>
-        <figure className="hero-visual" style={{ margin: 0 }}>
-          <div className="score-row" style={{ justifyContent: 'space-between' }}>
-            <div>
-              <div className="fine">Demo patient, cycle 6</div>
-              <div className="score-row"><span className="score">{Math.round(last.score)}</span><span className="muted">of 100, function score</span></div>
-            </div>
-            <Chip level="notable" />
-          </div>
-          <BandChart steps={twin} selected={twin.length - 1} />
-          <figcaption className="fine">Six cycles of a fictional demo patient. 100 is how they were at their first check-in. Any gray point marks a model discrepancy, not a measured decline.</figcaption>
-        </figure>
-      </div>
       </section>
 
-      <section className="wrap wide">
+      <section className="wrap wide land-panel">
+        <p className="mono kicker-mono">01 / The check-in</p>
         <h2>A check-in, start to finish</h2>
         <p className="muted" style={{ marginTop: 0 }}>Under two minutes from start to finish.</p>
         <ol className="route">
@@ -75,7 +84,8 @@ export default function Landing({ go }) {
         </ol>
       </section>
 
-      <section className="wrap wide">
+      <section className="wrap wide land-panel">
+        <p className="mono kicker-mono">02 / What’s inside</p>
         <h2>What’s inside</h2>
         <div className="feature-list">
           {FEATURES.map((f) => (
@@ -87,13 +97,28 @@ export default function Landing({ go }) {
         </div>
       </section>
 
-      <section className="wrap wide">
+      <section className="wrap wide land-panel">
+        <p className="mono kicker-mono">03 / Where it stops</p>
         <h2>Where it stops</h2>
         <div className="safety">
           <p>The phone measures how you walk, balance, and tap. Those can change from chemo side effects, and also from tiredness, anemia, pain, and plenty else. Only your care team can say why. This is a hackathon prototype, not a medical device, and it hasn’t been clinically validated.</p>
           <p className="fine">The tests follow a published smartphone study in people on chemotherapy (NeuroDetect, JMIR 2025). Explanations are written by Gemma 4, Google’s open AI model.</p>
         </div>
-        <div className="actions"><button type="button" className="btn primary" onClick={() => go('signup')}>Create an account</button><button type="button" className="btn ghost" onClick={() => go('signin')}>I already have one</button></div>
+      </section>
+
+      <section className="sky-hero sky-end" aria-labelledby="end-h">
+        <div className="sky" aria-hidden="true">
+          <span className="cloud c1" /><span className="cloud c3" />
+          <span className="meadow" />
+        </div>
+        <div className="wrap wide sky-inner">
+          <p className="mono sky-ml">Before your next infusion</p>
+          <h2 id="end-h">Bring something concrete to your next appointment.</h2>
+          <div className="actions">
+            <button type="button" className="btn sky-btn" onClick={() => go('signup')}>Create an account</button>
+            <button type="button" className="btn sky-ghost" onClick={() => go('signin')}>I already have one</button>
+          </div>
+        </div>
       </section>
     </>
   );
