@@ -613,19 +613,30 @@ main[data-view="report"] { background: var(--surface); }
 .range .linkish { padding-bottom: 10px; font-size: 0.92rem; }
 .sheet-head .sheet-actions { margin-top: 14px; }
 
-/* Overall at a glance: three plain columns */
+/* Overall at a glance: two bars per measure, cycle 1 and the latest */
 .glance { margin-top: 30px; border-top: 1px solid var(--line); padding-top: 18px; }
-.glance-lead { margin: 0 0 14px; font-weight: 600; }
-.glance-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
-@media (max-width: 680px) { .glance-cols { grid-template-columns: 1fr; gap: 18px; } }
-.gcol h3 { font-size: 1rem; margin: 0 0 6px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); display: flex; justify-content: space-between; }
-.gcol.same h3 { border-bottom-color: var(--body-line); }
-.gcol h3 span { color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
-.gcol ul { list-style: none; padding: 0; margin: 0; }
-.gcol li button { width: 100%; display: grid; gap: 1px; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 9px 4px; font: inherit; color: var(--ink); cursor: pointer; border-radius: 0; }
-.gcol li button:hover { background: var(--tint); }
-.gcol li small { color: var(--ink-2); font-size: 0.84rem; font-variant-numeric: tabular-nums; }
-.gcol .muted { margin: 8px 4px; }
+.glance-lead { margin: 0 0 6px; font-weight: 600; }
+.glance-lead .muted { font-weight: 400; }
+.gl-group { margin-top: 18px; }
+.gl-group h3 { font-size: 0.95rem; margin: 0 0 2px; }
+.gl-row { width: 100%; display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr) 4.5rem; gap: 20px; align-items: center; background: none; border: 0; border-top: 1px solid var(--line); padding: 12px 0; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.gl-row:hover .gl-name { text-decoration: underline; text-decoration-color: var(--body-line); text-underline-offset: 3px; }
+.gl-bars { display: grid; gap: 5px; }
+.gl-bar { display: grid; grid-template-columns: 2rem minmax(0, 1fr) 7rem; gap: 10px; align-items: center; font-size: 0.86rem; }
+.gl-lab { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.gl-track { height: 8px; border-radius: 4px; background: var(--tint); overflow: hidden; }
+.gl-track i { display: block; height: 100%; border-radius: 4px; background: var(--body-line); }
+.gl-bar.now .gl-track i { background: var(--ink); }
+.gl-v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); }
+.gl-bar.now .gl-v { color: var(--ink); font-weight: 600; }
+.gl-k { text-align: right; font-size: 0.88rem; color: var(--ink-2); }
+.gl-k.worse, .gl-k.better { color: var(--ink); font-weight: 600; }
+@media (max-width: 640px) {
+  .gl-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; }
+  .gl-name { grid-column: 1; } .gl-k { grid-column: 2; grid-row: 1; }
+  .gl-bars { grid-column: 1 / -1; }
+  .gl-bar { grid-template-columns: 2rem minmax(0, 1fr) 6.5rem; }
+}
 
 /* Compare any number of reads: a labeled bar per doctor */
 .read-by { margin: 0 0 16px; }

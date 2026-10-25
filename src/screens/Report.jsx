@@ -157,25 +157,37 @@ function sortOf(id, a, b, flagged) {
 function Glance({ items, first, last, onPick }) {
   const flags = new Set(Trends.compare(first, last).map((f) => f.id));
   const rows = items.filter((x) => x.raw).map((x) => ({ x, a: x.raw[0], b: x.raw[x.raw.length - 1], k: sortOf(x.id, x.raw[0], x.raw[x.raw.length - 1], flags.has(x.id)) }));
-  const cols = [['better', 'Better'], ['same', 'About the same'], ['worse', 'Worse']];
+  const count = (k) => rows.filter((r) => r.k === k).length;
+  const WORD = { better: 'Better', same: 'Same', worse: 'Worse' };
+  const groups = [...new Set(rows.map((r) => r.x.group))];
   return (
-    <div className="glance" aria-label={`Every measure compared with cycle ${first.cycle}`}>
-      <p className="glance-lead">Every measure, cycle {first.cycle} compared with cycle {last.cycle}:</p>
-      <div className="glance-cols">
-        {cols.map(([k, name]) => {
-          const list = rows.filter((r) => r.k === k);
-          return (
-            <div key={k} className={`gcol ${k}`}>
-              <h3>{name} <span>{list.length}</span></h3>
-              {list.length ? <ul>{list.map(({ x, a, b }) => (
-                <li key={x.id}><button type="button" onClick={() => onPick(x.id)}>
-                  <span>{x.label}</span><small>{show(a, x.unit)} → {show(b, x.unit)}</small>
-                </button></li>
-              ))}</ul> : <p className="muted">None</p>}
-            </div>
-          );
-        })}
-      </div>
+    <div className="glance" aria-label={`Every measure, cycle ${first.cycle} and cycle ${last.cycle}`}>
+      <p className="glance-lead">Every measure, cycle {first.cycle} next to cycle {last.cycle}. <span className="muted">{count('worse')} worse, {count('same')} about the same, {count('better')} better.</span></p>
+      {groups.map((g) => (
+        <div key={g} className="gl-group">
+          <h3>{g}</h3>
+          {rows.filter((r) => r.x.group === g).map(({ x, a, b, k }) => {
+            const numeric = typeof a === 'number' && typeof b === 'number';
+            const max = Math.max(a || 0, b || 0, x.unit === '/10' ? 10 : x.unit === 'of 1' ? 1 : 0) || 1;
+            return (
+              <button key={x.id} type="button" className="gl-row" onClick={() => onPick(x.id)}>
+                <span className="gl-name">{x.label}</span>
+                <span className="gl-bars">
+                  {[[`C${first.cycle}`, a, 'then'], [`C${last.cycle}`, b, 'now']].map(([lab, v, cls]) => (
+                    <span key={lab} className={`gl-bar ${cls}`}>
+                      <span className="gl-lab">{lab}</span>
+                      <span className="gl-track" aria-hidden="true">{numeric && <i style={{ width: `${Math.max(2, (v / max) * 100)}%` }} />}</span>
+                      <span className="gl-v">{show(v, x.unit)}</span>
+                    </span>
+                  ))}
+                </span>
+                <span className={`gl-k ${k}`}>{WORD[k]}</span>
+              </button>
+            );
+          })}
+        </div>
+      ))}
+      <p className="fine">Tap a measure to see every check-in. “Worse” follows the app’s fixed change rules; “Better” is the same size of change the other way.</p>
     </div>
   );
 }
