@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import FunctionTwin from '../core/twin.js';
 import Trends from '../core/trends.js';
@@ -82,6 +82,99 @@ const fmtChange = (a, b) => {
   return p === 0 ? '' : `${p > 0 ? '+' : '−'}${Math.abs(p)}%`;
 };
 
+
+/* How far each measure moved from cycle 1, on one scale: positive = worse, negative = better, capped at 100. */
+const DIR = { cadence: -1, variability: 1, regularity: -1, 'tap-right': -1, 'tap-left': -1, sway: 1, romberg: 1 };
+function shift(id, a, v) {
+  if (a == null || v == null) return null;
+  if (id === 'buttons') return v === a ? 0 : v === 'Yes' ? 50 : -50;
+  if (id === 'falls') { const n = { None: 0, 'Near-fall': 50, Fall: 100 }; return (n[v] ?? 0) - (n[a] ?? 0); }
+  if (id === 'hesitations') return (v - a) * 25;
+  if (['feetNumb', 'handsNumb', 'feetPain'].includes(id)) return (v - a) * 10;
+  if (!a) return 0;
+  return ((v - a) / a) * 100 * (DIR[id] || 1);
+}
+const cap = (x) => Math.max(-100, Math.min(100, x));
+
+function Detail({ r, checkins, at }) {
+  const vals = checkins.map(r.get);
+  const nums = vals.every((v) => typeof v === 'number');
+  if (!nums) return <div className="detail"><ol className="detail-steps">{vals.map((v, k) => <li key={k} className={k === at ? 'at' : ''}><span>C{checkins[k].cycle}</span><b>{v}</b></li>)}</ol></div>;
+  const W = 560, H = 120, L = 14, R = 14, T = 22, B = 24;
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (hi - lo < 1e-6) { lo -= 1; hi += 1; }
+  const x = (k) => L + (k / (vals.length - 1)) * (W - L - R), y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  return (
+    <div className="detail">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${r.label} by cycle: ${vals.map((v, k) => `cycle ${checkins[k].cycle} ${v}`).join(', ')}`}>
+        <line x1={L} x2={W - R} y1={y(vals[0])} y2={y(vals[0])} stroke="var(--line)" strokeDasharray="4 4" />
+        <polyline points={vals.map((v, k) => `${x(k)},${y(v)}`).join(' ')} fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round" />
+        {vals.map((v, k) => <g key={k}>
+          <circle cx={x(k)} cy={y(v)} r={k === at ? 6 : 4} fill={k === at ? 'var(--rose)' : 'var(--surface)'} stroke={k === at ? 'var(--rose)' : 'var(--ink)'} strokeWidth="2" />
+          <text x={x(k)} y={y(v) - 11} textAnchor="middle" fontSize="13" fontWeight={k === at ? 700 : 500} fill="var(--ink)">{v}</text>
+          <text x={x(k)} y={H - 6} textAnchor="middle" fontSize="12" fill="var(--ink-2)">C{checkins[k].cycle}</text>
+        </g>)}
+      </svg>
+      {r.unit && <p className="fine" style={{ margin: 0 }}>{r.unit === '/10' ? 'Your rating out of 10' : r.unit}. The dashed line is cycle {checkins[0].cycle}.</p>}
+    </div>
+  );
+}
+
+function ChangeChart({ checkins }) {
+  const first = checkins[0];
+  const [at, setAt] = useState(checkins.length - 1);
+  const [open, setOpen] = useState(null);
+  const [playing, setPlaying] = useState(false);
+  const timer = useRef(null);
+  useEffect(() => () => clearInterval(timer.current), []);
+  function play() {
+    clearInterval(timer.current);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setAt(checkins.length - 1); return; }
+    setPlaying(true); setAt(0);
+    let k = 0;
+    timer.current = setInterval(() => { k += 1; setAt(k); if (k >= checkins.length - 1) { clearInterval(timer.current); setPlaying(false); } }, 900);
+  }
+  const cur = checkins[at];
+  const flags = at ? Trends.compare(first, cur) : [];
+  const lvl = Object.fromEntries(flags.map((f) => [f.id, f.level]));
+  return (
+    <section className="cc" aria-label="Changes since the first check-in">
+      <div className="cc-top">
+        <h2>Since cycle {first.cycle}</h2>
+        <div className="cc-ctrl">
+          <div className="cyc" role="tablist" aria-label="Show a cycle">
+            {checkins.map((c, k) => k > 0 && <button key={c.id} type="button" role="tab" aria-selected={k === at} onClick={() => { clearInterval(timer.current); setPlaying(false); setAt(k); }}>C{c.cycle}</button>)}
+          </div>
+          <button type="button" className="btn small no-print" onClick={play} disabled={playing}><Icon name="play" size={14} /> {playing ? 'Playing…' : 'Play'}</button>
+        </div>
+      </div>
+      <div className="cc-axis" aria-hidden="true"><span>Better</span><span>Cycle {first.cycle}</span><span>Worse</span></div>
+      {GROUPS.map((g) => (
+        <div key={g.name} className="cc-group">
+          <h3>{g.name}</h3>
+          {g.rows.map((r) => {
+            const v = r.get(cur), a = r.get(first), d = cap(shift(r.id, a, v) ?? 0);
+            const isOpen = open === r.id, level = lvl[r.id];
+            return (
+              <div key={r.id} className={`cc-item${isOpen ? ' open' : ''}`}>
+                <button type="button" className={`cc-row ${level || ''}`} aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : r.id)}>
+                  <span className="cc-name">{r.label}</span>
+                  <span className="cc-track" aria-hidden="true">
+                    <span className={`cc-bar ${d > 0 ? 'worse' : 'better'}`} style={{ left: d >= 0 ? '50%' : `${50 + d / 2}%`, width: `${Math.abs(d) / 2}%` }} />
+                  </span>
+                  <span className="cc-val">{show(v, r.unit)}</span>
+                </button>
+                {isOpen && <Detail r={r} checkins={checkins} at={at} />}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      <p className="fine cc-note">Bars show how far each measure has moved from cycle {first.cycle}. Pink means a change big enough to mention. Tap a row to see every cycle.</p>
+    </section>
+  );
+}
+
 export default function Report({ go }) {
   const { user, checkins, scans } = useStore();
   const [out, setOut] = useState(null);
@@ -150,29 +243,7 @@ export default function Report({ go }) {
 
         <p className="headline">{checkins.length > 1 ? `${changed.size} of ${GROUPS.reduce((n, g) => n + g.rows.length, 0)} measures have changed since cycle ${first.cycle}.` : 'Your first check-in sets the baseline.'}{worse.length ? <> <span className="warn">Cycle {worse.join(' and ')} was worse than expected.</span></> : null}</p>
 
-        {checkins.length > 1 && <>
-          <div className="cols-head"><span />{['Trend', `Cycle ${first.cycle}`, `Cycle ${last.cycle}`, ''].map((h, k) => <span key={k}>{h}</span>)}</div>
-          {GROUPS.map((g) => (
-            <section key={g.name} className="mgroup" aria-label={g.name}>
-              <h2>{g.name}</h2>
-              {g.rows.map((r) => {
-                const vals = checkins.map(r.get), a = vals[0], b = vals[vals.length - 1];
-                const [lo, hi] = BOUNDS[r.unit] || [];
-                const on = changed.has(r.id);
-                return (
-                  <div key={r.id} className={`mrow${on ? ' on' : ''}`}>
-                    <span className="name">{on && <i className="dot" aria-label="Changed" />}{r.label}</span>
-                    <Spark values={vals} lo={lo} hi={hi} />
-                    <span className="v then">{show(a, r.unit)}</span>
-                    <span className="v now">{show(b, r.unit)}</span>
-                    <span className="delta">{fmtChange(a, b)}</span>
-                  </div>
-                );
-              })}
-            </section>
-          ))}
-          <p className="fine key"><i className="dot" /> changed since cycle {first.cycle}</p>
-        </>}
+        {checkins.length > 1 && <ChangeChart checkins={checkins} />}
 
         {tracks.tracks.length > 0 && <section className="mgroup" aria-label="Scans">
           <h2>Scans</h2>
