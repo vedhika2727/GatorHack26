@@ -702,22 +702,8 @@ main[data-view="report"] { background: var(--surface); }
 .story-sheet h2 { margin: 0; font-size: 1.3rem; }
 .story-sheet .journey { margin-top: 18px; }
 
-/* ---------- Scans light box: a dark, softly lit panel behind the spot chart, like a film on a viewer ---------- */
-.lightbox {
-  --night: #0A0F1E; --night-2: rgba(255, 255, 255, 0.07); --night-line: rgba(255, 255, 255, 0.09);
-  --night-ink: #EEF1FA; --night-ink-2: #8C95B2; --rose-glow: #FF5C9A;
-  position: relative; overflow: hidden; isolation: isolate; margin: 14px 0 6px; padding: 18px 14px 6px; border-radius: 20px;
-  background: radial-gradient(120% 90% at 30% 0%, #1D2747 0%, #0F1529 48%, #0A0F1E 100%);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 18px 40px -22px rgba(10, 15, 30, 0.7);
-}
-/* faint film grid */
-.lightbox::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0.5;
-  background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
-  background-size: 28px 28px; mask-image: radial-gradient(90% 80% at 40% 30%, #000 30%, transparent 85%); }
-/* a slow scan light that sweeps across the panel */
-.lightbox::after { content: ""; position: absolute; top: 0; bottom: 0; left: -30%; width: 30%; z-index: -1; pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(120, 150, 255, 0.10), transparent); animation: sweep 7s ease-in-out infinite; }
-@keyframes sweep { 0% { transform: translateX(0); } 55%, 100% { transform: translateX(440%); } }
+/* ---------- Scans chart: plain, on the page (no dark panel) ---------- */
+.lightbox { margin: 14px 0 6px; }
 .lightbox .spots { display: block; width: 100%; }
 .spots * { pointer-events: none; }
 .spots [data-k], .spots [data-spot] { pointer-events: auto; }
@@ -746,7 +732,7 @@ main[data-view="report"] { background: var(--surface); }
 .aring:hover svg { transform: scale(1.06) rotate(-4deg); }
 
 @media (prefers-reduced-motion: reduce) {
-  .lightbox::after, .spots .draw, .lc .draw, .spots .pop, .spots .sel-col, .ring-fill, .aring { animation: none !important; }
+  .spots .draw, .lc .draw, .spots .pop, .spots .sel-col, .ring-fill, .aring { animation: none !important; }
   .spots .draw, .lc .draw { stroke-dashoffset: 0; }
   .frame:hover, .aring:hover svg { transform: none; }
 }
