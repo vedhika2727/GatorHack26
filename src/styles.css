@@ -774,9 +774,9 @@ main[data-view="welcome"] .sky-hero { margin-top: 0; }
   filter: blur(.6px); transform-origin: bottom; animation: sway 6s ease-in-out infinite alternate; }
 @keyframes sway { from { transform: skewX(-1.5deg); } to { transform: skewX(1.5deg); } }
 .sky-hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(20,24,18,.35) 100%); }
-.sky-inner { position: relative; width: 100%; padding-block: 80px 64px; display: grid; }
+.sky-inner { position: relative; width: 100%; padding-block: 48px 56px; display: grid; }
 .mono { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; text-transform: uppercase; font-size: 0.86rem; line-height: 1.45; letter-spacing: 0.02em; color: rgba(255,255,255,.92); margin: 0; }
-.sky-tr { justify-self: end; text-align: left; max-width: 30ch; margin-bottom: 9vh; }
+.sky-tr { justify-self: end; text-align: left; max-width: 30ch; margin-bottom: 3vh; }
 .sky-ml { margin-bottom: 22px; }
 .sky-hero h1 { color: #fff; font-size: clamp(2.1rem, 5.4vw, 4rem); line-height: 1.02; letter-spacing: -0.035em; font-weight: 600; margin: 0 0 26px; max-width: 18ch; text-shadow: 0 1px 24px rgba(0,0,0,.12); }
 .sky-btn { background: #fff; color: var(--ink); border-color: #fff; }
@@ -801,3 +801,11 @@ main[data-view="welcome"] .sky-hero { margin-top: 0; }
 .chg-vals { margin: 0; display: flex; align-items: baseline; gap: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 0.92rem; }
 .chg-vals span { color: var(--ink-2); }
 .chg-vals i { font-style: normal; color: var(--ink-2); }
+
+/* sky hero now carries the whole first screen: text, buttons, demo chart card */
+.sky-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 48px; align-items: end; }
+@media (max-width: 860px) { .sky-grid { grid-template-columns: 1fr; gap: 32px; } }
+.sky-hero h1 { max-width: 13ch; font-size: clamp(2.4rem, 6vw, 4.3rem); line-height: 0.98; letter-spacing: -0.045em; font-weight: 700; margin-bottom: 18px; }
+.sky-lede { color: rgba(255, 255, 255, 0.95); font-size: 1.12rem; line-height: 1.55; max-width: 46ch; margin: 0 0 26px; text-shadow: 0 1px 14px rgba(0, 0, 0, 0.18); }
+.sky-card { margin-bottom: 0 !important; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.sky-hero + section { margin-top: 56px; }

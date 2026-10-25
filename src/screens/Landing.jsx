@@ -36,38 +36,30 @@ export default function Landing({ go }) {
           <span className="meadow" />
         </div>
         <div className="wrap wide sky-inner">
-          <p className="mono sky-tr">Two minutes on your phone,<br />before every infusion,<br />for you and your<br />oncologist</p>
-          <p className="mono sky-ml">Walking. Balance. Hands.<br />Scans, side by side.</p>
-          <h1 id="sky-h">Notice what’s changing between infusions, and bring it to the people treating you.</h1>
-          <div className="actions">
-            <button type="button" className="btn sky-btn" onClick={() => go('signup')}>Create an account</button>
-            <button type="button" className="btn sky-ghost" onClick={() => { startDemo(); go('home'); }}><Icon name="play" size={16} /> Try the demo patient</button>
-          </div>
-        </div>
-      </section>
-
-      <section className="night-hero">
-      <div className="wrap wide hero">
-        <div>
-          <h1>Two minutes on your phone before every infusion.</h1>
-          <p className="lede">Some chemo drugs change how you walk, balance, and use your hands. A short check-in each cycle shows what’s shifting, next to what your scans say, so you have something concrete to bring to your oncologist.</p>
-          <div className="actions">
-            <button type="button" className="btn light" onClick={() => go('signup')}>Create an account</button>
-            <button type="button" className="btn on-night" onClick={() => { startDemo(); go('home'); }}><Icon name="play" size={16} /> Try the demo patient</button>
-          </div>
-        </div>
-        <figure className="hero-visual" style={{ margin: 0 }}>
-          <div className="score-row" style={{ justifyContent: 'space-between' }}>
+          <p className="mono sky-tr">Walking, balance, and hands,<br />checked each cycle,<br />next to what your<br />scans say</p>
+          <div className="sky-grid">
             <div>
-              <div className="fine">Demo patient, cycle 6</div>
-              <div className="score-row"><span className="score">{Math.round(last.score)}</span><span className="muted">of 100, function score</span></div>
+              <p className="mono sky-ml">Steadi, for people<br />on chemotherapy</p>
+              <h1 id="sky-h">Two minutes on your phone before every infusion.</h1>
+              <p className="sky-lede">Some chemo drugs change how you walk, balance, and use your hands. A short check-in each cycle shows what’s shifting, next to what your scans say, so you have something concrete to bring to your oncologist.</p>
+              <div className="actions">
+                <button type="button" className="btn sky-btn" onClick={() => go('signup')}>Create an account</button>
+                <button type="button" className="btn sky-ghost" onClick={() => { startDemo(); go('home'); }}><Icon name="play" size={16} /> Try the demo patient</button>
+              </div>
             </div>
-            <Chip level="notable" />
+            <figure className="hero-visual sky-card" style={{ margin: 0 }}>
+              <div className="score-row" style={{ justifyContent: 'space-between' }}>
+                <div>
+                  <div className="fine">Demo patient, cycle 6</div>
+                  <div className="score-row"><span className="score">{Math.round(last.score)}</span><span className="muted">of 100, function score</span></div>
+                </div>
+                <Chip level="notable" />
+              </div>
+              <BandChart steps={twin} selected={twin.length - 1} />
+              <figcaption className="fine">Six cycles of a demo patient. 100 is how they were at their first check-in.</figcaption>
+            </figure>
           </div>
-          <BandChart steps={twin} selected={twin.length - 1} />
-          <figcaption className="fine">Six cycles of a demo patient. 100 is how they were at their first check-in.</figcaption>
-        </figure>
-      </div>
+        </div>
       </section>
 
       <section className="wrap wide">
