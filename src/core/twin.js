@@ -17,9 +17,10 @@
  * seeing that check-in (for "worse than expected" surprises), and how much each
  * signal pulled the estimate.
  *
- * IMPORTANT: alpha, Q, R_i and the scale conversions are illustrative starting
- * values chosen for this prototype. They are NOT clinically calibrated. Calibrating
- * them needs repeated measurements from real patients (see README).
+ * IMPORTANT: these settings are NOT clinically calibrated. Walking pace is
+ * literature-informed (see the comment on that signal); every other value is a
+ * hand-picked starting point. Calibrating them needs a repeat-testing study and a
+ * side-by-side study against clinical neuropathy grading (see README).
  */
 
 const PARAMS = {
@@ -33,7 +34,13 @@ const PARAMS = {
 const SIGNALS = [
   { id: 'feet', label: 'Feet symptoms', plural: true, sd: 14, obs: (c) => 10 * Math.max(c.symptoms?.feetNumb || 0, c.symptoms?.feetPain || 0) },
   { id: 'hands', label: 'Hand symptoms', plural: true, sd: 18, obs: (c) => 10 * (c.symptoms?.handsNumb || 0) },
-  { id: 'pace', label: 'Walking pace', sd: 20, obs: (c, b) => ok(c.gait, b.gait) && clamp(((b.gait.cadence - c.gait.cadence) / b.gait.cadence) * 100 * 4) },
+  // Walking pace (literature-informed). Scale: 100 points ~ the gap between healthy adults and
+  // people with active CIPN. Active CIPN walked ~43% slower than controls (37.8 vs 66.7 cm/s,
+  // Support Care Cancer 2026, doi:10.1007/s00520-026-10507-2) with ~31% shorter steps (0.54 vs
+  // 0.78 m, JMIR mHealth 2021;9:e27502); speed = cadence x step length, leaving ~18% lower cadence,
+  // so 1% cadence drop ~ 5.5 points. Noise: smartphone cadence test-retest SEM is reported at
+  // ~2-8% (Functional Morphology & Kinesiology 2025;10:133); ~4% x 5.5 ~ 22 points.
+  { id: 'pace', label: 'Walking pace', sd: 22, obs: (c, b) => ok(c.gait, b.gait) && clamp(((b.gait.cadence - c.gait.cadence) / b.gait.cadence) * 100 * 5.5) },
   { id: 'timing', label: 'Step timing variation', sd: 24, obs: (c, b) => ok(c.gait, b.gait) && clamp((c.gait.stepTimeCV - b.gait.stepTimeCV) * 14) },
   { id: 'evenness', label: 'Step evenness', sd: 26, obs: (c, b) => ok(c.gait, b.gait) && clamp((b.gait.stepRegularity - c.gait.stepRegularity) * 250) },
   { id: 'sway', label: 'Standing sway', sd: 24, obs: (c, b) => ok(c.balance, b.balance) && clamp((c.balance.swayRms / b.balance.swayRms - 1) * 40) },
@@ -110,7 +117,10 @@ function run(checkins, params = {}) {
       surprise: k === 0 ? 'none' : surpriseZ > 1.5 ? 'worse' : surpriseZ < -1.5 ? 'better' : 'none',
       surpriseZ: +surpriseZ.toFixed(2),
       pChanged: k === 0 ? 0 : +(1 - phi((15 - mean) / sd)).toFixed(2), // chance impact exceeds 15 points
-      signals,
+      signals: signals.map((g) => ({ ...g, score: g.value == null ? null : +Math.max(0, 100 - g.value).toFixed(1) })),
+      // Function score for display: 100 = same as the first check-in, lower = more change.
+      score: +(100 - mean).toFixed(1), scoreLow: +(100 - Math.min(100, mean + 1.64 * sd)).toFixed(1), scoreHigh: +(100 - Math.max(0, mean - 1.64 * sd)).toFixed(1),
+      scorePrior: +(100 - priorMean).toFixed(1),
     });
     m = mean; v = vr; prevCycle = c.cycle;
   });
@@ -133,6 +143,12 @@ function disagreements(step) {
 }
 function list(a) { return a.length < 2 ? a[0] : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
 
-const api = { run, disagreements, SIGNALS, PARAMS };
+function interpretation(step, hasRecordedChange) {
+  if (hasRecordedChange) return 'Recorded changes from baseline are shown below.';
+  if (step.surprise !== 'none') return 'The experimental model estimate differs from the recorded signals; this model discrepancy alone does not establish deterioration.';
+  return '';
+}
+
+const api = { run, disagreements, interpretation, SIGNALS, PARAMS };
 export const FunctionTwin = api;
 export default api;

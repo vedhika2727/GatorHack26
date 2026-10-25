@@ -137,6 +137,56 @@ function compareReads(a, b) {
   return { rows, sameChange, sameNew, differences };
 }
 
+/**
+ * Compare any number of reads of the same scan, spot by spot.
+ * rows: [{ location, values: [mm | null per read], status: 'agree' | 'differ' | 'some', spread }]
+ * 'agree' means every read measured it and the sizes are within 15% of each other.
+ */
+function compareMany(reads) {
+  const n = reads.length, rows = [];
+  reads.forEach((r, i) => {
+    for (const l of r.extracted?.lesions || []) {
+      let best = 0, row = null;
+      for (const x of rows) {
+        if (x.values[i] != null) continue;
+        const sc = Math.max(siteScore(l.location, x.location), siteScore(x.location, l.location));
+        if (sc > best) { best = sc; row = x; }
+      }
+      if (!row || best < 0.5) { row = { location: l.location, values: Array(n).fill(null) }; rows.push(row); }
+      row.values[i] = l.sizeMm;
+    }
+  });
+  for (const x of rows) {
+    const v = x.values.filter((m) => m != null);
+    x.spread = +(Math.max(...v) - Math.min(...v)).toFixed(1);
+    x.status = v.length < n ? 'some' : x.spread / Math.max(...v) <= 0.15 ? 'agree' : 'differ';
+  }
+  const newFinding = reads.map((r) => !!r.extracted?.newLesions);
+  const change = reads.map((r) => r.extracted?.change || 'unclear');
+  const sameNew = newFinding.every((v) => v === newFinding[0]);
+  const sameChange = change.every((v) => v === change[0]);
+  const differences = rows.filter((x) => x.status !== 'agree').length + (sameNew ? 0 : 1) + (sameChange ? 0 : 1);
+  return { rows, newFinding, change, sameNew, sameChange, differences };
+}
+
+/** Neutral template explanation for several reads, used when Gemma isn't connected. */
+function opinionsTemplate(reads) {
+  const cmp = compareMany(reads), name = (i) => reads[i].reader || `Doctor ${i + 1}`, parts = [];
+  const agree = cmp.rows.filter((x) => x.status === 'agree').map((x) => x.location);
+  if (agree.length) parts.push(`All ${reads.length} reports give similar sizes for: ${agree.join(', ')}.`);
+  for (const x of cmp.rows) {
+    if (x.status === 'differ') parts.push(`The ${x.location} was measured differently: ${x.values.map((v, i) => `${name(i)} ${v} mm`).join(', ')}.`);
+    if (x.status === 'some') parts.push(`Only ${x.values.map((v, i) => (v != null ? name(i) : null)).filter(Boolean).join(' and ')} measured the ${x.location}.`);
+  }
+  if (!cmp.sameNew) parts.push('The reports disagree on whether there is a new finding.');
+  if (!cmp.sameChange) parts.push('Their overall conclusions about change differ.');
+  parts.push('Radiologists can differ because they measure at slightly different points or compare with different earlier scans. Your oncologist can help you understand what the differences mean for you.');
+  return {
+    summary: parts.join(' '),
+    questions: ['Which measurements will you use to judge how treatment is working?', 'Does the difference between the reports change anything about my care?', 'Should the finding they disagree on be checked again on my next scan?'],
+  };
+}
+
 const total = (s) => s.extracted.lesions.reduce((t, l) => t + l.sizeMm, 0);
 /** One point per scan date: total of measured sizes; min/max when several doctors read it. */
 function tumorSeries(scans) {
@@ -146,8 +196,76 @@ function tumorSeries(scans) {
   }).filter((p) => p.value != null);
 }
 
+/**
+ * One track per measured spot, followed across scan dates (first read of each date).
+ * Spots are matched by location words, so "lesion in hepatic segment 7" and
+ * "Segment 7 lesion" join the same track. Second reads add a min/max range.
+ */
+function lesionTracks(scans) {
+  const groups = groupOpinions(scans);
+  const dates = groups.map((g) => g[0].date);
+  const tracks = [];
+  const match = (loc, k) => {
+    let best = 0, bt = null;
+    for (const t of tracks) {
+      if (t.points[k]) continue;
+      const sc = Math.max(siteScore(loc, t.location), siteScore(t.location, loc));
+      if (sc > best) { best = sc; bt = t; }
+    }
+    return best >= 0.5 ? bt : null;
+  };
+  groups.forEach((g, k) => {
+    for (const l of g[0].extracted.lesions) {
+      let t = match(l.location, k);
+      if (!t) { t = { location: l.location, points: [] }; tracks.push(t); }
+      t.location = l.location;
+      t.points[k] = { date: g[0].date, mm: l.sizeMm, min: l.sizeMm, max: l.sizeMm };
+    }
+    for (const other of g.slice(1)) {
+      for (const l of other.extracted.lesions) {
+        const t = tracks.find((t) => t.points[k] && Math.max(siteScore(l.location, t.location), siteScore(t.location, l.location)) >= 0.5);
+        if (t) { t.points[k].min = Math.min(t.points[k].min, l.sizeMm); t.points[k].max = Math.max(t.points[k].max, l.sizeMm); }
+      }
+    }
+  });
+  return {
+    dates,
+    tracks: tracks.map((t) => {
+      const pts = dates.map((_, k) => t.points[k] || null);
+      const seen = pts.filter(Boolean);
+      const first = seen[0], last = seen[seen.length - 1];
+      return { location: t.location, points: pts, first: first.mm, last: last.mm, changePct: seen.length > 1 ? Math.round(((last.mm - first.mm) / first.mm) * 100) : null };
+    }),
+  };
+}
+
+/**
+ * Where a measurement came from: the report sentence that states this size, preferring
+ * the sentence that also names the same place. Returns { sentence, marks: [[start, end]] } or null.
+ * marks are the character ranges of the matching size (and previous size) inside the sentence.
+ */
+function sourceOf(text, lesion) {
+  const near = (mm) => (v) => v != null && Math.abs(v - mm) < 0.6;
+  let best = null;
+  for (const s of sentences(String(text || ''))) {
+    SIZE_RE.lastIndex = 0;
+    const ms = [...s.matchAll(SIZE_RE)];
+    const sizes = (m) => [m[1], m[2], m[3]].filter(Boolean).map(Number).map((d) => toMm(d, m[4]));
+    const hit = ms.find((m) => sizes(m).some(near(lesion.sizeMm)));
+    if (!hit) continue;
+    const score = 1 + Math.max(siteScore(lesion.location, s), siteScore(s, lesion.location)) + (/^impression/i.test(s) ? -0.5 : 0);
+    if (!best || score > best.score) {
+      const marks = [[hit.index, hit.index + hit[0].length]];
+      const prev = lesion.previousMm != null && ms.find((m) => m !== hit && sizes(m).some(near(lesion.previousMm)));
+      if (prev) marks.push([prev.index, prev.index + prev[0].length]);
+      best = { sentence: s, marks: marks.sort((a, b) => a[0] - b[0]), score };
+    }
+  }
+  return best && { sentence: best.sentence, marks: best.marks };
+}
+
 const CHANGE_WORDS = { first: 'First scan (nothing to compare with)', mixed: 'Some smaller, some larger', smaller: 'Smaller than before', larger: 'Larger than before', stable: 'About the same', unclear: 'Not stated clearly' };
 
-const api = { extractRules, verify, groupOpinions, compareReads, tumorSeries, allSizesMm, CHANGE_WORDS };
+const api = { extractRules, verify, sourceOf, groupOpinions, compareReads, compareMany, opinionsTemplate, tumorSeries, lesionTracks, allSizesMm, CHANGE_WORDS };
 export const Scans = api;
 export default api;

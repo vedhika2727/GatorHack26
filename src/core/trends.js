@@ -25,8 +25,8 @@ function compare(base, cur) {
 
   if (g0 && g1 && g0.ok && g1.ok) {
     const dc = pct(g1.cadence, g0.cadence);
-    if (dc <= -15) flags.push({ id: 'cadence', level: 'notable', text: `Walking pace is ${Math.abs(dc).toFixed(0)}% slower than at baseline (${g0.cadence} → ${g1.cadence} steps/min).` });
-    else if (dc <= -8) flags.push({ id: 'cadence', level: 'watch', text: `Walking pace is ${Math.abs(dc).toFixed(0)}% slower than at baseline (${g0.cadence} → ${g1.cadence} steps/min).` });
+    if (dc <= -15) flags.push({ id: 'cadence', level: 'notable', text: `Walking pace is ${Math.abs(dc).toFixed(0)}% slower than at baseline (${Math.round(g0.cadence)} → ${Math.round(g1.cadence)} steps/min).` });
+    else if (dc <= -8) flags.push({ id: 'cadence', level: 'watch', text: `Walking pace is ${Math.abs(dc).toFixed(0)}% slower than at baseline (${Math.round(g0.cadence)} → ${Math.round(g1.cadence)} steps/min).` });
 
     const dr = g1.stepRegularity - g0.stepRegularity;
     if (dr <= -0.2) flags.push({ id: 'regularity', level: 'notable', text: `Steps are much less even than at baseline (regularity ${g0.stepRegularity} → ${g1.stepRegularity}).` });
