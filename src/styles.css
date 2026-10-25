@@ -1150,6 +1150,6 @@ main[data-view="welcome"] { overflow: hidden; }
 .strip { border-top-color: rgba(255,255,255,.35); }
 @media (prefers-reduced-motion: reduce) { .app-sky .cloud { animation: none; } }
 /* landing: no watermark, sky band closes the page */
-.land-ed + .sky-end { margin-top: 80px; }
+.sky-end { margin-top: 80px !important; }
 .topbar { background: rgba(255, 255, 255, 0.4); }
 .topnav button[aria-current="page"] { background: rgba(255,255,255,.75); }
