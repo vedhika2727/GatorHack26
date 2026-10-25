@@ -113,4 +113,4 @@ test/           tests and validation script
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See `LICENSE`. The Archivo typeface (`src/assets/archivo-wdth.woff2`) is by Omnibus-Type and licensed under the SIL Open Font License 1.1.
