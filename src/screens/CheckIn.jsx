@@ -121,7 +121,7 @@ export default function CheckIn({ go }) {
   const flags = saved && all.length > 1 ? Trends.compare(all[0], saved) : [];
 
   return (
-    <div className={step === 1 ? 'wrap ci-ed' : 'wrap'}>
+    <div className={step === 1 ? 'wrap ci-ed' : step < 5 ? 'wrap wide ci-tests' : 'wrap'}>
       <div className="wizard-head">
         <button type="button" className="btn ghost small" onClick={() => (step === 1 && q > 0 ? setQ(q - 1) : step > 1 && step < 5 ? (step === 2 && setQ(4), goStep(step - 1)) : go('home'))}><Icon name="arrowLeft" size={18} /> {(step === 1 && q > 0) || (step > 1 && step < 5) ? 'Back' : 'Home'}</button>
         <span className="step-label">Step {step} of 5: {STEP_NAMES[step - 1]}</span>
@@ -170,7 +170,9 @@ export default function CheckIn({ go }) {
       })()}
 
       {step === 2 && (
-        <section>
+        <section className="test-ed">
+          <div className="test-info">
+          <p className="mono test-k">Test 1 of 3 · Walking · 30 s</p>
           <h1>Walk for 30 seconds</h1>
           <PreviewNote />
           <Instructions items={[
@@ -179,7 +181,9 @@ export default function CheckIn({ go }) {
             ['arrowRight', 'navy', 'Walk at your usual pace. Turn around when you need to.'],
             ['info', 'rose', 'Your phone will say “start walking” and “stop” out loud.'],
           ]} />
-          <div className="card recorder">
+          </div>
+          <div className="test-panel">
+          <div className="recorder">
             <Ring remaining={walkRec.remaining} progress={walkRec.progress} />
             <p style={{ margin: 0, fontSize: '1.05rem' }} aria-live="assertive">{walkRec.msg || 'Tap start, then put your phone in your pocket. You’ll have 5 seconds.'}</p>
           </div>
@@ -188,12 +192,15 @@ export default function CheckIn({ go }) {
             <button type="button" className="btn primary" disabled={walkRec.busy} onClick={async () => { const g = await runWalk('Start walking', 'Walking… keep going at your usual pace.', (s) => Gait.analyze(s)); if (g) { set({ gait: g }); goStep(3); } }}><Icon name="play" size={16} /> Start walking test</button>
             <button type="button" className="btn" disabled={walkRec.busy} onClick={() => { set({ gait: Gait.analyze(Gait.synthesizeWalk({ cadence: 105 + Math.random() * 10, cv: 2 + Math.random(), seed: Date.now() % 100000 }).samples), source: 'sample' }); goStep(3); }}>Use a sample instead</button>
           </div>
+          </div>
         </section>
       )}
 
       {step === 3 && (
-        <section>
-          <h1>Stand still for 20 seconds</h1>
+        <section className="test-ed">
+          <div className="test-info">
+          <p className="mono test-k">Test 2 of 3 · Balance · 20 s{showClosed ? ' + 20 s' : ''}</p>
+          <h1>{showClosed ? 'Now, if you’re comfortable, with your eyes closed' : 'Stand still for 20 seconds'}</h1>
           <PreviewNote />
           <Instructions items={[
             ['shield', 'red', 'Stand right next to a wall, counter, or sturdy chair you can grab.'],
@@ -201,8 +208,10 @@ export default function CheckIn({ go }) {
             ['balance', 'navy', 'Put your feet side by side, close together, eyes open. Look straight ahead.'],
             ['info', 'rose', 'If you feel unsteady at any point, hold on. You can skip this test.'],
           ]} />
+          </div>
+          <div className="test-panel">
           {!showClosed ? <>
-            <div className="card recorder">
+            <div className="recorder">
               <Ring remaining={balRec.remaining} progress={balRec.progress} />
               <p style={{ margin: 0, fontSize: '1.05rem' }} aria-live="assertive">{balRec.msg || 'Tap start, put the phone in your pocket, and stand with feet together.'}</p>
             </div>
@@ -213,9 +222,9 @@ export default function CheckIn({ go }) {
               <button type="button" className="btn ghost" disabled={balRec.busy} onClick={() => { set({ balance: null }); goStep(4); }}>Skip this test</button>
             </div>
           </> : <>
-            <div className="card">
-              <p className="chip steady" style={{ marginTop: 0 }}><Icon name="check" size={14} /> Eyes-open test done</p>
-              <h2 style={{ marginTop: 10 }}>Optional: the same test with your eyes closed</h2>
+            <div>
+              <p className="mono test-done"><Icon name="check" size={14} /> Eyes open · done</p>
+              <h2 className="sr-only">Optional: the same test with your eyes closed</h2>
               <p className="muted">Doctors use this test (called the Romberg test) because some nerve problems in the feet show up as extra wobble when you can’t see. Your twin compares it with your eyes-open result.</p>
               <p className="notice red">Only do this with a wall or counter right beside you, and someone nearby if possible. If you feel unsteady, open your eyes and hold on. Skip it if your care team has told you to avoid it, or if you’ve fallen recently.</p>
               <div className="recorder" style={{ marginTop: 14 }}>
@@ -230,11 +239,13 @@ export default function CheckIn({ go }) {
               </div>
             </div>
           </>}
+          </div>
         </section>
       )}
 
       {step === 4 && (
-        <section>
+        <section className="test-ed tap-ed">
+          <p className="mono test-k">Test 3 of 3 · Hands · 10 s each</p>
           <h1>Tap test for your hands</h1>
           <p className="lede">Use your <strong>{tapUi.hand}</strong> index finger. Tap the two circles back and forth, one then the other, as fast as you comfortably can. The 10 seconds start with your first tap.</p>
           <div className="card tap-area">
@@ -253,7 +264,7 @@ export default function CheckIn({ go }) {
       )}
 
       {step === 5 && saved && (
-        <section>
+        <section className="test-ed done-ed">
           <h1>Check-in saved</h1>
           <div className="card">
             <p style={{ fontSize: '1.1rem' }}>

@@ -1057,3 +1057,45 @@ main[data-view="home"] { padding-bottom: 0; overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .q-card { animation: none; } }
 .ci-when::before { display: none; }
 @media (max-width: 600px) { .ci-top { flex-direction: column; align-items: flex-start; } .ci-top .ci-pills { justify-content: flex-start; } }
+
+/* ===================== Check-in tests: editorial instrument layout ===================== */
+.ci-tests { max-width: 1120px; }
+.test-ed { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr); gap: 48px; align-items: start; padding: 28px 0 40px; }
+.test-ed.tap-ed, .test-ed.done-ed { display: block; }
+@media (max-width: 860px) { .test-ed { grid-template-columns: 1fr; gap: 24px; } }
+.test-k { color: var(--ink-2); font-size: 0.76rem; margin: 0 0 14px; display: inline-flex; align-items: center; gap: 8px; }
+.test-k::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--forest); }
+.test-ed h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.02; letter-spacing: -0.045em; font-weight: 600; margin: 0 0 26px; color: #363B40; max-width: 14ch; }
+/* numbered steps with thin rules, no icon blobs */
+.test-ed .instructions { counter-reset: st; gap: 0; margin: 0; border-top: 1px solid rgba(58,63,68,.16); }
+.test-ed .instructions li { counter-increment: st; grid-template-columns: 2.4rem 1fr; gap: 10px; padding: 14px 0; border-bottom: 1px solid rgba(58,63,68,.10); font-size: 1.02rem; line-height: 1.45; }
+.test-ed .instructions li::before { content: counter(st, decimal-leading-zero); font: 500 0.78rem/1.9 ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink-2); }
+.test-ed .instructions .ic { display: none; }
+.test-ed .instructions li:first-child::before { color: #A2453B; }
+/* preview + safety notes: quiet, labeled lines */
+.test-ed .notice { background: none !important; border: 0; border-left: 2px solid rgba(58,63,68,.25); border-radius: 0; padding: 2px 0 2px 14px; margin: -6px 0 22px; font-size: 0.92rem; color: var(--ink-2); }
+.test-ed .notice::before { content: "Preview"; display: block; font: 500 0.72rem/1.6 ui-monospace, "SF Mono", Menlo, monospace; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-2); }
+.test-ed .notice.red { border-left-color: #A2453B; color: var(--ink); margin: 0 0 18px; }
+.test-ed .notice.red::before { content: "Safety"; color: #A2453B; }
+/* the instrument panel */
+.test-panel { position: sticky; top: 120px; border-radius: 28px; padding: 30px 30px 26px;
+  background: var(--glass); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-line); box-shadow: 0 26px 56px -36px rgba(60, 55, 40, 0.5); }
+@media (max-width: 860px) { .test-panel { position: static; padding: 22px 18px; } }
+.test-panel .recorder { flex-direction: column; align-items: center; text-align: center; gap: 16px; padding: 6px 0 22px; border-bottom: 1px solid rgba(58,63,68,.10); margin-bottom: 18px; }
+.test-panel .ring { width: 210px; height: 210px; }
+.test-panel .ring .bg { stroke: rgba(58,63,68,.10); stroke-width: 3; }
+.test-panel .ring .fg { stroke: #3A3F44; stroke-width: 3; }
+.test-panel .ring .t { font-size: 5.4rem; font-weight: 300; letter-spacing: -0.05em; color: #363B40; }
+.test-panel .recorder p { font-size: 1rem !important; color: var(--ink-2); max-width: 30ch; }
+.test-panel .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+.test-panel .actions .btn.primary { grid-column: 1 / -1; min-height: 56px; font-size: 1.05rem; }
+.test-panel .actions .btn.ghost { grid-column: 1 / -1; min-height: 40px; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+.test-panel .actions .btn:not(.primary):not(.ghost) { grid-column: 1 / -1; }
+.test-done { display: inline-flex; align-items: center; gap: 6px; color: var(--forest) !important; font-size: 0.76rem; margin: 0 0 14px !important; }
+.test-panel .muted { margin: 0 0 14px; }
+/* tap test */
+.tap-ed h1 { max-width: none; }
+.tap-ed .lede { max-width: 58ch; margin-bottom: 20px; }
+.tap-ed .tap-area { border-radius: 28px; background: var(--glass); border: 1px solid var(--glass-line); }
+.test-panel .ring { width: 172px; height: 172px; }
+.test-panel .ring .t { font-size: 4.4rem; }
