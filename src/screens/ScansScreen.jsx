@@ -110,23 +110,25 @@ function ReadView({ s, onOpenImage }) {
   );
 }
 
-const LETTERS = 'ABCDEF';
+// Each doctor's read gets a shape, so reads can be told apart without colors (and in print).
+const SHAPES = ['fill', 'ring', 'diamond', 'square', 'triangle', 'cross'];
+const SHAPE_WORDS = ['filled dot', 'ring', 'diamond', 'square', 'triangle', 'cross'];
+const Mark = ({ i }) => <span className={`mark m-${SHAPES[i % SHAPES.length]}`} aria-hidden="true" />;
 
-/** A ruler for one spot: each doctor's measurement is a lettered dot, so agreement is visible at a glance. */
+/** A ruler for one spot: a marker per doctor, and a band from the smallest to the largest size. */
 function Ruler({ values, max }) {
-  const placed = [];
-  const dots = values.map((v, i) => {
-    if (v == null) return null;
-    const left = (v / max) * 100;
-    const lane = placed.filter((p) => Math.abs(p - left) < 7).length;
-    placed.push(left);
-    return <span key={i} className={`rdot lane${Math.min(lane, 2)}`} style={{ left: `${left}%` }} title={`${LETTERS[i]}: ${v} mm`}>{LETTERS[i]}</span>;
-  });
+  const seen = {};
+  const got = values.filter((v) => v != null);
+  const lo = Math.min(...got), hi = Math.max(...got);
   return (
     <div className="ruler" aria-hidden="true">
       <span className="rline" />
-      {[0, max / 2, max].map((t, k) => <span key={k} className="rtick" style={{ left: `${(t / max) * 100}%` }}><i>{Math.round(t)}</i></span>)}
-      {dots}
+      {got.length > 1 && hi > lo && <span className="rband" style={{ left: `${(lo / max) * 100}%`, width: `${((hi - lo) / max) * 100}%` }} />}
+      {values.map((v, i) => {
+        if (v == null) return null;
+        const n = (seen[v] = (seen[v] || 0) + 1) - 1; // nudge markers that land on the same size
+        return <span key={i} className="rmark" style={{ left: `calc(${(v / max) * 100}% + ${n * 10}px)` }}><Mark i={i} /></span>;
+      })}
     </div>
   );
 }
@@ -139,14 +141,14 @@ function CompareView({ reads }) {
   const [busy, setBusy] = useState(false);
   const max = Math.ceil(Math.max(10, ...cmp.rows.flatMap((x) => x.values.filter((v) => v != null))) / 10) * 10;
   const agree = cmp.rows.filter((x) => x.status === 'agree').length, differ = cmp.rows.length - agree;
-  const who = (vals) => vals.map((v, i) => (v != null ? LETTERS[i] : null)).filter(Boolean);
+  const who = (vals) => vals.map((v, i) => (v != null ? reads[i].reader : null)).filter(Boolean);
   const note = (x) => (x.status === 'agree' ? (x.spread ? `Within ${x.spread} mm` : 'Same size') : x.status === 'differ' ? `${x.spread} mm apart` : `Only ${who(x.values).join(' and ')} measured it`);
   return (
     <div className="read cmp">
       <p className="compare-lead">{reads.length} radiologists read this {reads[0].kind}. {cmp.rows.length ? `They agree on ${agree} of ${cmp.rows.length} spots${differ ? ` and see ${differ} differently` : ''}.` : ''}</p>
 
       <ol className="readers">
-        {reads.map((r, i) => <li key={r.id}><span className="ltr">{LETTERS[i]}</span><span><b>{r.reader}</b><small>{fmtDate(r.date)}</small></span></li>)}
+        {reads.map((r, i) => <li key={r.id}><Mark i={i} /><span><b>{r.reader}</b> <small>{fmtDate(r.date)}</small></span><span className="sr-only">, shown as a {SHAPE_WORDS[i]}</span></li>)}
       </ol>
 
       <div className="spots-cmp">
@@ -157,15 +159,15 @@ function CompareView({ reads }) {
               <small>{note(x)}</small>
             </div>
             <Ruler values={x.values} max={max} />
-            <div className="cspot-vals">{x.values.map((v, i) => <span key={i}><em>{LETTERS[i]}</em>{v != null ? `${v} mm` : 'not measured'}</span>)}</div>
+            <div className="cspot-vals">{x.values.map((v, i) => <span key={i} title={reads[i].reader}><Mark i={i} />{v != null ? `${v} mm` : 'not measured'}</span>)}</div>
           </div>
         ))}
-        <p className="fine">Ruler in millimeters. Radiologists often measure the same spot a few millimeters apart; bigger gaps are worth asking about.</p>
+        <p className="fine">Ruler in millimeters. The grey band runs from the smallest to the largest size given. Radiologists often measure the same spot a few millimeters apart; bigger gaps are worth asking about.</p>
       </div>
 
       <div className="also">
-        <div className="also-row"><span className="also-k">New finding mentioned</span>{cmp.newFinding.map((v, i) => <span key={i}><em>{LETTERS[i]}</em>{v ? 'Yes' : 'No'}</span>)}</div>
-        <div className="also-row"><span className="also-k">Overall, compared with the last scan</span>{cmp.change.map((v, i) => <span key={i}><em>{LETTERS[i]}</em>{SHORT[v] || v}</span>)}</div>
+        <div className="also-row"><span className="also-k">New finding mentioned</span>{cmp.newFinding.map((v, i) => <span key={i} title={reads[i].reader}><Mark i={i} />{v ? 'Yes' : 'No'}</span>)}</div>
+        <div className="also-row"><span className="also-k">Overall, compared with the last scan</span>{cmp.change.map((v, i) => <span key={i} title={reads[i].reader}><Mark i={i} />{SHORT[v] || v}</span>)}</div>
       </div>
 
       {o && <div className="explain">
@@ -191,7 +193,7 @@ function ScanDetail({ group, onOpenImage }) {
       {group.length > 1 && (
         <div className="tabs" role="tablist" aria-label="Choose a read">
           <button type="button" role="tab" aria-selected={tab === 'compare'} className="cmp" onClick={() => setTab('compare')}><Icon name="doctors" size={17} /> Compare reads</button>
-          {group.map((g, k) => <button key={g.id} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}><span className="ltr sm">{LETTERS[k]}</span>{g.reader}</button>)}
+          {group.map((g, k) => <button key={g.id} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}><Mark i={k} />{g.reader}</button>)}
         </div>
       )}
       {tab === 'compare' && group.length > 1 ? <CompareView reads={group} /> : <ReadView s={s} onOpenImage={onOpenImage} />}

@@ -627,29 +627,36 @@ main[data-view="report"] { background: var(--surface); }
 .gcol li small { color: var(--ink-2); font-size: 0.84rem; font-variant-numeric: tabular-nums; }
 .gcol .muted { margin: 8px 4px; }
 
-/* Compare any number of reads */
-.ltr { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--surface); border: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 0.85rem; flex: 0 0 auto; }
-.ltr.sm { width: 20px; height: 20px; font-size: 0.72rem; margin-right: 6px; }
-.readers { list-style: none; padding: 0; margin: 4px 0 22px; display: flex; flex-wrap: wrap; gap: 10px 22px; }
-.readers li { display: flex; gap: 10px; align-items: center; }
-.readers li > span:last-child { display: grid; line-height: 1.25; }
-.readers small { color: var(--ink-2); font-size: 0.82rem; }
-.spots-cmp { display: grid; gap: 0; }
-.cspot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); grid-template-areas: "name ruler" "name vals"; column-gap: 24px; row-gap: 4px; padding: 14px 0; border-top: 1px solid var(--line); }
-.cspot-name { grid-area: name; display: grid; align-content: start; gap: 2px; }
+/* Compare any number of reads: one shape per doctor */
+.mark { display: inline-block; width: 13px; height: 13px; flex: 0 0 auto; position: relative; }
+.m-fill { border-radius: 50%; background: var(--ink); }
+.m-ring { border-radius: 50%; border: 2.5px solid var(--ink); background: var(--bg); }
+.m-diamond { background: var(--ink); transform: rotate(45deg) scale(0.8); border-radius: 2px; }
+.m-square { border: 2.5px solid var(--ink); border-radius: 2px; background: var(--bg); }
+.m-triangle { width: 0; height: 0; border-left: 7.5px solid transparent; border-right: 7.5px solid transparent; border-bottom: 13px solid var(--ink); }
+.m-cross { background: linear-gradient(var(--ink), var(--ink)) center / 100% 3px no-repeat, linear-gradient(var(--ink), var(--ink)) center / 3px 100% no-repeat; }
+.readers { list-style: none; padding: 0; margin: 2px 0 20px; display: flex; flex-wrap: wrap; gap: 8px 26px; }
+.readers li { display: flex; gap: 9px; align-items: center; }
+.readers small { color: var(--ink-2); font-size: 0.85rem; margin-left: 2px; }
+.tabs .mark { margin-right: 7px; }
+.spots-cmp { display: grid; }
+.cspot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); grid-template-areas: "name ruler" "name vals"; column-gap: 28px; row-gap: 2px; padding: 14px 0; border-top: 1px solid var(--line); align-items: center; }
+.cspot-name { grid-area: name; display: grid; gap: 1px; }
 .cspot-name small { color: var(--ink-2); }
 .cspot.differ .cspot-name small, .cspot.some .cspot-name small { color: var(--ink); font-weight: 600; }
 .cspot .ruler { grid-area: ruler; }
-.cspot-vals { grid-area: vals; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
-.cspot-vals em, .also-row em { font-style: normal; font-weight: 700; margin-right: 5px; }
+.cspot-vals { grid-area: vals; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 0.88rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.cspot-vals span, .also-row span[title] { display: inline-flex; align-items: center; gap: 7px; }
 @media (max-width: 600px) { .cspot { grid-template-columns: 1fr; grid-template-areas: "name" "ruler" "vals"; } }
-.ruler { position: relative; height: 50px; margin: 10px 14px 0; }
-.rline { position: absolute; left: 0; right: 0; top: 22px; height: 2px; background: var(--line); }
-.rtick { position: absolute; top: 18px; height: 10px; width: 1px; background: var(--body-line); }
-.rtick i { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 0.68rem; color: var(--ink-2); }
-.rdot { position: absolute; top: 10px; transform: translateX(-50%); width: 26px; height: 26px; border-radius: 50%; background: var(--surface); border: 2px solid var(--ink); display: grid; place-items: center; font-size: 0.75rem; font-weight: 700; color: var(--ink); transition: left 0.4s ease; }
-.rdot.lane1 { top: -16px; } .rdot.lane2 { top: 36px; }
-.also { margin: 18px 0 6px; border-top: 1px solid var(--line); }
-.also-row { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
+.ruler { position: relative; height: 26px; margin: 0 8px; }
+.rline { position: absolute; left: 0; right: 0; top: 12px; height: 2px; background: var(--body-line); opacity: 0.6; border-radius: 1px; }
+.rband { position: absolute; top: 8px; height: 10px; border-radius: 5px; background: rgba(28, 28, 30, 0.12); }
+.rmark { position: absolute; top: 6.5px; transform: translateX(-50%); line-height: 0; transition: left 0.4s ease; }
+.also { margin: 16px 0 6px; border-top: 1px solid var(--line); }
+.also-row { display: flex; flex-wrap: wrap; gap: 6px 20px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 0.95rem; align-items: center; }
 .also-k { flex: 1 1 100%; color: var(--ink-2); font-size: 0.85rem; }
 @media (min-width: 601px) { .also-k { flex: 0 0 15rem; } }
+
+/* Scan details sit on the page, not in a white box */
+.scan-detail { background: none; border-radius: 0; padding: 4px 0 0; }
+@media (max-width: 600px) { .scan-detail { padding: 0; } }
