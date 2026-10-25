@@ -8,10 +8,9 @@ import { writeReport } from '../lib/api.js';
 import { fmtDate } from '../lib/format.js';
 
 /*
- * Report: one quiet page. A one-line headline, then every measure as a single row with a tiny
- * trend across all cycles and its latest value. A pink dot marks what changed since cycle 1.
- * Scans follow the same row pattern. Numbers come from fixed rules and the twin; Gemma writes
- * only the optional plain-language summary.
+ * Report: a header with the overall twin score, then an explorer. Pick any measure (or a scan
+ * spot) on the left and see it as one line across every check-in, with a plain sentence above.
+ * Numbers come from fixed rules and the twin; Gemma writes only the optional summary.
  */
 const r0 = (v) => (v == null || Number.isNaN(v) ? null : Math.round(v));
 const FALLS = { none: 'None', near: 'Near-fall', fall: 'Fall' };
@@ -50,174 +49,162 @@ function TwinSpark({ twin }) {
   const band = twin.map((t, i) => `${x(i)},${y(t.high)}`).concat(twin.map((t, i) => `${x(i)},${y(t.low)}`).reverse()).join(' ');
   return (
     <svg className="twin-spark" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
-      <polygon points={band} fill="var(--rose-wash)" />
+      <polygon points={band} fill="var(--navy-wash)" />
       <polyline points={twin.map((t, i) => `${x(i)},${y(t.mean)}`).join(' ')} fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round" />
-      {twin.map((t, i) => <circle key={i} cx={x(i)} cy={y(t.mean)} r={t.surprise === 'worse' ? 4.5 : 2.6} fill={t.surprise === 'worse' ? 'var(--red)' : 'var(--ink)'} />)}
+      {twin.map((t, i) => <circle key={i} cx={x(i)} cy={y(t.mean)} r={i === twin.length - 1 ? 4 : 2.6} fill="var(--ink)" />)}
     </svg>
   );
 }
 
-function Spark({ values, lo, hi }) {
-  const W = 120, H = 30, P = 4;
-  const pts = values.map((v, i) => ({ v: typeof v === 'number' ? v : null, i })).filter((p) => p.v != null);
-  if (pts.length < 2) return <svg className="spark" viewBox={`0 0 ${W} ${H}`} aria-hidden="true" />;
-  let a = lo ?? Math.min(...pts.map((p) => p.v)), b = hi ?? Math.max(...pts.map((p) => p.v));
-  if (b - a < 1e-6) { a -= 1; b += 1; }
-  const x = (i) => P + (i / (values.length - 1)) * (W - 2 * P);
-  const y = (v) => H - P - ((v - a) / (b - a)) * (H - 2 * P);
-  const end = pts[pts.length - 1];
+/* ---------- Explore: pick a measure, see it as a line across every check-in ---------- */
+const CATS = { buttons: ['No', 'Yes'], falls: ['None', 'Near-fall', 'Fall'] };
+const num = (id, v) => (CATS[id] ? CATS[id].indexOf(v) : v);
+const times = (b, a) => (a ? Math.round((b / a) * 10) / 10 : null);
+const sAgo = (a, c) => `at cycle ${c}`;
+
+/** One plain sentence for a measure: latest value next to cycle 1, in everyday words. */
+function describe(id, a, b, c1) {
+  const at1 = sAgo(a, c1);
+  switch (id) {
+    case 'twin': return `Overall change in walking, balance, and hand function is ${b} out of 100. Zero means no change since cycle ${c1}.`;
+    case 'cadence': return `You walked ${b} steps a minute, ${b < a ? `down from ${a}` : b > a ? `up from ${a}` : 'the same as'} ${at1}.`;
+    case 'variability': return `The time between your steps varied by ${b}%, compared with ${a}% ${at1}. Lower means steadier steps.`;
+    case 'regularity': return `Your steps scored ${b} for evenness, compared with ${a} ${at1}. 1 would mean every step is exactly alike.`;
+    case 'hesitations': return `You paused ${b === 0 ? 'no times' : b === 1 ? 'once' : `${b} times`} during the 30-second walk, compared with ${a === 0 ? 'none' : a} ${at1}.`;
+    case 'sway': { const x = times(b, a); return x && x !== 1 ? `Standing still, you swayed ${x} times as much as ${at1}.` : `Standing still, you swayed about the same as ${at1}.`; }
+    case 'romberg': return `With your eyes closed you swayed ${b} times as much as with them open. ${at1[0].toUpperCase() + at1.slice(1)} it was ${a} times.`;
+    case 'tap-right': return `Your right hand tapped ${b} times a second, compared with ${a} ${at1}.`;
+    case 'tap-left': return `Your left hand tapped ${b} times a second, compared with ${a} ${at1}.`;
+    case 'buttons': return b === 'Yes' ? `You've had trouble with buttons or zips${a === 'Yes' ? ', as you did' : `, which you didn't`} ${at1}.` : `No trouble with buttons or zips.`;
+    case 'feetNumb': return `You rated numbness or tingling in your feet ${b} out of 10, compared with ${a} ${at1}.`;
+    case 'handsNumb': return `You rated numbness or tingling in your hands ${b} out of 10, compared with ${a} ${at1}.`;
+    case 'feetPain': return `You rated burning or pain in your feet ${b} out of 10, compared with ${a} ${at1}.`;
+    case 'falls': return b === 'None' ? 'No falls or near-falls since the last check-in.' : `You had a ${b.toLowerCase()} since the last check-in.`;
+    default: return '';
+  }
+}
+
+function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, sel, onSel, label }) {
+  const box = useRef(null);
+  const [W, setW] = useState(640);
+  useEffect(() => {
+    const ro = new ResizeObserver(([e]) => setW(Math.max(280, Math.round(e.contentRect.width))));
+    ro.observe(box.current); return () => ro.disconnect();
+  }, []);
+  const H = W < 480 ? 220 : 260, L = cats ? 76 : 44, R = 18, T = 30, B = 34;
+  const nums = values.map((v) => (v == null ? null : v));
+  const all = nums.concat(band ? band.flatMap((b) => [b.low, b.high]) : []).filter((v) => v != null);
+  let lo = cats ? 0 : Math.min(...all), hi = cats ? cats.length - 1 : Math.max(...all);
+  if (!cats) { const pad = (hi - lo || Math.abs(hi) || 1) * 0.15; lo = Math.max(0, lo - pad); hi += pad; }
+  if (hi - lo < 1e-6) hi = lo + 1;
+  const n = values.length;
+  const x = (k) => (n === 1 ? (L + W - R) / 2 : L + (k / (n - 1)) * (W - L - R));
+  const y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const ticks = cats ? cats.map((_, i) => i) : [lo, (lo + hi) / 2, hi];
+  const pts = nums.map((v, k) => (v == null ? null : [x(k), y(v)]));
+  const path = pts.filter(Boolean).map((p) => p.join(',')).join(' ');
+  const pick = (e) => {
+    const r = box.current.getBoundingClientRect();
+    const px = ((e.clientX - r.left) / r.width) * W;
+    let best = 0, d = Infinity;
+    nums.forEach((v, k) => { if (v != null && Math.abs(x(k) - px) < d) { d = Math.abs(x(k) - px); best = k; } });
+    onSel(best);
+  };
+  const s = pts[sel];
   return (
-    <svg className="spark" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
-      <polyline points={pts.map((p) => `${x(p.i)},${y(p.v)}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={x(end.i)} cy={y(end.v)} r="3" fill="currentColor" />
-    </svg>
-  );
-}
-
-const BOUNDS = { 'of 1': [0, 1], '/10': [0, 10] };
-const fmtChange = (a, b) => {
-  if (typeof a !== 'number' || typeof b !== 'number') return '';
-  if (a === 0) return b === 0 ? '' : `+${b}`;
-  const p = Math.round(((b - a) / a) * 100);
-  return p === 0 ? '' : `${p > 0 ? '+' : '−'}${Math.abs(p)}%`;
-};
-
-
-/*
- * Every measure on one scale: 1.0 = the "large change" threshold for that measure (the same
- * thresholds src/core/trends.js uses for its labels), so a bar that reaches the Large mark means
- * the same thing in every row. Positive = worse than cycle 1, negative = better.
- */
-const SEV = {
-  cadence: { kind: 'pct', dir: -1, some: 8, large: 15 },
-  variability: { kind: 'abs', dir: 1, some: 1.5, large: 3 },
-  regularity: { kind: 'abs', dir: -1, some: 0.1, large: 0.2 },
-  hesitations: { kind: 'abs', dir: 1, some: 1, large: 2 },
-  sway: { kind: 'pct', dir: 1, some: 50, large: 100 },
-  romberg: { kind: 'pct', dir: 1, some: 30, large: 60 },
-  'tap-right': { kind: 'pct', dir: -1, some: 15, large: 30 },
-  'tap-left': { kind: 'pct', dir: -1, some: 15, large: 30 },
-  feetNumb: { kind: 'abs', dir: 1, some: 2, large: 4 },
-  handsNumb: { kind: 'abs', dir: 1, some: 2, large: 4 },
-  feetPain: { kind: 'abs', dir: 1, some: 2, large: 4 },
-};
-const MAX = 1.5; // the track shows up to 1.5x the large threshold
-const Z = 22; // where 'same as cycle 1' sits on the track, in %; most room goes to the worse side
-const pos = (n) => (n >= 0 ? Z + (n / MAX) * (100 - Z) : Z + (n / MAX) * Z);
-const SOME_AT = 0.5; // where the "some change" mark sits for the text-valued rows
-function severity(id, a, v) {
-  if (a == null || v == null) return 0;
-  if (id === 'buttons') return v === a ? 0 : v === 'Yes' ? SOME_AT : -SOME_AT;
-  if (id === 'falls') { const n = { None: 0, 'Near-fall': SOME_AT, Fall: 1 }; return (n[v] ?? 0) - (n[a] ?? 0); }
-  const t = SEV[id]; if (!t) return 0;
-  const raw = t.kind === 'pct' ? (a ? ((v - a) / a) * 100 : 0) : v - a;
-  return (raw * t.dir) / t.large;
-}
-function deltaText(r, a, v) {
-  if (typeof a !== 'number' || typeof v !== 'number') return v === a ? 'no change' : `was ${a}`;
-  const d = +(v - a).toFixed(2);
-  if (!d) return 'no change';
-  const sign = d > 0 ? '+' : '−', mag = Math.abs(d);
-  if (r.unit === '/10') return `${sign}${mag} points`;
-  if (r.unit === '%') return `${sign}${mag} points`;
-  if (r.unit === '×') return `${sign}${mag}×`;
-  return `${sign}${mag}${r.unit ? ` ${r.unit}` : ''}`;
-}
-
-function Detail({ r, checkins, at }) {
-  const vals = checkins.map(r.get);
-  const nums = vals.every((v) => typeof v === 'number');
-  if (!nums) return <div className="detail"><ol className="detail-steps">{vals.map((v, k) => <li key={k} className={k === at ? 'at' : ''}><span>C{checkins[k].cycle}</span><b>{v}</b></li>)}</ol></div>;
-  const W = 560, H = 120, L = 14, R = 14, T = 22, B = 24;
-  let lo = Math.min(...vals), hi = Math.max(...vals);
-  if (hi - lo < 1e-6) { lo -= 1; hi += 1; }
-  const x = (k) => L + (k / (vals.length - 1)) * (W - L - R), y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
-  return (
-    <div className="detail">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${r.label} by cycle: ${vals.map((v, k) => `cycle ${checkins[k].cycle} ${v}`).join(', ')}`}>
-        <line x1={L} x2={W - R} y1={y(vals[0])} y2={y(vals[0])} stroke="var(--line)" strokeDasharray="4 4" />
-        <polyline points={vals.map((v, k) => `${x(k)},${y(v)}`).join(' ')} fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round" />
-        {vals.map((v, k) => <g key={k}>
-          <circle cx={x(k)} cy={y(v)} r={k === at ? 6 : 4} fill={k === at ? 'var(--rose)' : 'var(--surface)'} stroke={k === at ? 'var(--rose)' : 'var(--ink)'} strokeWidth="2" />
-          <text x={x(k)} y={y(v) - 11} textAnchor="middle" fontSize="13" fontWeight={k === at ? 700 : 500} fill="var(--ink)">{v}</text>
-          <text x={x(k)} y={H - 6} textAnchor="middle" fontSize="12" fill="var(--ink-2)">C{checkins[k].cycle}</text>
+    <div className="lc">
+      <div className="lc-plot" ref={box}>
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={label} onPointerMove={pick} onPointerDown={pick}>
+        {ticks.map((t, i) => <g key={i}>
+          <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--line)" />
+          <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize="12" fill="var(--ink-2)">{cats ? cats[t] : axisFmt(t)}</text>
         </g>)}
+        {unitLabel && <text x={2} y={12} fontSize="12" fill="var(--ink-2)">{unitLabel}</text>}
+        {band && <polygon points={band.map((b, k) => `${x(k)},${y(b.high)}`).concat(band.map((b, k) => `${x(k)},${y(b.low)}`).reverse()).join(' ')} fill="var(--navy-wash)" />}
+        {s && <line x1={s[0]} x2={s[0]} y1={T - 10} y2={H - B} stroke="var(--ink)" strokeOpacity="0.25" />}
+        <polyline points={path} fill="none" stroke="var(--navy)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+        {pts.map((p, k) => p && <circle key={k} cx={p[0]} cy={p[1]} r={k === sel ? 7 : 4.5} fill={k === sel ? 'var(--navy)' : 'var(--surface)'} stroke="var(--navy)" strokeWidth="2.5" />)}
+        {xLabels.map((t, k) => <text key={k} x={x(k)} y={H - 10} textAnchor="middle" fontSize="12.5" fontWeight={k === sel ? 700 : 400} fill={k === sel ? 'var(--ink)' : 'var(--ink-2)'}>{t}</text>)}
       </svg>
-      {r.unit && <p className="fine" style={{ margin: 0 }}>{r.unit === '/10' ? 'Your rating out of 10' : r.unit}. The dashed line is cycle {checkins[0].cycle}.</p>}
+      {s && <div className="lc-tip" style={{ left: `${Math.min(92, Math.max(8, (s[0] / W) * 100))}%`, top: `${(s[1] / H) * 100}%` }}>{cats ? cats[nums[sel]] : fmt(nums[sel])}</div>}
+      </div>
+      <div className="lc-steps" role="group" aria-label="Choose a point">
+        {xLabels.map((t, k) => nums[k] != null && <button key={k} type="button" aria-pressed={k === sel} onClick={() => onSel(k)}>{t}</button>)}
+      </div>
     </div>
   );
 }
 
-function ChangeChart({ checkins }) {
+function Explorer({ checkins, twin, tracks }) {
   const first = checkins[0];
-  const [at, setAt] = useState(checkins.length - 1);
-  const [open, setOpen] = useState(null);
-  const [playing, setPlaying] = useState(false);
-  const timer = useRef(null);
-  useEffect(() => () => clearInterval(timer.current), []);
-  function play() {
-    clearInterval(timer.current);
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setAt(checkins.length - 1); return; }
-    setPlaying(true); setAt(0);
-    let k = 0;
-    timer.current = setInterval(() => { k += 1; setAt(k); if (k >= checkins.length - 1) { clearInterval(timer.current); setPlaying(false); } }, 900);
-  }
-  const cur = checkins[at];
-  const flags = at ? Trends.compare(first, cur) : [];
-  const lvl = Object.fromEntries(flags.map((f) => [f.id, f.level]));
+  const cyc = checkins.map((c) => `C${c.cycle}`);
+  const items = [
+    { group: 'Overall', id: 'twin', label: 'Overall function', values: twin.map((t) => r0(t.mean)), band: twin.map((t) => ({ low: t.low, high: t.high })), xLabels: cyc, unit: 'of 100' },
+    ...GROUPS.flatMap((g) => g.rows.map((r) => ({ group: g.name, id: r.id, label: r.label, unit: r.unit, raw: checkins.map(r.get), values: checkins.map((c) => num(r.id, r.get(c))), xLabels: cyc, cats: CATS[r.id] }))),
+    ...tracks.tracks.map((t, k) => ({ group: 'Scans', id: `spot-${k}`, label: t.location, unit: 'mm', values: t.points.map((p) => (p ? p.mm : null)), xLabels: tracks.dates.map(fmtDate), spot: t })),
+  ];
+  const [id, setId] = useState('twin');
+  const it = items.find((x) => x.id === id) || items[0];
+  const lastK = it.values.reduce((m, v, k) => (v != null ? k : m), 0);
+  const [sel, setSel] = useState(lastK);
+  useEffect(() => { setSel(lastK); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const fmt = (v) => (v == null ? '' : `${Math.round(v * 100) / 100}${it.unit && !['of 100'].includes(it.unit) ? (/^[%/×]/.test(it.unit) ? it.unit : ` ${it.unit}`) : ''}`);
+  const sentence = it.spot
+    ? (it.spot.changePct == null ? `First measured ${fmtDate(tracks.dates[it.spot.points.findIndex(Boolean)])} at ${it.spot.last} mm.` : `Measured ${it.spot.first} mm on ${fmtDate(tracks.dates[0])} and ${it.spot.last} mm on ${fmtDate(tracks.dates[tracks.dates.length - 1])}, as written in the radiology reports.`)
+    : describe(it.id, it.raw ? it.raw[0] : it.values[0], it.raw ? it.raw[it.raw.length - 1] : it.values[it.values.length - 1], first.cycle);
+  const latest = (x) => { const v = x.raw ? x.raw[x.raw.length - 1] : x.values.filter((v) => v != null).slice(-1)[0]; return x.cats ? v : x.id === 'twin' ? `${v}` : `${v}${/^[%/×]/.test(x.unit || '') ? x.unit : x.unit ? ` ${x.unit}` : ''}`; };
+  const groupNames = [...new Set(items.map((x) => x.group))];
   return (
-    <section className="cc" aria-label="Changes since the first check-in">
-      <div className="cc-top">
-        <h2>Since cycle {first.cycle}</h2>
-        <div className="cc-ctrl">
-          <div className="cyc" role="tablist" aria-label="Show a cycle">
-            {checkins.map((c, k) => k > 0 && <button key={c.id} type="button" role="tab" aria-selected={k === at} onClick={() => { clearInterval(timer.current); setPlaying(false); setAt(k); }}>C{c.cycle}</button>)}
+    <section className="explore" aria-label="Explore your check-ins">
+      <nav className="ex-list" aria-label="Measures">
+        {groupNames.map((g) => (
+          <div key={g} className="ex-group">
+            <h3>{g}</h3>
+            {items.filter((x) => x.group === g).map((x) => (
+              <button key={x.id} type="button" aria-pressed={x.id === it.id} onClick={() => setId(x.id)}>
+                <span>{x.label}</span><small>{latest(x)}</small>
+              </button>
+            ))}
           </div>
-          <button type="button" className="btn small no-print" onClick={play} disabled={playing}><Icon name="play" size={14} /> {playing ? 'Playing…' : 'Play'}</button>
-        </div>
+        ))}
+      </nav>
+      <div className="ex-main" aria-live="polite">
+        <p className="ex-group-name">{it.group}</p>
+        <h2>{it.label}</h2>
+        <p className="ex-sentence">{sentence}</p>
+        <LineChart key={it.id} values={it.values} xLabels={it.xLabels} band={it.band} cats={it.cats} fmt={fmt} sel={sel} onSel={setSel}
+          axisFmt={(v) => { const r = Math.abs(v) >= 10 ? Math.round(v) : Math.round(v * 10) / 10; return String(r); }} unitLabel={it.cats ? '' : it.id === 'twin' ? 'of 100' : it.unit === '×' ? 'times' : it.unit}
+          label={`${it.label}: ${it.values.map((v, k) => `${it.xLabels[k]} ${v == null ? 'none' : it.cats ? it.cats[v] : fmt(v)}`).join(', ')}`} />
+        <p className="fine">{it.id === 'twin' ? 'The shaded area is the likely range. ' : ''}Hover or tap the graph to see each {it.spot ? 'scan' : 'check-in'}.</p>
       </div>
-      <div className="cc-axis" aria-hidden="true"><span className="ax-track"><span style={{ left: 0 }}>Better</span><span style={{ left: `${Z}%` }}>Same</span><span style={{ left: `${pos(1)}%` }}>Large change</span><span className="far">Worse</span></span><span className="ax-val">C{cur.cycle} value</span></div>
-      {GROUPS.map((g) => (
-        <div key={g.name} className="cc-group">
-          <h3>{g.name}</h3>
-          {g.rows.map((r) => {
-            const v = r.get(cur), a = r.get(first), n = Math.max(-MAX, Math.min(MAX, severity(r.id, a, v)));
-            const some = (SEV[r.id] ? SEV[r.id].some / SEV[r.id].large : SOME_AT);
-            const isOpen = open === r.id, level = lvl[r.id];
-            return (
-              <div key={r.id} className={`cc-item${isOpen ? ' open' : ''}`}>
-                <button type="button" className={`cc-row ${level || ''}`} aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : r.id)}>
-                  <span className="cc-name">{r.label}</span>
-                  <span className="cc-track" aria-hidden="true">
-                    <i className="mk zero" style={{ left: `${Z}%` }} />
-                    <i className="mk some" style={{ left: `${pos(some)}%` }} />
-                    <i className="mk large" style={{ left: `${pos(1)}%` }} />
-                    <span className={`cc-bar ${n > 0 ? 'worse' : 'better'}`} style={{ left: `${Math.min(Z, pos(n))}%`, width: `${Math.abs(pos(n) - Z)}%` }} />
-                  </span>
-                  <span className="cc-val"><b>{show(v, r.unit)}</b><small>{deltaText(r, a, v)}</small></span>
-                </button>
-                {isOpen && <Detail r={r} checkins={checkins} at={at} />}
-              </div>
-            );
-          })}
-        </div>
-      ))}
-      <p className="fine cc-note">Each bar shows how far a measure has moved from cycle {first.cycle}, scaled so the tall tick means a large change for that measure and the short tick means some change. Tap a row to see every cycle.</p>
     </section>
   );
 }
 
 export default function Report({ go }) {
-  const { user, checkins, scans } = useStore();
+  const { user, checkins: allCheckins, scans: allScans } = useStore();
   const [out, setOut] = useState(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState('');
+  // Date range: the report covers check-ins from..to (indexes into the full list).
+  const [range, setRange] = useState([0, Math.max(0, allCheckins.length - 1)]);
+  useEffect(() => { setRange([0, Math.max(0, allCheckins.length - 1)]); }, [allCheckins.length]);
+  const from = Math.min(range[0], allCheckins.length - 1), to = Math.min(Math.max(range[1], from), allCheckins.length - 1);
+  const checkins = useMemo(() => allCheckins.slice(from, to + 1), [allCheckins, from, to]);
+  const fullRange = from === 0 && to === allCheckins.length - 1;
+  // Scans from two weeks before the first check-in in the range through the last one.
+  const scans = useMemo(() => {
+    if (!checkins.length) return allScans;
+    const start = new Date(checkins[0].date + 'T12:00:00'); start.setDate(start.getDate() - 14);
+    const s0 = start.toISOString().slice(0, 10), s1 = checkins[checkins.length - 1].date;
+    return fullRange ? allScans : allScans.filter((x) => x.date >= s0 && x.date <= s1);
+  }, [allScans, checkins, fullRange]);
   const twin = useMemo(() => FunctionTwin.run(checkins), [checkins]);
   const tracks = useMemo(() => Scans.lesionTracks(scans), [scans]);
   const groups = useMemo(() => Scans.groupOpinions(scans), [scans]);
 
   async function write() { setBusy(true); setOut(await writeReport(checkins, scans)); setBusy(false); }
-  useEffect(() => { if (checkins.length) write(); }, [checkins.length, scans.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (checkins.length) write(); }, [from, to, allCheckins.length, allScans.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!checkins.length) return (
     <div className="wrap"><h1>Report for your care team</h1>
@@ -234,7 +221,7 @@ export default function Report({ go }) {
   const headline = `Walking, balance, and hand function have changed ${r0(step.mean)} out of 100 since cycle ${first.cycle}.`;
 
   const asText = () => [
-    `Report for ${user.name}, before cycle ${last.cycle + 1} (${fmtDate(first.date)} to ${fmtDate(last.date)})`, '',
+    `Report for ${user.name}, ${fullRange ? `before cycle ${last.cycle + 1}` : `cycles ${first.cycle} to ${last.cycle}`} (${fmtDate(first.date)} to ${fmtDate(last.date)})`, '',
     `${headline} Likely ${r0(step.low)} to ${r0(step.high)}.${worse.length ? ` Cycle ${worse.join(', ')} was worse than expected.` : ''}`, '',
     ...(out?.patient ? ['Summary', plain(out.patient), ''] : []),
     `Changes since cycle ${first.cycle} (cycle ${first.cycle} → cycle ${last.cycle})`, '',
@@ -259,7 +246,12 @@ export default function Report({ go }) {
           <div className="who">
             <p className="kicker-line">Report for your care team</p>
             <h1>{user.name}</h1>
-            <p className="muted">Before cycle {last.cycle + 1}. Check-ins {fmtDate(first.date)} to {fmtDate(last.date)}{user.mode === 'demo' ? ', demo patient' : ''}.</p>
+            <p className="muted">{fullRange ? `Before cycle ${last.cycle + 1}. ` : ''}Check-ins {fmtDate(first.date)} to {fmtDate(last.date)}{fullRange ? '' : ` (cycles ${first.cycle} to ${last.cycle})`}{user.mode === 'demo' ? ', demo patient' : ''}.</p>
+            {allCheckins.length > 1 && <div className="range no-print" role="group" aria-label="Date range">
+              <label>From<select value={from} onChange={(e) => setRange([+e.target.value, Math.max(+e.target.value, to)])}>{allCheckins.map((c, k) => <option key={c.id} value={k}>C{c.cycle}, {fmtDate(c.date)}</option>)}</select></label>
+              <label>To<select value={to} onChange={(e) => setRange([Math.min(from, +e.target.value), +e.target.value])}>{allCheckins.map((c, k) => <option key={c.id} value={k} disabled={k < from}>C{c.cycle}, {fmtDate(c.date)}</option>)}</select></label>
+              {!fullRange && <button type="button" className="linkish" onClick={() => setRange([0, allCheckins.length - 1])}>Show everything</button>}
+            </div>}
             <div className="sheet-actions no-print">
               <button type="button" className="btn primary small" onClick={copy}><Icon name="copy" size={16} /> Copy report text</button>
               {!HOSTED_PREVIEW && <button type="button" className="btn small" onClick={() => window.print()}><Icon name="printer" size={16} /> Print</button>}
@@ -269,27 +261,11 @@ export default function Report({ go }) {
           <div className="score-block">
             <div className="score-num"><b>{r0(step.mean)}</b><span>of 100</span></div>
             <TwinSpark twin={twin} />
-            <p className="fine">Change in walking, balance, and hand function since cycle {first.cycle}. Likely {r0(step.low)} to {r0(step.high)}.</p>
+            <p className="fine">Overall change in walking, balance, and hand function since cycle {first.cycle}. Likely {r0(step.low)} to {r0(step.high)}.</p>
           </div>
         </header>
 
-        <p className="headline">{checkins.length > 1 ? `${changed.size} of ${GROUPS.reduce((n, g) => n + g.rows.length, 0)} measures have changed since cycle ${first.cycle}.` : 'Your first check-in sets the baseline.'}{worse.length ? <> <span className="warn">Cycle {worse.join(' and ')} was worse than expected.</span></> : null}</p>
-
-        {checkins.length > 1 && <ChangeChart checkins={checkins} />}
-
-        {tracks.tracks.length > 0 && <section className="mgroup" aria-label="Scans">
-          <h2>Scans</h2>
-          {tracks.tracks.map((t) => (
-            <div key={t.location} className="mrow">
-              <span className="name">{t.location}</span>
-              <Spark values={t.points.map((p) => (p ? p.mm : null))} lo={0} />
-              <span className="v then">{t.points[0] ? `${t.points[0].mm} mm` : '–'}</span>
-              <span className="v now">{t.last} mm</span>
-              <span className="delta">{t.changePct == null ? 'new' : fmtChange(t.first, t.last)}</span>
-            </div>
-          ))}
-          <p className="fine">{groups.length} scan dates, {fmtDate(tracks.dates[0])} to {fmtDate(tracks.dates[tracks.dates.length - 1])}.{twoReads.length ? ` ${twoReads.map((g) => `${fmtDate(g[0].date)} read by ${g.length} radiologists`).join('; ')}.` : ''}</p>
-        </section>}
+        {checkins.length > 1 ? <Explorer key={`${from}-${to}`} checkins={checkins} twin={twin} tracks={tracks} /> : <p className="headline">Pick at least two check-ins to see how things changed.</p>}
 
         {questions.length > 0 && <section className="mgroup" aria-label="Questions">
           <h2>Questions for the next visit</h2>

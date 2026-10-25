@@ -577,3 +577,38 @@ main[data-view="report"] { background: var(--surface); }
   .cyc button { padding: 7px 9px; }
 }
 @media (prefers-reduced-motion: reduce) { .cc-bar { transition: none; } }
+
+/* Report explorer: a list of measures and one large line graph */
+.explore { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 40px; margin-top: 34px; align-items: start; }
+.ex-list { position: sticky; top: 96px; display: grid; gap: 18px; max-height: calc(100vh - 120px); overflow: auto; padding-right: 4px; }
+.ex-group h3 { font-size: 0.8rem; font-weight: 600; color: var(--ink-2); margin: 0 0 4px; letter-spacing: 0; }
+.ex-group button { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; text-align: left; background: none; border: 0; border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 0.95rem; color: var(--ink); cursor: pointer; }
+.ex-group button small { color: var(--ink-2); font-size: 0.82rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ex-group button:hover { background: var(--tint); }
+.ex-group button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.ex-group button[aria-pressed="true"] small { color: rgba(255, 255, 255, 0.75); }
+.ex-main { min-width: 0; }
+.ex-group-name { margin: 0; color: var(--ink-2); font-size: 0.9rem; }
+.ex-main h2 { margin: 2px 0 8px; font-size: 1.8rem; }
+.ex-sentence { font-size: 1.15rem; line-height: 1.45; margin: 0 0 18px; max-width: 54ch; }
+.lc { width: 100%; }
+.lc-plot { position: relative; touch-action: pan-y; }
+.lc svg { display: block; width: 100%; height: auto; cursor: crosshair; }
+.lc-tip { position: absolute; transform: translate(-50%, calc(-100% - 14px)); background: var(--ink); color: #fff; font-weight: 600; font-size: 0.9rem; padding: 4px 9px; border-radius: 7px; pointer-events: none; white-space: nowrap; font-variant-numeric: tabular-nums; transition: left 0.15s ease, top 0.15s ease; }
+.lc-steps { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.lc-steps button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 5px 10px; font: 600 0.85rem var(--sans); color: var(--ink-2); cursor: pointer; }
+.lc-steps button[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); }
+@media (max-width: 860px) {
+  .explore { grid-template-columns: 1fr; gap: 18px; }
+  .ex-list { position: static; max-height: none; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
+  .ex-group { display: contents; }
+  .ex-group h3 { display: none; }
+  .ex-group button { flex: 0 0 auto; width: auto; border: 1px solid var(--line); display: grid; gap: 0; padding: 8px 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .lc-tip { transition: none; } }
+
+.range { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; margin-top: 18px; }
+.range label { display: grid; gap: 4px; font-size: 0.82rem; font-weight: 600; color: var(--ink-2); }
+.range select { font: 500 0.95rem var(--sans); color: var(--ink); padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 9px; background: var(--surface); min-height: 42px; }
+.range .linkish { padding-bottom: 10px; font-size: 0.92rem; }
+.sheet-head .sheet-actions { margin-top: 14px; }
