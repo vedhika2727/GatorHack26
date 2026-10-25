@@ -146,8 +146,51 @@ function tumorSeries(scans) {
   }).filter((p) => p.value != null);
 }
 
+/**
+ * One track per measured spot, followed across scan dates (first read of each date).
+ * Spots are matched by location words, so "lesion in hepatic segment 7" and
+ * "Segment 7 lesion" join the same track. Second reads add a min/max range.
+ */
+function lesionTracks(scans) {
+  const groups = groupOpinions(scans);
+  const dates = groups.map((g) => g[0].date);
+  const tracks = [];
+  const match = (loc, k) => {
+    let best = 0, bt = null;
+    for (const t of tracks) {
+      if (t.points[k]) continue;
+      const sc = Math.max(siteScore(loc, t.location), siteScore(t.location, loc));
+      if (sc > best) { best = sc; bt = t; }
+    }
+    return best >= 0.5 ? bt : null;
+  };
+  groups.forEach((g, k) => {
+    for (const l of g[0].extracted.lesions) {
+      let t = match(l.location, k);
+      if (!t) { t = { location: l.location, points: [] }; tracks.push(t); }
+      t.location = l.location;
+      t.points[k] = { date: g[0].date, mm: l.sizeMm, min: l.sizeMm, max: l.sizeMm };
+    }
+    for (const other of g.slice(1)) {
+      for (const l of other.extracted.lesions) {
+        const t = tracks.find((t) => t.points[k] && Math.max(siteScore(l.location, t.location), siteScore(t.location, l.location)) >= 0.5);
+        if (t) { t.points[k].min = Math.min(t.points[k].min, l.sizeMm); t.points[k].max = Math.max(t.points[k].max, l.sizeMm); }
+      }
+    }
+  });
+  return {
+    dates,
+    tracks: tracks.map((t) => {
+      const pts = dates.map((_, k) => t.points[k] || null);
+      const seen = pts.filter(Boolean);
+      const first = seen[0], last = seen[seen.length - 1];
+      return { location: t.location, points: pts, first: first.mm, last: last.mm, changePct: seen.length > 1 ? Math.round(((last.mm - first.mm) / first.mm) * 100) : null };
+    }),
+  };
+}
+
 const CHANGE_WORDS = { first: 'First scan (nothing to compare with)', mixed: 'Some smaller, some larger', smaller: 'Smaller than before', larger: 'Larger than before', stable: 'About the same', unclear: 'Not stated clearly' };
 
-const api = { extractRules, verify, groupOpinions, compareReads, tumorSeries, allSizesMm, CHANGE_WORDS };
+const api = { extractRules, verify, groupOpinions, compareReads, tumorSeries, lesionTracks, allSizesMm, CHANGE_WORDS };
 export const Scans = api;
 export default api;
