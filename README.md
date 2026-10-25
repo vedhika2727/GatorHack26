@@ -105,7 +105,10 @@ test/           tests and validation script
 
 ## Limitations
 
-- Not a medical device and not clinically validated. The twin's parameters are reasonable starting values, not calibrated on patients.
+- Not a medical device and not clinically validated. The twin's settings are not calibrated on patients:
+  - **Walking pace** is literature-informed: its scale and noise come from published gait studies of people with chemo-induced neuropathy and from smartphone test-retest studies (sources in `src/core/twin.js`).
+  - **Everything else** (the other signals' scales and noise, and the per-cycle change) is a hand-picked starting value.
+  - **To calibrate:** (1) a repeat-testing study in people not on chemo, to measure each signal's day-to-day noise; (2) a side-by-side study where patients do the phone check-in at each infusion while the clinic records standard neuropathy grading (NCI CTCAE, EORTC QLQ-CIPN20, Total Neuropathy Score), then fit the scales and per-cycle change by maximum likelihood; (3) test on patients the fit never saw.
 - Phone measurements depend on pocket placement, shoes, floor, and phone model; compare only with the same person's earlier check-ins.
 - Symptom questions are simple 0–10 ratings. A real deployment should license a validated questionnaire such as the EORTC QLQ-CIPN20.
 - The eyes-closed stance is optional and can be unsafe for people with severe neuropathy.
