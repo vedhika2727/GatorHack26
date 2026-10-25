@@ -95,7 +95,7 @@ export default function Twin({ go }) {
     : '';
   const baselineMessage = checkins.length === 1
     ? 'Baseline recorded. Add another check-in to compare changes.'
-    : `Cycle ${base.cycle} is your baseline, so the twin starts at 0.`;
+    : `Cycle ${base.cycle} is your baseline, so the function score starts at 100.`;
   const symptomsOnly = !personalCur.gait?.ok && !personalCur.balance?.ok && !personalCur.balanceClosed?.ok
     && !personalCur.tapping?.right?.ok && !personalCur.tapping?.left?.ok;
   const sampleOnlyPhysical = symptomsOnly && (cur.gait?.ok || cur.balance?.ok || cur.balanceClosed?.ok
@@ -104,19 +104,19 @@ export default function Twin({ go }) {
   return (
     <div className="wrap">
       <h1>Your function twin</h1>
-      <p className="lede">Each test on its own is noisy: a tired day or different shoes can change one result. Your twin combines all your signals, trusts the reliable ones more, and estimates how much your walking, balance, and hand function have changed since your first check-in.</p>
+      <p className="lede">Each test on its own is noisy: a tired day or different shoes can change one result. Your twin combines all your signals, trusts the reliable ones more, and turns that into one function score: 100 is how your walking, balance, and hands were at your first check-in, and it drops as they change.</p>
 
       {demoMode && <p className="notice rose" role="note">Demo estimate. This fictional timeline uses simulated measurements and does not describe a real person.</p>}
       {sourceNotice && <p className="notice rose" role="note">{sourceNotice} Chart values include these sample or simulated measurements.</p>}
 
       <section className="card twin-hero" aria-label="Twin estimate">
         <div className="score-row" style={{ justifyContent: 'space-between' }}>
-          <div className="score-row"><span className="score">{Math.round(step.mean)}</span><span className="muted">/100 experimental {demoMode ? 'demo' : 'personal'} estimate at cycle {cur.cycle}</span></div>
+          <div className="score-row"><span className="score">{Math.round(step.score)}</span><span className="muted">of 100, experimental {demoMode ? 'demo' : 'personal'} function estimate at cycle {cur.cycle}. 100 is the first check-in.</span></div>
           {level && <Chip level={level} />}
         </div>
         <p>{i === 0 ? baselineMessage
-          : `Experimental model uncertainty range: ${Math.round(step.low)}–${Math.round(step.high)} on ${fmtDate(cur.date)}. Its prior estimate was about ${Math.round(step.priorMean)}.`}</p>
-        {i === 0 && <p className="fine">A baseline score of 0 means no change has been calculated yet; it does not mean you have no symptoms.</p>}
+          : `Experimental model uncertainty range: ${Math.round(step.scoreLow)}–${Math.round(step.scoreHigh)} on ${fmtDate(cur.date)}.`}</p>
+        {i === 0 && <p className="fine">A baseline function score of 100 means this is the starting point; no change has been calculated yet. It does not mean you have no symptoms.</p>}
         <p className="fine">Experimental, unvalidated model estimate—not a measured physical decline. The range is model uncertainty, not a clinical confidence interval.</p>
         {symptomsOnly && !sampleOnlyPhysical && <p className="notice rose" role="note">Symptoms-only check-in. Walking, balance, and hand performance were not measured.</p>}
         {sampleOnlyPhysical && <p className="notice rose" role="note">No personal physical measurements are available for this check-in. Sample or unverified physical results are excluded from your personal estimate.</p>}
@@ -125,7 +125,6 @@ export default function Twin({ go }) {
         <ul className="legend" aria-label="Chart key">
           <li><span className="k k-line" />Twin’s estimate</li>
           <li><span className="k k-band" />Model uncertainty range</li>
-          <li><span className="k k-prior" />What it expected</li>
           <li><span className="k k-model" />Model discrepancy</li>
           <li><span className="k k-dot" />Individual signals</li>
         </ul>
@@ -149,11 +148,11 @@ export default function Twin({ go }) {
         <p className="muted">{FunctionTwin.disagreements(step)} The bar shows each signal; the pink tick is the twin’s combined estimate. “Counts” is how much each signal contributes, based on how noisy it tends to be.</p>
         <div className="card drivers">
           {step.signals.map((g) => {
-            const v = g.value == null ? null : Math.max(0, Math.min(100, g.value));
+            const v = g.score == null ? null : Math.max(0, Math.min(100, g.score));
             return (
               <div key={g.id} className={`driver${v == null ? ' missing' : ''}`}>
                 <span>{g.label}</span>
-                <span className="track" aria-hidden="true">{v != null && <span className="fill" style={{ width: `${v}%` }} />}<span className="est" style={{ left: `${Math.min(99, step.mean)}%` }} /></span>
+                <span className="track" aria-hidden="true">{v != null && <span className="fill" style={{ width: `${v}%` }} />}<span className="est" style={{ left: `${Math.min(99, step.score)}%` }} /></span>
                 <span className="v">{v == null ? 'not measured' : `${Math.round(v)}, counts ${Math.round(g.share * 100)}%`}</span>
               </div>
             );

@@ -14,8 +14,8 @@ Many chemotherapy drugs (taxanes, platinum drugs, vinca alkaloids, bortezomib) c
 
 - **Home page and accounts:** a landing page, sign up / sign in with email and password (Supabase), an on-device profile option with no password, and a demo patient.
 - **Check-in (about 2 minutes):** symptom ratings (0–10 buttons), a 30-second walk with the phone in a pocket, a 20-second stance with eyes open and optionally eyes closed (Romberg-style), and a 10-second finger-tapping test per hand.
-- **Function twin:** a Kalman-filter model that fuses eight noisy signals into one estimate (0–100) of how much function has changed since the first check-in, with an uncertainty range. It flags check-ins that are **worse than it expected** and explains when signals disagree.
-- **What you can see:** a body map that glows with reported symptoms, walking figures that replay the real step rhythm (baseline vs. now), and every measurement over time.
+- **Function twin:** an experimental Kalman-filter model that combines symptom answers and eligible physical measurements. Its function score is 100 at the first check-in and drops as the model estimates more change; the displayed range is model uncertainty, not a clinical confidence interval or a measured physical decline. Fixed rules separately flag recorded changes from baseline.
+- **What you can see:** a body map that glows with reported symptoms, walking step-timing illustrations (not a reconstruction of movement), and measurements over time. Sample, simulated, and unverified physical measurements are labeled and excluded from personal estimates; skipped tests remain unmeasured.
 - **Scan reports:** paste, upload (PDF or text), or photograph a radiology report. Gemma 4 extracts each measurement and the radiologist's conclusion. **Every size is checked against the report text, and anything not found word for word is dropped.** Tumor size is plotted next to the twin.
 - **Two doctors, one scan:** reports of the same scan within 7 days are compared lesion by lesion, and Gemma explains the differences neutrally without picking a side.
 - **Care-team report:** patient summary, twin summary, scans, clinician summary, and questions for the next visit. Copy or print it.
@@ -80,7 +80,7 @@ The Gemma key is only read on the server and never reaches the browser. Never co
 ## Tests
 
 ```bash
-npm test                    # step detection, twin model, Gemma request/fallback handling (simulated API)
+npm test                    # gait, twin, scan/glossary, provenance, sensor, and Gemma tests (simulated API)
 node test/validate.js trial.csv --steps 52 --time t --ax accX --ay accY --az accZ --time-unit s --accel-unit g
 ```
 

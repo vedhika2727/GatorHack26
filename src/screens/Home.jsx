@@ -47,13 +47,13 @@ export default function Home({ go }) {
           <div className="score-row" style={{ justifyContent: 'space-between' }}>
             <div>
               <h2 id="twin-sum" style={{ margin: 0, fontSize: '1.2rem' }}>Your function twin</h2>
-              <div className="score-row"><span className="score">{Math.round(step.mean)}</span><span className="muted">/100 experimental {user?.mode === 'demo' ? 'demo' : 'personal'} estimate</span></div>
+              <div className="score-row"><span className="score">{Math.round(step.score)}</span><span className="muted">of 100. 100 is how you were at your first check-in.</span></div>
             </div>
             {level && <Chip level={level} />}
           </div>
           <p className="muted" style={{ marginTop: 6 }}>
             {checkins.length === 1 ? 'Your baseline is set. Your twin starts learning at your next check-in.'
-              : `Experimental model uncertainty range ${Math.round(step.low)}–${Math.round(step.high)} at cycle ${last.cycle}.`}
+              : `Experimental model uncertainty range ${Math.round(step.scoreLow)}–${Math.round(step.scoreHigh)} at cycle ${last.cycle}. Lower means more change in walking, balance, or hands.`}
           </p>
           {step.surprise !== 'none' && <p className="fine">{FunctionTwin.interpretation(step, flags.length > 0)}</p>}
           <p className="fine">Experimental, unvalidated estimate; its range is model uncertainty, not a clinical confidence interval.</p>

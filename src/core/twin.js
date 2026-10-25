@@ -110,7 +110,10 @@ function run(checkins, params = {}) {
       surprise: k === 0 ? 'none' : surpriseZ > 1.5 ? 'worse' : surpriseZ < -1.5 ? 'better' : 'none',
       surpriseZ: +surpriseZ.toFixed(2),
       pChanged: k === 0 ? 0 : +(1 - phi((15 - mean) / sd)).toFixed(2), // chance impact exceeds 15 points
-      signals,
+      signals: signals.map((g) => ({ ...g, score: g.value == null ? null : +Math.max(0, 100 - g.value).toFixed(1) })),
+      // Function score for display: 100 = same as the first check-in, lower = more change.
+      score: +(100 - mean).toFixed(1), scoreLow: +(100 - Math.min(100, mean + 1.64 * sd)).toFixed(1), scoreHigh: +(100 - Math.max(0, mean - 1.64 * sd)).toFixed(1),
+      scorePrior: +(100 - priorMean).toFixed(1),
     });
     m = mean; v = vr; prevCycle = c.cycle;
   });
@@ -135,7 +138,7 @@ function list(a) { return a.length < 2 ? a[0] : a.slice(0, -1).join(', ') + ' an
 
 function interpretation(step, hasRecordedChange) {
   if (hasRecordedChange) return 'Recorded changes from baseline are shown below.';
-  if (step.surprise !== 'none') return 'The experimental model estimate differed from its prior expectation; this discrepancy alone does not establish deterioration.';
+  if (step.surprise !== 'none') return 'The experimental model estimate differs from the recorded signals; this model discrepancy alone does not establish deterioration.';
   return '';
 }
 

@@ -51,11 +51,11 @@ export default function App() {
             </div>
           )}
         </div>
+        {signedIn && user.mode === 'demo' && <div className="strip"><div className="wrap wide">You’re viewing a demo patient: simulated check-ins, fictional reports. <button type="button" className="linkish" onClick={() => go('account')}>Leave the demo</button></div></div>}
+        {HOSTED_PREVIEW && !signedIn && <div className="strip"><div className="wrap wide">Preview mode. Accounts, Gemma, and motion sensors run in the full app.</div></div>}
       </header>
-      {signedIn && user.mode === 'demo' && <div className="wrap" style={{ marginTop: 12 }}><p className="notice rose" style={{ margin: 0 }}>Demo patient with simulated check-ins and fictional scan reports. <button type="button" className="linkish" onClick={() => go('account')}>Leave the demo</button></p></div>}
-      {HOSTED_PREVIEW && !signedIn && <div className="wrap wide" style={{ marginTop: 12 }}><p className="notice rose" style={{ margin: 0 }}>Hosted preview: accounts, Gemma, and phone motion sensors need the full app. Try the demo patient or set up on this device.</p></div>}
 
-      <main className="page" id="main">
+      <main className="page" id="main" data-view={v}>
         {v === 'welcome' && <Landing go={go} />}
         {(v === 'signin' || v === 'signup') && <Auth key={v} mode={v} go={go} />}
         {v === 'home' && <Home go={go} />}

@@ -6,6 +6,7 @@ let lastReq = null, reply = null;
 global.fetch = async (url, opt) => { lastReq = { url, body: JSON.parse(opt.body), headers: opt.headers }; return { ok: true, json: async () => reply }; };
 const { extractReport, explainOpinions } = await import('../lib/scans-ai.js');
 const { explain, buildPayload } = await import('../lib/explain.js');
+const { explainTerm } = await import('../lib/scans-ai.js');
 const { default: G } = await import('../src/core/gait.js');
 let failed = 0;
 const check = (n, c, d = '') => { console.log(`${c ? 'PASS' : 'FAIL'}  ${n}  ${d}`); if (!c) failed++; };
@@ -26,6 +27,14 @@ const wrap = (obj, thought) => ({ candidates: [{ content: { parts: [...(thought 
   const ri = await extractReport({ image: { mimeType: 'image/jpeg', data: 'AAAA' } });
   check('photo: image sent as inlineData', !!lastReq.body.contents[0].parts[0].inlineData);
   check('photo: verified against transcript', ri.extracted.lesions[0]?.sizeMm === 30 && ri.fromPhoto);
+
+  lastReq = null;
+  const tk = await explainTerm({ term: 'Axillary' });
+  check('term: known word answered from the built-in list, no API call', tk.source === 'glossary' && /armpit/.test(tk.plain) && lastReq === null);
+  reply = wrap({ plain: 'A small sac or pouch.' });
+  const tg = await explainTerm({ term: 'diverticulum', context: 'Colonic diverticulum noted.' });
+  check('term: unknown word goes to Gemma', tg.source === 'gemma' && tg.plain === 'A small sac or pouch.' && /diverticulum/.test(lastReq.body.contents[0].parts[0].text));
+  check('term: prompt forbids interpreting the report', /Do not interpret/.test(lastReq.body.systemInstruction.parts[0].text));
 
   reply = wrap({ summary: 'They mostly agree.', questions: ['a', 'b', 'c'] });
   const o = await explainOpinions({ a: { reader: 'A', text }, b: { reader: 'B', text: text.replace('1.8', '2.2') } });
