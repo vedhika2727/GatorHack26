@@ -674,12 +674,12 @@ main[data-view="report"] { background: var(--surface); }
 
 /* Report overview: rings and the cycle-by-cycle story */
 .ring-block { align-self: center; padding-bottom: 8px; }
-.rings { display: flex; gap: 18px; justify-content: flex-end; flex-wrap: nowrap; }
-.ring { width: 100px; display: grid; justify-items: center; text-align: center; gap: 2px; }
-.ring svg { width: 84px; height: 84px; display: block; margin-bottom: 4px; }
-.ring b { font-size: 0.98rem; }
-.ring small { color: var(--ink-2); font-size: 0.8rem; line-height: 1.3; }
-@media (max-width: 760px) { .rings { justify-content: flex-start; } }
+.arings { display: flex; gap: 18px; justify-content: flex-end; flex-wrap: nowrap; align-items: flex-start; }
+.aring { width: 100px; display: grid; justify-items: center; text-align: center; gap: 2px; }
+.aring svg { width: 84px; height: 84px; display: block; margin-bottom: 4px; }
+.aring b { font-size: 0.98rem; }
+.aring small { color: var(--ink-2); font-size: 0.8rem; line-height: 1.3; }
+@media (max-width: 760px) { .arings { justify-content: flex-start; } }
 .story { margin-top: 30px; }
 .story h2 { font-size: 1.15rem; margin: 0 0 12px; }
 .journey { list-style: none; padding: 0; margin: 0; position: relative; max-width: 640px; }
@@ -690,7 +690,14 @@ main[data-view="report"] { background: var(--surface); }
 .journey li span { color: var(--ink-2); }
 .journey li.big span { color: var(--ink); }
 
-.section-intro { margin-top: 34px; padding-top: 26px; border-top: 2px solid var(--ink); }
+.section-intro { margin-top: 30px; }
 .section-intro h2 { font-size: 1.35rem; margin: 0 0 6px; }
 .section-intro p { margin: 0; color: var(--ink-2); max-width: 68ch; }
 .section-intro + .explore { margin-top: 22px; }
+
+.ring-help { display: block; margin: 10px 0 0 auto; font-size: 0.88rem; }
+@media (max-width: 760px) { .ring-help { margin-left: 0; } }
+.score-explain { padding-top: 4px; }
+.story-sheet .sheet-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 4px; }
+.story-sheet h2 { margin: 0; font-size: 1.3rem; }
+.story-sheet .journey { margin-top: 18px; }

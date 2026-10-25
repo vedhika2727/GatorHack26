@@ -67,13 +67,13 @@ const AREAS = [
 const ringWord = (f) => (f >= 80 ? 'Close to where you started' : f >= 50 ? 'Some change' : f >= 25 ? 'More change' : 'The most change');
 function Rings({ step }) {
   return (
-    <div className="rings" role="list">
+    <div className="arings" role="list">
       {AREAS.map((a) => {
         const vals = step.signals.filter((g) => a.signals.includes(g.id) && g.value != null).map((g) => g.value);
         const fill = vals.length ? Math.max(0, Math.min(100, 100 - vals.reduce((x, y) => x + y, 0) / vals.length)) : 100;
         const C = 2 * Math.PI * 40;
         return (
-          <div key={a.id} className="ring" role="listitem" aria-label={`${a.name}: ${ringWord(fill)}`}>
+          <div key={a.id} className="aring" role="listitem" aria-label={`${a.name}: ${ringWord(fill)}`}>
             <svg viewBox="0 0 100 100" aria-hidden="true">
               <circle cx="50" cy="50" r="40" fill="none" stroke="var(--tint)" strokeWidth="11" />
               <circle cx="50" cy="50" r="40" fill="none" stroke="var(--navy)" strokeWidth="11" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - fill / 100)} transform="rotate(-90 50 50)" />
@@ -310,6 +310,10 @@ export default function Report({ go }) {
   const [out, setOut] = useState(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState('');
+  const [showRingHelp, setShowRingHelp] = useState(false);
+  const [storyOpen, setStoryOpen] = useState(false);
+  const storyRef = useRef(null);
+  useEffect(() => { const d = storyRef.current; if (!d) return; if (storyOpen && !d.open) d.showModal(); if (!storyOpen && d.open) d.close(); }, [storyOpen]);
   // Date range: the report covers check-ins from..to (indexes into the full list).
   const [range, setRange] = useState([0, Math.max(0, allCheckins.length - 1)]);
   useEffect(() => { setRange([0, Math.max(0, allCheckins.length - 1)]); }, [allCheckins.length]);
@@ -377,16 +381,18 @@ export default function Report({ go }) {
             </div>}
             <div className="sheet-actions no-print">
               <button type="button" className="btn primary small" onClick={copy}><Icon name="copy" size={16} /> Copy report text</button>
+              {checkins.length > 1 && <button type="button" className="btn small" onClick={() => setStoryOpen(true)}><Icon name="timeline" size={16} /> Cycle by cycle</button>}
               {!HOSTED_PREVIEW && <button type="button" className="btn small" onClick={() => window.print()}><Icon name="printer" size={16} /> Print</button>}
             </div>
             {copied && <p className="fine" role="status">{copied}</p>}
           </div>
           <div className="ring-block">
             <Rings step={step} />
+            <button type="button" className="linkish ring-help no-print" aria-expanded={showRingHelp} aria-controls="ring-help" onClick={() => setShowRingHelp(!showRingHelp)}>{showRingHelp ? 'Hide' : 'What do the rings mean?'}</button>
           </div>
         </header>
 
-        <section className="score-explain" aria-labelledby="se-h">
+        {showRingHelp && <section className="score-explain" id="ring-help" aria-labelledby="se-h">
           <h2 id="se-h">How to read the rings</h2>
           <ul>
             <li><b>A full ring is your starting point.</b> It’s how your walking, balance, and hands were at cycle {first.cycle}, your first check-in.</li>
@@ -394,16 +400,13 @@ export default function Report({ go }) {
             <li><b>It isn’t a grade.</b> Some change during chemo is common. The rings help you see where it’s happening, so you know what to mention.</li>
             <li><b>It isn’t a diagnosis.</b> It doesn’t measure nerves directly or say why something changed. That’s for you and your care team.</li>
           </ul>
-        </section>
-
-        {checkins.length > 1 && <section className="story" aria-labelledby="st-h">
-          <h2 id="st-h">Your treatment, cycle by cycle</h2>
-          <Journey checkins={checkins} />
         </section>}
+
+
 
         {checkins.length > 1 && <div className="section-intro">
           <h2>Look closer at each measure</h2>
-          <p>The timeline above is the story. Below are the details: pick anything on the left to see it at every check-in, from the overall picture to each walking, balance, hand, and symptom measure, and each spot on your scans.</p>
+          <p>Pick anything on the left to see it at every check-in: the overall picture, each walking, balance, hand, and symptom measure, and each spot on your scans.</p>
         </div>}
         {checkins.length > 1 ? <Explorer key={`${from}-${to}`} checkins={checkins} twin={twin} tracks={tracks} /> : <p className="headline">Pick at least two check-ins to see how things changed.</p>}
 
@@ -428,6 +431,14 @@ export default function Report({ go }) {
             <tbody>{GROUPS.flatMap((g) => g.rows).map((r) => <tr key={r.id}><th scope="row">{r.label}{r.unit ? <span className="u"> {r.unit}</span> : null}</th>{checkins.map((c) => <td key={c.id}>{r.get(c) ?? '–'}</td>)}</tr>)}</tbody>
           </table></div>
         </details>
+
+        <dialog ref={storyRef} className="sheet story-sheet" aria-labelledby="st-h" onClose={() => setStoryOpen(false)} onClick={(e) => { if (e.target === storyRef.current) setStoryOpen(false); }}>
+          {storyOpen && <>
+            <div className="sheet-top"><h2 id="st-h">Your treatment, cycle by cycle</h2><button type="button" className="btn ghost small" onClick={() => setStoryOpen(false)}>Close</button></div>
+            <p className="muted">What changed at each check-in compared with the one before it.</p>
+            <Journey checkins={checkins} />
+          </>}
+        </dialog>
 
         <p className="fine foot">Phone measurements are approximate and measure function, not nerves directly. This is not a diagnosis.</p>
       </article>
