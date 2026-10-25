@@ -415,3 +415,48 @@ dialog::backdrop { background: rgba(22, 23, 28, 0.55); }
   body, html { background: #fff; }
   .card { box-shadow: none; padding: 0; }
 }
+
+/* Home: dark band with the twin, then a three-column ledger (no cards) */
+main[data-view="home"] { padding-top: 0; }
+.home-band {
+  background: var(--night); color: var(--night-ink); padding: 22px 0 34px;
+  /* chart colors inside the band */
+  --line: var(--night-line); --ink: var(--night-ink); --ink-2: var(--night-ink-2);
+  --navy: #9AA6FF; --navy-wash: rgba(154, 166, 255, 0.16); --surface: var(--night); --red: var(--red-glow);
+}
+.home-band .who { color: var(--night-ink-2); margin: 0 0 14px; font-size: 0.95rem; }
+.home-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 40px; align-items: end; }
+@media (max-width: 860px) { .home-grid { grid-template-columns: 1fr; gap: 18px; } }
+.big-num { display: flex; align-items: baseline; gap: 12px; }
+.big-num .n { font: 850 clamp(6rem, 16vw, 9.5rem)/0.8 var(--display); font-stretch: var(--tight); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.big-num .of { font: 700 1.25rem/1 var(--display); font-stretch: var(--tight); color: var(--night-ink-2); }
+.home-band .what { font-size: 1.1rem; max-width: 36ch; margin: 18px 0 8px; }
+.home-band .status { margin: 0; padding-left: 12px; border-left: 3px solid var(--night-ink-2); color: var(--night-ink); max-width: 40ch; }
+.home-band .status.notable { border-left-color: var(--red-glow); color: #FFD3CE; }
+.home-band .status.watch { border-left-color: var(--rose-glow); }
+.home-band .status.steady { border-left-color: var(--forest-glow); }
+.home-band .actions { margin-bottom: 0; }
+.home-chart .band { width: 100%; }
+.home-empty h1 { color: var(--night-ink); font-size: clamp(2.4rem, 6vw, 3.6rem); line-height: 0.95; max-width: 16ch; margin: 0 0 14px; }
+.home-empty p { color: var(--night-ink-2); max-width: 52ch; }
+
+.ledger { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; padding-top: 30px; }
+.ledger > section { padding: 0 26px; border-left: 1px solid var(--line); }
+.ledger > section:first-child { padding-left: 0; border-left: 0; }
+.ledger h2 { font-size: 1.35rem; margin: 0 0 8px; }
+@media (max-width: 860px) {
+  .ledger { grid-template-columns: 1fr; gap: 26px; }
+  .ledger > section { padding: 22px 0 0; border-left: 0; border-top: 1px solid var(--line); }
+  .ledger > section:first-child { padding-top: 0; border-top: 0; }
+}
+.changes { list-style: none; padding: 0; margin: 8px 0 10px; display: grid; gap: 10px; }
+.changes li { padding-left: 12px; border-left: 3px solid var(--rose); }
+.changes li.notable { border-left-color: var(--red); }
+.mini-spots { list-style: none; padding: 0; margin: 8px 0 10px; }
+.mini-spots li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.mini-spots b { white-space: nowrap; }
+main[data-view="twin"] { padding-top: 0; }
+.twin-band h1 { color: var(--night-ink); font-size: clamp(2.4rem, 6vw, 3.8rem); line-height: 0.95; margin: 0 0 10px; }
+.twin-band .lede { color: var(--night-ink-2); margin-bottom: 26px; }
+.twin-band .legend { color: var(--night-ink-2); }
+.twin-band .k-prior { border-color: var(--night-ink); }

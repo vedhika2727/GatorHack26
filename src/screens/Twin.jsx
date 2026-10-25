@@ -47,28 +47,32 @@ export default function Twin({ go }) {
   const gnum = (g) => (g?.ok ? `${Math.round(g.cadence)} steps/min` : 'no walk');
 
   return (
-    <div className="wrap">
-      <h1>Your function twin</h1>
-      <p className="lede">Each test on its own is noisy: a tired day or different shoes can change one result. Your twin combines all your signals, trusts the reliable ones more, and estimates how much your walking, balance, and hand function have changed since your first check-in.</p>
-
-      <section className="card twin-hero" aria-label="Twin estimate">
-        <div className="score-row" style={{ justifyContent: 'space-between' }}>
-          <div className="score-row"><span className="score">{Math.round(step.mean)}</span><span className="muted">/100 change in function at cycle {cur.cycle}</span></div>
-          {level && <Chip level={level} />}
-        </div>
-        <p>{i === 0 ? (checkins.length === 1 ? 'This is your baseline. The twin starts learning at your next check-in.' : `Cycle ${base.cycle} is your baseline, so the twin starts at 0.`)
+    <>
+      <section className="home-band twin-band" aria-labelledby="twin-h">
+        <div className="wrap wide">
+          <h1 id="twin-h">Your function twin</h1>
+          <p className="lede">One test on its own is noisy: a tired day or different shoes can move it. The twin weighs all of them, trusts the steadier ones more, and estimates how much your walking, balance, and hand function have changed.</p>
+          <div className="home-grid">
+            <div>
+              <div className="big-num"><span className="n">{Math.round(step.mean)}</span><span className="of">of 100 at cycle {cur.cycle}</span></div>
+              <p className="what">{i === 0 ? (checkins.length === 1 ? 'This is your baseline. The twin starts learning at your next check-in.' : `Cycle ${base.cycle} is your baseline, so the twin starts at 0.`)
           : `Likely between ${Math.round(step.low)} and ${Math.round(step.high)} on ${fmtDate(cur.date)}. Before this check-in, the twin expected about ${Math.round(step.priorMean)}.`}</p>
-        {step.surprise === 'worse' && <p className="notice red"><strong>Worse than your twin expected.</strong> This is worth telling your care team before your next infusion.</p>}
-        {step.surprise === 'better' && <p className="notice">This check-in was better than your twin expected.</p>}
-        <BandChart steps={twin} selected={i} />
+              {step.surprise === 'worse' && <p className="status notable">Worse than your twin expected. Worth telling your care team before the next infusion.</p>}
+              {step.surprise === 'better' && <p className="status steady">Better than your twin expected.</p>}
+              {step.surprise === 'none' && level && <p className={`status ${level}`}>{{ steady: 'Holding steady compared with your first check-in.', watch: 'Some changes compared with your first check-in.', notable: 'Clear changes compared with your first check-in.' }[level]}</p>}
+            </div>
+            <div className="home-chart"><BandChart steps={twin} selected={i} />
         <ul className="legend" aria-label="Chart key">
           <li><span className="k k-line" />Twin’s estimate</li>
           <li><span className="k k-band" />Likely range</li>
           <li><span className="k k-prior" />What it expected</li>
           <li><span className="k k-red" />Worse than expected</li>
           <li><span className="k k-dot" />Individual signals</li>
-        </ul>
+        </ul></div>
+          </div>
+        </div>
       </section>
+      <div className="wrap">
 
       <h2>Your infusions</h2>
       <div className="beads" role="tablist" aria-label="Choose a check-in">
@@ -144,5 +148,6 @@ export default function Twin({ go }) {
         <button type="button" className="btn" onClick={() => go('report')}><Icon name="report" size={18} /> Make a report for my care team</button>
       </div>
     </div>
+    </>
   );
 }
