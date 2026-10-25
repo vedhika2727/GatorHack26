@@ -97,11 +97,15 @@ export default function Report({ go }) {
   const asText = () => [
     `Report for ${user.name}, before cycle ${last.cycle + 1} (${fmtDate(first.date)} to ${fmtDate(last.date)})`, '',
     `${headline} Likely ${r0(step.low)} to ${r0(step.high)}.${worse.length ? ` Cycle ${worse.join(', ')} was worse than expected.` : ''}`, '',
-    ...GROUPS.flatMap((g) => [g.name, ...g.rows.map((r) => `${changed.has(r.id) ? '* ' : '  '}${r.label}: ${show(r.get(first), r.unit)} -> ${show(r.get(last), r.unit)}`), '']),
-    '* changed since the first check-in', '',
-    ...(tracks.tracks.length ? ['Scans', ...tracks.tracks.map((t) => `  ${t.location}: ${t.points.map((p) => (p ? `${p.mm} mm` : '–')).join(' -> ')}`), ''] : []),
-    ...(questions.length ? ['Questions', ...questions.map((q) => `- ${q}`), ''] : []),
-    ...(out?.patient ? ['Summary', out.patient, ''] : []),
+    ...(out?.patient ? ['Summary', plain(out.patient), ''] : []),
+    `Changes since cycle ${first.cycle} (cycle ${first.cycle} → cycle ${last.cycle})`, '',
+    ...GROUPS.flatMap((g) => [g.name, ...g.rows.map((r) => `- ${r.label}: ${show(r.get(first), r.unit)} → ${show(r.get(last), r.unit)}${changed.has(r.id) ? '  (changed)' : ''}`), '']),
+    ...(tracks.tracks.length ? [`Scans (${tracks.dates.map(fmtDate).join(', ')})`, ...tracks.tracks.map((t) => {
+      const seen = t.points.map((p, k) => (p ? `${p.mm} mm` : null)).filter(Boolean);
+      const firstK = t.points.findIndex(Boolean);
+      return `- ${t.location}: ${seen.join(' → ')}${firstK > 0 ? `, first seen ${fmtDate(tracks.dates[firstK])}` : ''}`;
+    }), ''] : []),
+    ...(questions.length ? ['Questions for the next visit', ...questions.map((q, k) => `${k + 1}. ${q}`), ''] : []),
     'Phone measurements are approximate and measure function, not nerves directly. Not a diagnosis.',
   ].join('\n');
   async function copy() {
@@ -172,7 +176,7 @@ export default function Report({ go }) {
         <details className="quiet">
           <summary>Summary in plain words</summary>
           {busy && !out ? <p className="muted">Writing…</p> : out && <>
-            <p>{out.patient}</p>
+            <p>{plain(out.patient)}</p>
             <p className="fine">{out.source === 'gemma' ? `Written by Gemma 4 (${out.model}).` : 'Template text. Gemma isn’t connected here.'} <button type="button" className="linkish no-print" disabled={busy} onClick={write}>{busy ? 'Rewriting…' : 'Rewrite'}</button></p>
           </>}
         </details>
