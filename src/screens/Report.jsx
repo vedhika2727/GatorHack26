@@ -401,6 +401,10 @@ export default function Report({ go }) {
           <Journey checkins={checkins} />
         </section>}
 
+        {checkins.length > 1 && <div className="section-intro">
+          <h2>Look closer at each measure</h2>
+          <p>The timeline above is the story. Below are the details: pick anything on the left to see it at every check-in, from the overall picture to each walking, balance, hand, and symptom measure, and each spot on your scans.</p>
+        </div>}
         {checkins.length > 1 ? <Explorer key={`${from}-${to}`} checkins={checkins} twin={twin} tracks={tracks} /> : <p className="headline">Pick at least two check-ins to see how things changed.</p>}
 
         {questions.length > 0 && <section className="mgroup" aria-label="Questions">

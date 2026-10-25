@@ -689,3 +689,8 @@ main[data-view="report"] { background: var(--surface); }
 .journey li.big::before { background: var(--rose); border-color: var(--rose); }
 .journey li span { color: var(--ink-2); }
 .journey li.big span { color: var(--ink); }
+
+.section-intro { margin-top: 34px; padding-top: 26px; border-top: 2px solid var(--ink); }
+.section-intro h2 { font-size: 1.35rem; margin: 0 0 6px; }
+.section-intro p { margin: 0; color: var(--ink-2); max-width: 68ch; }
+.section-intro + .explore { margin-top: 22px; }
