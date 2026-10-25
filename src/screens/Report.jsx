@@ -3,9 +3,12 @@ import Icon from '../components/Icon.jsx';
 import FunctionTwin from '../core/twin.js';
 import Trends from '../core/trends.js';
 import Scans from '../core/scans.js';
+import { checkinsForTwin, hasExcludedPhysicalMeasurements, isDemoCheckins, personalMeasurementInputs } from '../core/checkinSource.js';
 import { useStore, HOSTED_PREVIEW } from '../store.jsx';
 import { writeReport } from '../lib/api.js';
 import { fmtDate } from '../lib/format.js';
+import { formatReportCategory, formatReportValue, isMissingReportValue } from '../core/reportFormat.js';
+import { reportInputDescription } from '../core/reportWording.js';
 
 /*
  * Report: a header with the overall twin score, then an explorer. Pick any measure (or a scan
@@ -38,9 +41,8 @@ const GROUPS = [
     { id: 'falls', short: 'falls', label: 'Falls since last check-in', unit: '', get: (c) => FALLS[c.falls] || 'None' },
   ] },
 ];
-const STATUS = { notable: 'Large change', watch: 'Some change' };
 const plain = (t) => t.replace(/than at baseline/g, 'than at your first check-in').replace(/\(baseline:? /g, '(first check-in: ').replace(/× baseline/g, '× your first check-in').replace(/ since the last check-in/g, '');
-const show = (v, unit) => (v == null ? '–' : unit && typeof v === 'number' ? (/^[%/×]/.test(unit) ? `${v}${unit}` : `${v} ${unit}`) : String(v));
+const show = formatReportValue;
 
 function TwinSpark({ twin }) {
   if (twin.length < 2) return null;
@@ -127,7 +129,10 @@ function Journey({ checkins }) {
 
 /* ---------- Explore: pick a measure, see it as a line across every check-in ---------- */
 const CATS = { buttons: ['No', 'Yes'], falls: ['None', 'Near-fall', 'Fall'] };
-const num = (id, v) => (CATS[id] ? CATS[id].indexOf(v) : v);
+const num = (id, v) => {
+  if (isMissingReportValue(v)) return null;
+  return CATS[id] ? CATS[id].indexOf(v) : v;
+};
 const times = (b, a) => (a ? Math.round((b / a) * 10) / 10 : null);
 const sAgo = (a, c) => `at cycle ${c}`;
 
@@ -161,9 +166,9 @@ function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, bound
     ro.observe(box.current); return () => ro.disconnect();
   }, []);
   const H = W < 480 ? 220 : 260, L = cats ? 76 : 44, R = 18, T = 30, B = 34;
-  const nums = values.map((v) => (v == null ? null : v));
-  const all = nums.concat(band ? band.flatMap((b) => [b.low, b.high]) : []).filter((v) => v != null);
-  let lo = cats ? 0 : Math.min(...all), hi = cats ? cats.length - 1 : Math.max(...all);
+  const nums = values.map((v) => (isMissingReportValue(v) ? null : v));
+  const all = nums.concat(band ? band.flatMap((b) => [b.low, b.high]) : []).filter(Number.isFinite);
+  let lo = cats ? 0 : all.length ? Math.min(...all) : 0, hi = cats ? cats.length - 1 : all.length ? Math.max(...all) : 1;
   if (!cats) { const pad = (hi - lo || Math.abs(hi) || 1) * 0.15; lo = Math.max(0, lo - pad); hi += pad; }
   if (bounds) { lo = Math.max(bounds[0], lo); hi = Math.min(bounds[1], hi); }
   if (hi - lo < 1e-6) hi = lo + 1;
@@ -184,7 +189,7 @@ function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, bound
     const r = box.current.getBoundingClientRect();
     const px = ((e.clientX - r.left) / r.width) * W;
     let best = 0, d = Infinity;
-    nums.forEach((v, k) => { if (v != null && Math.abs(x(k) - px) < d) { d = Math.abs(x(k) - px); best = k; } });
+    nums.forEach((_, k) => { if (Math.abs(x(k) - px) < d) { d = Math.abs(x(k) - px); best = k; } });
     onSel(best);
   };
   const s = pts[sel];
@@ -203,10 +208,10 @@ function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, bound
         {pts.map((p, k) => p && <circle key={k} cx={p[0]} cy={p[1]} r={k === sel ? 7 : 4.5} fill={k === sel ? 'var(--navy)' : 'var(--surface)'} stroke="var(--navy)" strokeWidth="2.5" />)}
         {xLabels.map((t, k) => <text key={k} x={x(k)} y={H - 10} textAnchor="middle" fontSize="12.5" fontWeight={k === sel ? 700 : 400} fill={k === sel ? 'var(--ink)' : 'var(--ink-2)'}>{t}</text>)}
       </svg>
-      {s && <div className="lc-tip" style={{ left: `${Math.min(92, Math.max(8, (s[0] / W) * 100))}%`, top: `${(s[1] / H) * 100}%` }}>{xLabels[sel]}: {cats ? cats[nums[sel]] : fmt(nums[sel])}</div>}
+      {sel >= 0 && <div className="lc-tip" style={{ left: `${Math.min(92, Math.max(8, (x(sel) / W) * 100))}%`, top: `${s ? (s[1] / H) * 100 : 50}%` }}>{xLabels[sel]}: {cats ? (nums[sel] == null ? 'Not measured' : cats[nums[sel]]) : fmt(nums[sel])}</div>}
       </div>
       <div className="lc-steps" role="group" aria-label="Choose a point">
-        {xLabels.map((t, k) => nums[k] != null && <button key={k} type="button" aria-pressed={k === sel} onClick={() => onSel(k)}>{t}</button>)}
+        {xLabels.map((t, k) => <button key={k} type="button" aria-pressed={k === sel} onClick={() => onSel(k)}>{t}</button>)}
       </div>
     </div>
   );
@@ -273,14 +278,23 @@ function Explorer({ checkins, twin, tracks }) {
   ];
   const [id, setId] = useState('twin');
   const it = items.find((x) => x.id === id) || items[0];
-  const lastK = it.values.reduce((m, v, k) => (v != null ? k : m), 0);
+  const lastK = Math.max(0, it.values.length - 1);
   const [sel, setSel] = useState(lastK);
   useEffect(() => { setSel(lastK); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const fmt = (v) => (v == null ? '' : `${Math.round(v * 100) / 100}${it.unit ? (/^[%/×]/.test(it.unit) ? it.unit : ` ${it.unit}`) : ''}`);
+  const fmt = (v) => formatReportValue(isMissingReportValue(v) ? v : Math.round(v * 100) / 100, it.unit);
   const sentence = it.spot
     ? (it.spot.changePct == null ? `First measured ${fmtDate(tracks.dates[it.spot.points.findIndex(Boolean)])} at ${it.spot.last} mm.` : `Measured ${it.spot.first} mm on ${fmtDate(tracks.dates[0])} and ${it.spot.last} mm on ${fmtDate(tracks.dates[tracks.dates.length - 1])}, as written in the radiology reports.`)
-    : describe(it.id, it.raw ? it.raw[0] : it.values[0], it.raw ? it.raw[it.raw.length - 1] : it.values[it.values.length - 1], first.cycle);
-  const latest = (x) => { const v = x.raw ? x.raw[x.raw.length - 1] : x.values.filter((v) => v != null).slice(-1)[0]; return x.cats ? v : x.id === 'twin' ? `${v}` : `${v}${/^[%/×]/.test(x.unit || '') ? x.unit : x.unit ? ` ${x.unit}` : ''}`; };
+    : it.id === 'twin'
+      ? `${describe(it.id, it.values[0], it.values[it.values.length - 1], first.cycle)} ${reportInputDescription(checkins, isDemoCheckins(checkins))}`
+      : (it.raw ? [it.raw[0], it.raw[it.raw.length - 1]].some(isMissingReportValue) : false)
+        ? 'Not measured for one or more selected check-ins.'
+        : describe(it.id, it.raw ? it.raw[0] : it.values[0], it.raw ? it.raw[it.raw.length - 1] : it.values[it.values.length - 1], first.cycle);
+  const latest = (x) => {
+    const v = x.raw ? x.raw[x.raw.length - 1] : x.values[x.values.length - 1];
+    return x.cats
+      ? formatReportCategory(v, x.cats)
+      : formatReportValue(v, x.unit);
+  };
   const groupNames = [...new Set(items.map((x) => x.group))];
   return (
     <section className="explore" aria-label="Explore your check-ins">
@@ -302,8 +316,8 @@ function Explorer({ checkins, twin, tracks }) {
         <p className="ex-sentence">{sentence}</p>
         <LineChart key={it.id} values={it.values} xLabels={it.xLabels} band={it.band} cats={it.cats} fmt={fmt} sel={sel} onSel={setSel} bounds={it.id === 'twin' ? [0, 100] : null}
           axisFmt={(v) => { const r = Math.abs(v) >= 10 ? Math.round(v) : Math.round(v * 10) / 10; return String(r); }} unitLabel={it.cats ? '' : it.id === 'twin' ? 'of 100' : it.unit === '×' ? 'times' : it.unit}
-          label={`${it.label}: ${it.values.map((v, k) => `${it.xLabels[k]} ${v == null ? 'none' : it.cats ? it.cats[v] : fmt(v)}`).join(', ')}`} />
-        <p className="fine">{it.id === 'twin' ? 'The shaded area is the likely range. ' : ''}Hover or tap the graph to see each {it.spot ? 'scan' : 'check-in'}.</p>
+          label={`${it.label}: ${it.values.map((v, k) => `${it.xLabels[k]} ${isMissingReportValue(v) ? 'Not measured' : it.cats ? it.cats[v] : fmt(v)}`).join(', ')}`} />
+        <p className="fine">{it.id === 'twin' ? 'The shaded area is model uncertainty. ' : ''}Hover or tap the graph to see each {it.spot ? 'scan' : 'check-in'}.</p>
         {it.id === 'twin' && <Glance items={items} first={checkins[0]} last={checkins[checkins.length - 1]} onPick={(k) => { setId(k); window.scrollTo({ top: document.querySelector('.explore').getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' }); }} />}
       </div>
     </section>
@@ -324,6 +338,19 @@ export default function Report({ go }) {
   useEffect(() => { setRange([0, Math.max(0, allCheckins.length - 1)]); }, [allCheckins.length]);
   const from = Math.min(range[0], allCheckins.length - 1), to = Math.min(Math.max(range[1], from), allCheckins.length - 1);
   const checkins = useMemo(() => allCheckins.slice(from, to + 1), [allCheckins, from, to]);
+  const demoMode = user?.mode === 'demo' || isDemoCheckins(checkins);
+  const measurementInputs = useMemo(
+    () => demoMode ? checkins : personalMeasurementInputs(checkins),
+    [checkins, demoMode],
+  );
+  const twinInputs = useMemo(() => checkinsForTwin(checkins, demoMode), [checkins, demoMode]);
+  const displayCheckins = useMemo(() => checkins.map((c, i) => ({
+    ...c,
+    gait: measurementInputs[i].gait,
+    balance: measurementInputs[i].balance,
+    balanceClosed: measurementInputs[i].balanceClosed,
+    tapping: measurementInputs[i].tapping,
+  })), [checkins, measurementInputs]);
   const fullRange = from === 0 && to === allCheckins.length - 1;
   // Scans from two weeks before the first check-in in the range through the last one.
   const scans = useMemo(() => {
@@ -332,7 +359,7 @@ export default function Report({ go }) {
     const s0 = start.toISOString().slice(0, 10), s1 = checkins[checkins.length - 1].date;
     return fullRange ? allScans : allScans.filter((x) => x.date >= s0 && x.date <= s1);
   }, [allScans, checkins, fullRange]);
-  const twin = useMemo(() => FunctionTwin.run(checkins), [checkins]);
+  const twin = useMemo(() => FunctionTwin.run(twinInputs), [twinInputs]);
   const tracks = useMemo(() => Scans.lesionTracks(scans), [scans]);
   const groups = useMemo(() => Scans.groupOpinions(scans), [scans]);
 
@@ -346,18 +373,32 @@ export default function Report({ go }) {
   );
 
   const first = checkins[0], last = checkins[checkins.length - 1], step = twin[twin.length - 1];
-  const flags = Trends.compare(first, last);
+  const personalFirst = twinInputs[0], personalLast = twinInputs[twinInputs.length - 1];
+  const displayFirst = displayCheckins[0], displayLast = displayCheckins[displayCheckins.length - 1];
+  const flags = Trends.compare(personalFirst, personalLast);
   const changed = new Set(flags.map((f) => f.id));
   const questions = [...(out?.questions || []), ...scans.flatMap((s) => s.opinion?.questions || [])].filter((q, k, a) => a.indexOf(q) === k);
   const twoReads = groups.filter((g) => g.length > 1);
-  const headline = `Function score ${r0(step.score)} out of 100, where 100 is how things were at cycle ${first.cycle}.`;
+  const scoreInputNote = reportInputDescription(twinInputs, demoMode);
+  const headline = `${demoMode ? 'Fictional demo' : 'Experimental'} function score ${r0(step.score)} out of 100; 100 is the first check-in, and lower scores indicate more model-estimated change. ${scoreInputNote}`;
+  const summarySourceLabel = out?.source === 'gemma'
+    ? `Source: Gemma 4 (${out.model}).`
+    : out?.source === 'template'
+      ? 'Source: built-in template.'
+      : 'Summary not generated yet.';
 
   const asText = () => [
     `Report for ${user.name}, ${fullRange ? `before cycle ${last.cycle + 1}` : `cycles ${first.cycle} to ${last.cycle}`} (${fmtDate(first.date)} to ${fmtDate(last.date)})`, '',
-    `${headline} Likely ${r0(step.scoreLow)} to ${r0(step.scoreHigh)}.`, '',
+    `${headline} Model uncertainty range ${r0(step.scoreLow)} to ${r0(step.scoreHigh)}.`, '',
+    ...(checkins.length === 1 ? ['Baseline recorded. Add another check-in to compare changes.', ''] : []),
+    ...(demoMode
+      ? ['Fictional demo data; simulated measurements are used only for the demo estimate.', '']
+      : hasExcludedPhysicalMeasurements(checkins)
+        ? ['Sample, simulated, and unverified physical measurements are excluded from personal estimates and change flags; symptom answers are retained.', '']
+        : []),
     ...(out?.patient ? ['Summary', plain(out.patient), ''] : []),
     `Changes since cycle ${first.cycle} (cycle ${first.cycle} → cycle ${last.cycle})`, '',
-    ...GROUPS.flatMap((g) => [g.name, ...g.rows.map((r) => `- ${r.label}: ${show(r.get(first), r.unit)} → ${show(r.get(last), r.unit)}${changed.has(r.id) ? '  (changed)' : ''}`), '']),
+    ...GROUPS.flatMap((g) => [g.name, ...g.rows.map((r) => `- ${r.label}: ${show(r.get(displayFirst), r.unit)} → ${show(r.get(displayLast), r.unit)}${changed.has(r.id) ? '  (changed)' : ''}`), '']),
     ...(tracks.tracks.length ? [`Scans (${tracks.dates.map(fmtDate).join(', ')})`, ...tracks.tracks.map((t) => {
       const seen = t.points.map((p, k) => (p ? `${p.mm} mm` : null)).filter(Boolean);
       const firstK = t.points.findIndex(Boolean);
@@ -388,6 +429,7 @@ export default function Report({ go }) {
               </span> : null}
               {!fullRange && <button type="button" className="linkish" onClick={() => setRange([0, allCheckins.length - 1])}>Show everything</button>}
             </div>
+            <p className="fine">{headline} Model uncertainty range {r0(step.scoreLow)} to {r0(step.scoreHigh)}. Experimental, unvalidated estimate; not a diagnosis, clinical confidence interval, or measured physical decline.</p>
             <p className="rp-note">You don’t need to read this yourself. Copy it or show it at your next appointment.</p>
             <div className="sheet-actions no-print">
               <button type="button" className="btn primary" onClick={copy}><Icon name="copy" size={16} /> Copy report text</button>
@@ -401,6 +443,7 @@ export default function Report({ go }) {
             <Rings step={step} />
             <button type="button" className="linkish ring-help no-print" aria-expanded={showRingHelp} aria-controls="ring-help" onClick={() => setShowRingHelp(!showRingHelp)}>{showRingHelp ? 'Hide' : 'What do the rings mean?'}</button>
           </div>
+        </section>
         {showRingHelp && <section className="score-explain" id="ring-help" aria-labelledby="se-h">
           <h2 id="se-h">How to read the rings</h2>
           <ul>
@@ -410,7 +453,6 @@ export default function Report({ go }) {
             <li><b>It isn’t a diagnosis.</b> It doesn’t measure nerves directly or say why something changed. That’s for you and your care team.</li>
           </ul>
         </section>}
-        </section>
 
         <section className="rep-panel rep-detail" aria-labelledby="detail-h">
         <div className="detail-head">
@@ -418,27 +460,46 @@ export default function Report({ go }) {
           <h2 id="detail-h">Look through it yourself</h2>
           <p>This part is the detail your care team uses. Pick anything on the left to see it at every check-in. It’s fine to skip it.</p>
         </div>
-        {checkins.length > 1 ? <Explorer key={`${from}-${to}`} checkins={checkins} twin={twin} tracks={tracks} /> : <p className="headline">Pick at least two check-ins to see how things changed.</p>}
+        {demoMode
+          ? <p className="notice rose" role="note">Fictional demo report. Simulated measurements are used only for the demo estimate.</p>
+          : hasExcludedPhysicalMeasurements(checkins)
+            ? <p className="notice rose" role="note">Sample, simulated, and unverified physical measurements are excluded from your personal estimate and change flags. Symptom answers are retained; excluded physical values appear as not measured in charts.</p>
+            : null}
+        {checkins.length > 1 ? <Explorer key={`${from}-${to}`} checkins={displayCheckins} twin={twin} tracks={tracks} /> : <p className="headline">Pick at least two check-ins to see how things changed.</p>}
 
         {questions.length > 0 && <section className="mgroup" aria-label="Questions">
           <h2>Questions for the next visit</h2>
           <ul className="checks">{questions.map((q) => <li key={q}>{q}</li>)}</ul>
         </section>}
 
-        <details className="quiet">
+        <section className="print-summaries" aria-label="Generated report summaries">
+          <h2>Report summaries</h2>
+          {out ? <>
+            <p className="fine">{summarySourceLabel}</p>
+            <h3>Patient summary</h3>
+            <p>{plain(out.patient)}</p>
+            <h3>Function twin summary</h3>
+            <p>{plain(out.twin)}</p>
+            {out.scans && <><h3>Scan summary</h3><p>{plain(out.scans)}</p></>}
+            <h3>Care-team summary</h3>
+            <p className="print-pre">{plain(out.clinician)}</p>
+          </> : <p>Summaries are not available yet. Printing does not generate AI content.</p>}
+        </section>
+
+        <details className="quiet summary-plain">
           <summary>Summary in plain words</summary>
           {busy && !out ? <p className="muted">Writing…</p> : out && <>
             <p>{plain(out.patient)}</p>
-            <p className="fine">{out.source === 'gemma' ? `Written by Gemma 4 (${out.model}).` : 'Template text. Gemma isn’t connected here.'} <button type="button" className="linkish no-print" disabled={busy} onClick={write}>{busy ? 'Rewriting…' : 'Rewrite'}</button></p>
+            <p className="fine">{summarySourceLabel} <button type="button" className="linkish no-print" disabled={busy} onClick={write}>{busy ? 'Rewriting…' : 'Rewrite'}</button></p>
           </>}
         </details>
 
-        <details className="quiet">
+        <details className="quiet summary-technical">
           <summary>Every number, for the oncology team</summary>
-          <p className="fine">Function twin: an uncalibrated Kalman filter over phone measures and symptom ratings, not nerve-specific. Function score per cycle (100 = first check-in), with likely range: {twin.map((t) => `C${t.cycle} ${r0(t.score)} (${r0(t.scoreLow)}–${r0(t.scoreHigh)})`).join(', ')}. Changes are marked by fixed thresholds against the patient’s own first check-in. Unvalidated smartphone measures.</p>
+          <p className="fine">Function twin: an uncalibrated Kalman filter over phone measures and symptom ratings, not nerve-specific. Experimental function score per cycle (100 = first check-in; lower = more model-estimated change), with model uncertainty range: {twin.map((t) => `C${t.cycle} ${r0(t.score)} (${r0(t.scoreLow)}–${r0(t.scoreHigh)})`).join(', ')}. Changes are marked by fixed thresholds against the patient’s own first check-in. Unvalidated smartphone measures.</p>
           <div className="table-wrap"><table className="changes-table all">
             <thead><tr><th scope="col"><span className="sr-only">Measure</span></th>{checkins.map((c) => <th key={c.id} scope="col">C{c.cycle}</th>)}</tr></thead>
-            <tbody>{GROUPS.flatMap((g) => g.rows).map((r) => <tr key={r.id}><th scope="row">{r.label}{r.unit ? <span className="u"> {r.unit}</span> : null}</th>{checkins.map((c) => <td key={c.id}>{r.get(c) ?? '–'}</td>)}</tr>)}</tbody>
+            <tbody>{GROUPS.flatMap((g) => g.rows).map((r) => <tr key={r.id}><th scope="row">{r.label}{r.unit ? <span className="u"> {r.unit}</span> : null}</th>{displayCheckins.map((c) => <td key={c.id}>{formatReportValue(r.get(c), r.unit)}</td>)}</tr>)}</tbody>
           </table></div>
         </details>
         <p className="fine foot">Phone measurements are approximate and measure function, not nerves directly. This is not a diagnosis.</p>
@@ -448,7 +509,7 @@ export default function Report({ go }) {
           {storyOpen && <>
             <div className="sheet-top"><h2 id="st-h">Your treatment, cycle by cycle</h2><button type="button" className="btn ghost small" onClick={() => setStoryOpen(false)}>Close</button></div>
             <p className="muted">What changed at each check-in compared with the one before it.</p>
-            <Journey checkins={checkins} />
+            <Journey checkins={displayCheckins} />
           </>}
         </dialog>
       </article>

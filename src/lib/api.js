@@ -2,9 +2,11 @@
 import Trends from '../core/trends.js';
 import FunctionTwin from '../core/twin.js';
 import Scans from '../core/scans.js';
+import { checkinsForTwin, hasExcludedPhysicalMeasurements, isDemoCheckins } from '../core/checkinSource.js';
 import Glossary from '../core/glossary.js';
 import { HOSTED_PREVIEW } from '../store.jsx';
 import { fmtDate } from './format.js';
+import { reportInputDescription, reportPatientSummary, reportQuestions } from '../core/reportWording.js';
 
 const NO_SERVER = HOSTED_PREVIEW
   ? 'This hosted preview has no Gemma server, so built-in template text is shown. Run the app with its server to get Gemma 4.'
@@ -46,18 +48,21 @@ export async function readReport({ text, image }) {
 }
 
 export function localReport(list, scanList, why) {
-  const flags = Trends.compare(list[0], list[list.length - 1]);
-  const tw = FunctionTwin.run(list), t = tw[tw.length - 1], last = list[list.length - 1];
+  const demo = isDemoCheckins(list);
+  const excludedMeasurements = !demo && hasExcludedPhysicalMeasurements(list);
+  const twinInputs = checkinsForTwin(list);
+  const flags = Trends.compare(twinInputs[0], twinInputs[twinInputs.length - 1]);
+  const tw = FunctionTwin.run(twinInputs), t = tw[tw.length - 1], last = list[list.length - 1];
+  const discrepancies = tw.filter((x) => x.surprise !== 'none').map((x) => x.cycle);
   const groups = Scans.groupOpinions(scanList);
+  const exclusionNote = 'Sample, simulated, and unverified physical measurements were excluded from the personal estimate; symptom answers were retained.';
+  const inputDescription = reportInputDescription(twinInputs, demo);
   return {
-    patient: flags.length
-      ? `Since your first check-in, a few things have changed. ${flags.slice(0, 2).map((f) => f.text).join(' ')} Changes like these can happen during chemotherapy and are worth mentioning. Please share this report with your care team before your next infusion.`
-      : "Your walking, balance, hand tests, and symptoms look about the same as at your first check-in. That's useful information for your care team. Keep checking in before each infusion, and share this report at your next visit.",
-    twin: `The function score is ${Math.round(t.score)} out of 100 at cycle ${last.cycle} (likely between ${Math.round(t.scoreLow)} and ${Math.round(t.scoreHigh)}), where 100 is how things were at the first check-in. Only your care team can tell what is causing a change.`,
+    patient: reportPatientSummary(inputDescription, flags, list.length, demo),
+    twin: `The ${demo ? 'fictional demo' : 'personal'} experimental function score is ${Math.round(t.score)} out of 100 at cycle ${last.cycle}; 100 is how things were at the first check-in, and lower scores indicate more model-estimated change (model uncertainty range ${Math.round(t.scoreLow)}–${Math.round(t.scoreHigh)}). ${flags.length ? 'Recorded changes from baseline are described above.' : discrepancies.length ? `The experimental model estimate differs from recorded signals at cycle ${discrepancies.join(', ')}; this model discrepancy alone does not establish deterioration.` : 'No recorded symptom or sensor change crossed the comparison thresholds.'} ${excludedMeasurements ? exclusionNote : ''} Only your care team can tell what is causing a change.`,
     scans: groups.map((g) => `${g[0].kind} on ${fmtDate(g[0].date)}: ${g.map((x) => `${x.reader || 'radiologist'} said "${x.extracted.impression.slice(0, 160)}"`).join('; ')}`).join(' '),
-    clinician: [`Phone-based check-ins: ${list.length} (cycles ${list.map((c) => c.cycle).join(', ')}).`, `Function-change twin (uncalibrated Kalman filter; not nerve-specific): ${tw.map((x) => `C${x.cycle} ${x.mean} [${x.low}–${x.high}]`).join(', ')}.`, ...(flags.length ? flags.map((f) => `• ${f.text}`) : ['• No changes beyond thresholds versus baseline.']), "Unvalidated smartphone measures; interpret against the patient's own trend only."].join('\n'),
-    questions: flags.length ? ['Are the changes in my walking, balance, or hands something to watch?', 'Should I be doing anything to stay safe from falls at home?', 'Who should I call if my numbness gets worse between visits?'] : ['What nerve symptoms should I watch for during treatment?', 'Who should I call if I notice numbness or tingling?', 'How often should I do these check-ins?'],
+    clinician: [`Phone-based check-ins: ${list.length} (cycles ${list.map((c) => c.cycle).join(', ')}).`, `Experimental function twin (uncalibrated Kalman filter; function, not nerve-specific): ${tw.map((x) => `C${x.cycle} ${Math.round(x.score)} [model uncertainty ${Math.round(x.scoreLow)}–${Math.round(x.scoreHigh)}]`).join(', ')}.`, ...(flags.length ? flags.map((f) => `• ${f.text}`) : ['• No recorded symptom or sensor change crossed comparison thresholds.']), ...(discrepancies.length && !flags.length ? [`• Model discrepancy at cycle ${discrepancies.join(', ')}; not evidence of deterioration by itself.`] : []), ...(excludedMeasurements ? [exclusionNote] : []), "Unvalidated smartphone measures; interpret against the patient's own trend only."].join('\n'),
+    questions: reportQuestions(flags),
     source: 'template', note: why,
   };
 }
-

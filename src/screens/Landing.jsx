@@ -19,8 +19,8 @@ const FEATURES = [
 const CLOCK = [
   { at: '0:00', s: 20, title: 'Three questions', text: 'Numbness, tingling, and pain in your feet and hands, 0 to 10. Any falls.' },
   { at: '0:20', s: 30, title: 'Walk', text: 'Phone in your pocket. Walk the way you normally do.' },
-  { at: '0:50', s: 40, title: 'Stand still', text: '20 seconds with eyes open, then 20 with eyes closed.' },
-  { at: '1:30', s: 20, title: 'Tap, each hand', text: 'Two circles, back and forth, 10 seconds a hand.' },
+  { at: '0:50', s: 20, title: 'Stand still', text: 'A 20-second optional balance test, eyes open.' },
+  { at: '1:10', s: 20, title: 'Tap, each hand', text: 'Two circles, back and forth, 10 seconds a hand.' },
 ];
 
 export default function Landing({ go }) {
@@ -56,7 +56,7 @@ export default function Landing({ go }) {
                 <Chip level="notable" />
               </div>
               <BandChart steps={twin} selected={twin.length - 1} />
-              <figcaption className="fine">Six cycles of a demo patient. 100 is how they were at their first check-in.</figcaption>
+              <figcaption className="fine">Six cycles of a fictional demo patient. 100 is how they were at their first check-in. Any gray point marks a model discrepancy, not a measured decline.</figcaption>
             </figure>
           </div>
         </div>

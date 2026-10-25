@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import Gait from '../core/gait.js';
 import Trends from '../core/trends.js';
+import { buildCheckinRecord } from '../core/checkinRecord.js';
+import { confirmationMessage } from '../core/checkinConfirmation.js';
+import { checkinsForTwin, setMeasurementSource, skipMeasurements, sourceFromMeasurements } from '../core/checkinSource.js';
 import { useStore, HOSTED_PREVIEW } from '../store.jsx';
-import { requestMotion, record, speak, buzz } from '../lib/sensors.js';
+import { requestMotion, record, buzz } from '../lib/sensors.js';
 import { today } from '../lib/format.js';
 
 const WALK_S = 30, BAL_S = 20, TAP_S = 10;
@@ -57,18 +60,37 @@ function PreviewNote() {
 /** Runs a motion recording with a countdown ring. */
 function useRecorder(seconds) {
   const [state, setState] = useState({ busy: false, remaining: seconds, progress: 0, msg: '', error: '' });
+  const controllerRef = useRef(null);
+  useEffect(() => () => controllerRef.current?.abort(), []);
+  function cancel() {
+    const controller = controllerRef.current;
+    if (!controller) return;
+    controllerRef.current = null;
+    controller.abort();
+    setState({ busy: false, remaining: seconds, progress: 0, msg: '', error: '' });
+  }
   async function run(startWord, during, analyzeFn) {
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    const { signal } = controller;
     setState({ busy: true, remaining: 5, progress: 0, msg: 'Put your phone in your pocket. Starting in 5…', error: '' });
     try {
-      await requestMotion();
-      const samples = await record({ seconds, startWord, onTick: ({ phase, remaining, progress }) => setState((s) => ({ ...s, remaining, progress, msg: phase === 'leadin' ? `Put your phone in your pocket. Starting in ${remaining}…` : during })) });
+      await requestMotion({ signal });
+      const samples = await record({ seconds, startWord, signal, onTick: ({ phase, remaining, progress }) => {
+        if (!signal.aborted) setState((s) => ({ ...s, remaining, progress, msg: phase === 'leadin' ? `Put your phone in your pocket. Starting in ${remaining}…` : during }));
+      } });
       const r = analyzeFn(samples);
       if (!r.ok) { setState({ busy: false, remaining: seconds, progress: 0, msg: '', error: r.reason + ' Tap start to try again.' }); return null; }
       setState({ busy: false, remaining: 0, progress: 1, msg: 'Done.', error: '' });
       return r;
-    } catch (e) { setState({ busy: false, remaining: seconds, progress: 0, msg: '', error: e.message }); return null; }
+    } catch (e) {
+      if (!signal.aborted) setState({ busy: false, remaining: seconds, progress: 0, msg: '', error: e.message });
+      return null;
+    } finally {
+      if (controllerRef.current === controller) controllerRef.current = null;
+    }
   }
-  return [state, run];
+  return [state, run, cancel];
 }
 
 export default function CheckIn({ go }) {
@@ -78,20 +100,39 @@ export default function CheckIn({ go }) {
   const [step, setStep] = useState(1);
   const [q, setQ] = useState(0);
   const [d, setD] = useState({ cycle: lastCycle + 1, date: today(), symptoms: { feetNumb: 0, handsNumb: 0, feetPain: 0 }, buttons: false, falls: 'none', source: 'sensor' });
+  const measurementSources = useRef({});
   const [saved, setSaved] = useState(null);
   const [saveErr, setSaveErr] = useState('');
-  const [walkRec, runWalk] = useRecorder(WALK_S);
-  const [balRec, runBal] = useRecorder(BAL_S);
-  const [closedRec, runClosed] = useRecorder(BAL_S);
-  const [showClosed, setShowClosed] = useState(false);
+  const [walkRec, runWalk, cancelWalk] = useRecorder(WALK_S);
+  const [balRec, runBal, cancelBalance] = useRecorder(BAL_S);
   const set = (patch) => setD((x) => ({ ...x, ...patch }));
   const sym = (k, v) => setD((x) => ({ ...x, symptoms: { ...x.symptoms, [k]: v } }));
-  const goStep = (n) => { setStep(n); window.scrollTo(0, 0); };
+  function setTaskSource(measurement, source) {
+    measurementSources.current = setMeasurementSource(measurementSources.current, measurement, source);
+    set({ source: sourceFromMeasurements(measurementSources.current) });
+  }
+  function skipTask(measurements, cancel) {
+    const skipped = skipMeasurements(d, measurementSources.current, measurements, cancel);
+    measurementSources.current = skipped.sources;
+    setD(skipped.checkin);
+  }
+  const goStep = (n) => {
+    cancelWalk();
+    cancelBalance();
+    if (n !== 4) cancelTap();
+    setStep(n);
+    window.scrollTo(0, 0);
+  };
 
   // ---- tapping ----
   const tap = useRef({ hand: 'right', taps: [], start: 0, target: 0, timer: 0, results: {}, done: false });
   const [tapUi, setTapUi] = useState({ hand: 'right', remaining: TAP_S, target: 0, msg: 'Rest your phone on a table. Start whenever you’re ready.', error: '' });
   useEffect(() => () => clearInterval(tap.current.timer), []);
+  function cancelTap() {
+    clearInterval(tap.current.timer);
+    tap.current = { hand: 'right', taps: [], start: 0, target: 0, timer: 0, results: {}, done: false };
+    setTapUi({ hand: 'right', remaining: TAP_S, target: 0, msg: 'Rest your phone on a table. Start whenever you’re ready.', error: '' });
+  }
   function endHand() {
     const t = tap.current; clearInterval(t.timer);
     const r = Gait.analyzeTapping(t.taps, TAP_S);
@@ -100,7 +141,12 @@ export default function CheckIn({ go }) {
     if (t.hand === 'right') {
       t.hand = 'left'; t.taps = []; t.start = 0; t.target = 0; buzz(150);
       setTapUi({ hand: 'left', remaining: TAP_S, target: 0, msg: `Right hand: ${r.rate} taps per second. Start the left hand whenever you’re ready.`, error: '' });
-    } else { t.done = true; buzz([150, 80, 150]); finish({ tapping: t.results }); }
+    } else {
+      t.done = true;
+      buzz([150, 80, 150]);
+      setTaskSource('tapping', 'sensor');
+      finish({ tapping: t.results });
+    }
   }
   function onTap(which) {
     const t = tap.current; if (t.done) return;
@@ -119,15 +165,28 @@ export default function CheckIn({ go }) {
   }
 
   async function finish(extra) {
-    const c = { ...d, ...extra, id: 'c' + Date.now() };
-    if (user.mode === 'demo') c.demo = true;
+    const c = buildCheckinRecord(
+      d,
+      extra,
+      measurementSources.current,
+      'c' + Date.now(),
+      user.mode === 'demo',
+    );
     setSaveErr('');
     try { await addCheckin(c); setSaved(c); goStep(5); }
     catch (e) { setSaveErr(e.message); }
   }
 
-  const all = saved ? [...checkins] : checkins;
-  const flags = saved && all.length > 1 ? Trends.compare(all[0], saved) : [];
+  const comparedCheckins = saved
+    ? checkinsForTwin(
+      [...checkins.filter((checkin) => checkin.id !== saved.id), saved].sort((a, b) => a.cycle - b.cycle),
+      user.mode === 'demo',
+    )
+    : [];
+  const comparedSaved = comparedCheckins.find((checkin) => checkin.id === saved?.id);
+  const flags = comparedCheckins.length > 1
+    ? Trends.compare(comparedCheckins[0], comparedSaved)
+    : [];
 
   return (
     <div className={step === 1 ? 'wrap wide ci-form' : step < 5 ? 'wrap wide ci-tests' : 'wrap'}>
@@ -197,8 +256,9 @@ export default function CheckIn({ go }) {
           </div>
           {walkRec.error && <p className="error" role="alert">{walkRec.error}</p>}
           <div className="actions">
-            <button type="button" className="btn primary" disabled={walkRec.busy} onClick={async () => { const g = await runWalk('Start walking', 'Walking… keep going at your usual pace.', (s) => Gait.analyze(s)); if (g) { set({ gait: g }); goStep(3); } }}><Icon name="play" size={16} /> Start walking test</button>
-            <button type="button" className="btn" disabled={walkRec.busy} onClick={() => { set({ gait: Gait.analyze(Gait.synthesizeWalk({ cadence: 105 + Math.random() * 10, cv: 2 + Math.random(), seed: Date.now() % 100000 }).samples), source: 'sample' }); goStep(3); }}>Use a sample instead</button>
+            <button type="button" className="btn primary" disabled={walkRec.busy} onClick={async () => { const g = await runWalk('Start walking', 'Walking… keep going at your usual pace.', (s) => Gait.analyze(s)); if (g) { set({ gait: g }); setTaskSource('gait', 'sensor'); goStep(3); } }}><Icon name="play" size={16} /> Start walking test</button>
+            <button type="button" className="btn" disabled={walkRec.busy} onClick={() => { set({ gait: Gait.analyze(Gait.synthesizeWalk({ cadence: 105 + Math.random() * 10, cv: 2 + Math.random(), seed: Date.now() % 100000 }).samples) }); setTaskSource('gait', 'sample'); goStep(3); }}>Use a sample instead</button>
+            <button type="button" className="btn ghost" onClick={() => { skipTask(['gait'], cancelWalk); goStep(3); }}>Skip this test</button>
           </div>
           </div>
         </section>
@@ -207,46 +267,27 @@ export default function CheckIn({ go }) {
       {step === 3 && (
         <section className="test-ed">
           <div className="test-info">
-          <p className="mono test-k">Test 2 of 3 · Balance · 20 s{showClosed ? ' + 20 s' : ''}</p>
-          <h1>{showClosed ? 'Now, if you’re comfortable, with your eyes closed' : 'Stand still for 20 seconds'}</h1>
+          <p className="mono test-k">Test 2 of 3 · Balance · 20 s</p>
+          <h1>Stand still for 20 seconds</h1>
           <PreviewNote />
           <Instructions items={[
             ['shield', 'red', 'Stand right next to a wall, counter, or sturdy chair you can grab.'],
             ['pulse', 'navy', 'Keep the phone in the same front pocket.'],
             ['balance', 'navy', 'Put your feet side by side, close together, eyes open. Look straight ahead.'],
-            ['info', 'rose', 'If you feel unsteady at any point, hold on. You can skip this test.'],
+            ['info', 'rose', 'If you feel unsteady at any point, hold on. This test is optional.'],
           ]} />
           </div>
           <div className="test-panel">
-          {!showClosed ? <>
             <div className="recorder">
               <Ring remaining={balRec.remaining} progress={balRec.progress} />
               <p style={{ margin: 0, fontSize: '1.05rem' }} aria-live="assertive">{balRec.msg || 'Tap start, put the phone in your pocket, and stand with feet together.'}</p>
             </div>
             {balRec.error && <p className="error" role="alert">{balRec.error}</p>}
             <div className="actions">
-              <button type="button" className="btn primary" disabled={balRec.busy} onClick={async () => { const b = await runBal('Feet together. Stand still.', 'Standing still… hold on to the wall if you need to.', (s) => Gait.analyzeBalance(s, { trimSeconds: 1 })); if (b) { set({ balance: b }); setShowClosed(true); } }}><Icon name="play" size={16} /> Start balance test</button>
-              <button type="button" className="btn" disabled={balRec.busy} onClick={() => { set({ balance: Gait.analyzeBalance(Gait.synthesizeStand({ sway: 0.03 + Math.random() * 0.02, seed: Date.now() % 100000, seconds: 20 }).samples, { trimSeconds: 1 }), source: d.source === 'sample' ? 'sample' : 'mixed' }); setShowClosed(true); }}>Use a sample instead</button>
-              <button type="button" className="btn ghost" disabled={balRec.busy} onClick={() => { set({ balance: null }); goStep(4); }}>Skip this test</button>
+            <button type="button" className="btn primary" disabled={balRec.busy} onClick={async () => { const b = await runBal('Feet together. Stand still.', 'Standing still… hold on to the wall if you need to.', (s) => Gait.analyzeBalance(s, { trimSeconds: 1 })); if (b) { set({ balance: b }); setTaskSource('balance', 'sensor'); goStep(4); } }}><Icon name="play" size={16} /> Start balance test</button>
+            <button type="button" className="btn" disabled={balRec.busy} onClick={() => { set({ balance: Gait.analyzeBalance(Gait.synthesizeStand({ sway: 0.03 + Math.random() * 0.02, seed: Date.now() % 100000, seconds: 20 }).samples, { trimSeconds: 1 }) }); setTaskSource('balance', 'sample'); goStep(4); }}>Use a sample instead</button>
+            <button type="button" className="btn ghost" onClick={() => { skipTask(['balance'], cancelBalance); goStep(4); }}>Skip balance test</button>
             </div>
-          </> : <>
-            <div>
-              <p className="mono test-done"><Icon name="check" size={14} /> Eyes open · done</p>
-              <h2 className="sr-only">Optional: the same test with your eyes closed</h2>
-              <p className="muted">Doctors use this test (called the Romberg test) because some nerve problems in the feet show up as extra wobble when you can’t see. Your twin compares it with your eyes-open result.</p>
-              <p className="notice red">Only do this with a wall or counter right beside you, and someone nearby if possible. If you feel unsteady, open your eyes and hold on. Skip it if your care team has told you to avoid it, or if you’ve fallen recently.</p>
-              <div className="recorder" style={{ marginTop: 14 }}>
-                <Ring remaining={closedRec.remaining} progress={closedRec.progress} />
-                <p style={{ margin: 0 }} aria-live="assertive">{closedRec.msg || 'Your phone will say “close your eyes” and “open your eyes”.'}</p>
-              </div>
-              {closedRec.error && <p className="error" role="alert">{closedRec.error}</p>}
-              <div className="actions" style={{ marginBottom: 0 }}>
-                <button type="button" className="btn primary" disabled={closedRec.busy} onClick={async () => { const b = await runClosed('Feet together. Close your eyes.', 'Eyes closed, standing still… open your eyes and hold on if you feel unsteady.', (s) => Gait.analyzeBalance(s, { trimSeconds: 1 })); speak('Open your eyes. Well done.'); if (b) { set({ balanceClosed: b }); goStep(4); } }}><Icon name="play" size={16} /> Start eyes-closed test</button>
-                <button type="button" className="btn" disabled={closedRec.busy} onClick={() => { set({ balanceClosed: Gait.analyzeBalance(Gait.synthesizeStand({ sway: (d.balance?.swayRms || 0.04) * 1.6, seed: Date.now() % 100000, seconds: 20 }).samples, { trimSeconds: 1 }) }); goStep(4); }}>Use a sample instead</button>
-                <button type="button" className="btn ghost" onClick={() => { set({ balanceClosed: null }); goStep(4); }}>Skip</button>
-              </div>
-            </div>
-          </>}
           </div>
         </section>
       )}
@@ -265,8 +306,8 @@ export default function CheckIn({ go }) {
           {tapUi.error && <p className="error" role="alert">{tapUi.error}</p>}
           {saveErr && <p className="error" role="alert">{saveErr}</p>}
           <div className="actions">
-            <button type="button" className="btn" onClick={() => { clearInterval(tap.current.timer); const s = Date.now() % 100000; finish({ tapping: { right: Gait.analyzeTapping(Gait.synthesizeTaps({ seed: s }), 10), left: Gait.analyzeTapping(Gait.synthesizeTaps({ seed: s + 1, rate: 4.1 }), 10) } }); }}>Use a sample instead</button>
-            <button type="button" className="btn ghost" onClick={() => { clearInterval(tap.current.timer); finish({ tapping: null }); }}>Skip hand test</button>
+            <button type="button" className="btn" onClick={() => { cancelTap(); const s = Date.now() % 100000; setTaskSource('tapping', 'sample'); finish({ tapping: { right: Gait.analyzeTapping(Gait.synthesizeTaps({ seed: s }), 10), left: Gait.analyzeTapping(Gait.synthesizeTaps({ seed: s + 1, rate: 4.1 }), 10) } }); }}>Use a sample instead</button>
+            <button type="button" className="btn ghost" onClick={() => { skipTask(['tapping'], cancelTap); finish({ tapping: null }); }}>Skip this test</button>
           </div>
         </section>
       )}
@@ -276,9 +317,7 @@ export default function CheckIn({ go }) {
           <h1>Check-in saved</h1>
           <div className="card">
             <p style={{ fontSize: '1.1rem' }}>
-              {all.length === 1 ? 'This is your baseline. Check in again before your next infusion and your twin will start showing changes.'
-                : flags.length ? `Compared with your first check-in, ${flags.length} thing${flags.length > 1 ? 's have' : ' has'} changed. Your twin shows the details.`
-                  : 'Things look about the same as at your first check-in.'}
+              {confirmationMessage(comparedCheckins.length, flags.length)}
             </p>
             {saved.source !== 'sensor' && <p className="fine">Some of this check-in used sample data instead of your phone sensors.</p>}
             <div className="actions" style={{ marginBottom: 0 }}>

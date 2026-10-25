@@ -5,22 +5,27 @@ import { BandChart } from '../components/Viz.jsx';
 import FunctionTwin from '../core/twin.js';
 import Trends from '../core/trends.js';
 import Scans from '../core/scans.js';
+import { checkinsForTwin, hasExcludedPhysicalMeasurements } from '../core/checkinSource.js';
 import { useStore } from '../store.jsx';
 import { fmtDate, greeting, today } from '../lib/format.js';
 
 export default function Home({ go }) {
   const { user, checkins, scans } = useStore();
-  const twin = useMemo(() => FunctionTwin.run(checkins), [checkins]);
+  const twinInputs = useMemo(
+    () => checkinsForTwin(checkins, user?.mode === 'demo'),
+    [checkins, user?.mode],
+  );
+  const twin = useMemo(() => FunctionTwin.run(twinInputs), [twinInputs]);
   const last = checkins[checkins.length - 1];
   const step = twin[twin.length - 1];
-  const flags = checkins.length > 1 ? Trends.compare(checkins[0], last) : [];
-  const level = checkins.length > 1 ? Trends.overall(flags) : null;
+  const flags = checkins.length > 1 ? Trends.compare(twinInputs[0], twinInputs[twinInputs.length - 1]) : [];
+  const level = flags.length ? Trends.overall(flags) : null;
   const lastScan = scans[scans.length - 1];
   const doneToday = last?.date === today() && !last.demo;
   const groups = Scans.groupOpinions(scans);
   const opinionGroups = groups.filter((g) => g.length > 1).length;
 
-  const sinceLast = checkins.length > 1 ? Trends.compare(checkins[checkins.length - 2], last) : [];
+  const sinceLast = twinInputs.length > 1 ? Trends.compare(twinInputs[twinInputs.length - 2], twinInputs[twinInputs.length - 1]) : [];
   const stats = [
     { n: checkins.length, k: checkins.length === 1 ? 'check-in so far' : 'check-ins so far' },
     { n: last ? `C${last.cycle + (doneToday ? 1 : 1)}` : 'C1', k: doneToday ? 'next check-in' : 'check-in due before this infusion' },
@@ -71,7 +76,14 @@ export default function Home({ go }) {
             <p className="mono ed-kicker">Since last time</p>
             {checkins.length < 2 ? <p className="muted">Changes appear after your second check-in.</p>
               : sinceLast.length ? <ul className="ed-notes">{sinceLast.slice(0, 4).map((f) => <li key={f.id}>{f.text.replace(/ than at baseline/, ' than last time').replace(/\(baseline:? /, '(last time ')}</li>)}</ul>
-              : <p>About the same as your last check-in.</p>}
+              : <p>No reported symptom or eligible recorded measurement change crossed the comparison thresholds.</p>}
+            {step.surprise !== 'none' && <p className="fine">{FunctionTwin.interpretation(step, flags.length > 0)}</p>}
+            <p className="fine">Experimental, unvalidated estimate; its range is model uncertainty, not a clinical confidence interval.</p>
+            {user?.mode === 'demo'
+              ? <p className="fine">This is a fictional demo estimate using simulated measurements.</p>
+              : hasExcludedPhysicalMeasurements(checkins)
+                ? <p className="fine">Sample or unverified physical measurements are excluded from this personal estimate.</p>
+                : null}
             <p className="mono ed-kicker" style={{ marginTop: 22 }}>Latest scan</p>
             {lastScan ? <>
               <p className="ed-scan"><b>{lastScan.kind}, {fmtDate(lastScan.date)}</b><span>{lastScan.extracted.plain || lastScan.extracted.impression}</span></p>

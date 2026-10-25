@@ -143,6 +143,12 @@ function disagreements(step) {
 }
 function list(a) { return a.length < 2 ? a[0] : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
 
-const api = { run, disagreements, SIGNALS, PARAMS };
+function interpretation(step, hasRecordedChange) {
+  if (hasRecordedChange) return 'Recorded changes from baseline are shown below.';
+  if (step.surprise !== 'none') return 'The experimental model estimate differs from the recorded signals; this model discrepancy alone does not establish deterioration.';
+  return '';
+}
+
+const api = { run, disagreements, interpretation, SIGNALS, PARAMS };
 export const FunctionTwin = api;
 export default api;
