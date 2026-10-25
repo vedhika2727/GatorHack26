@@ -7,6 +7,8 @@ import { checkinsForTwin, hasExcludedPhysicalMeasurements, isDemoCheckins, perso
 import { useStore, HOSTED_PREVIEW } from '../store.jsx';
 import { writeReport } from '../lib/api.js';
 import { fmtDate } from '../lib/format.js';
+import { formatReportValue, isMissingReportValue } from '../core/reportFormat.js';
+import { reportInputDescription } from '../core/reportWording.js';
 
 /*
  * Report: a header with the overall twin score, then an explorer. Pick any measure (or a scan
@@ -40,7 +42,7 @@ const GROUPS = [
   ] },
 ];
 const plain = (t) => t.replace(/than at baseline/g, 'than at your first check-in').replace(/\(baseline:? /g, '(first check-in: ').replace(/× baseline/g, '× your first check-in').replace(/ since the last check-in/g, '');
-const show = (v, unit) => (v == null ? '–' : unit && typeof v === 'number' ? (/^[%/×]/.test(unit) ? `${v}${unit}` : `${v} ${unit}`) : String(v));
+const show = formatReportValue;
 
 function TwinSpark({ twin }) {
   if (twin.length < 2) return null;
@@ -122,7 +124,10 @@ function Journey({ checkins }) {
 
 /* ---------- Explore: pick a measure, see it as a line across every check-in ---------- */
 const CATS = { buttons: ['No', 'Yes'], falls: ['None', 'Near-fall', 'Fall'] };
-const num = (id, v) => (CATS[id] ? CATS[id].indexOf(v) : v);
+const num = (id, v) => {
+  if (isMissingReportValue(v)) return null;
+  return CATS[id] ? CATS[id].indexOf(v) : v;
+};
 const times = (b, a) => (a ? Math.round((b / a) * 10) / 10 : null);
 const sAgo = (a, c) => `at cycle ${c}`;
 
@@ -156,9 +161,9 @@ function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, bound
     ro.observe(box.current); return () => ro.disconnect();
   }, []);
   const H = W < 480 ? 220 : 260, L = cats ? 76 : 44, R = 18, T = 30, B = 34;
-  const nums = values.map((v) => (v == null ? null : v));
-  const all = nums.concat(band ? band.flatMap((b) => [b.low, b.high]) : []).filter((v) => v != null);
-  let lo = cats ? 0 : Math.min(...all), hi = cats ? cats.length - 1 : Math.max(...all);
+  const nums = values.map((v) => (isMissingReportValue(v) ? null : v));
+  const all = nums.concat(band ? band.flatMap((b) => [b.low, b.high]) : []).filter(Number.isFinite);
+  let lo = cats ? 0 : all.length ? Math.min(...all) : 0, hi = cats ? cats.length - 1 : all.length ? Math.max(...all) : 1;
   if (!cats) { const pad = (hi - lo || Math.abs(hi) || 1) * 0.15; lo = Math.max(0, lo - pad); hi += pad; }
   if (bounds) { lo = Math.max(bounds[0], lo); hi = Math.min(bounds[1], hi); }
   if (hi - lo < 1e-6) hi = lo + 1;
@@ -179,7 +184,7 @@ function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, bound
     const r = box.current.getBoundingClientRect();
     const px = ((e.clientX - r.left) / r.width) * W;
     let best = 0, d = Infinity;
-    nums.forEach((v, k) => { if (v != null && Math.abs(x(k) - px) < d) { d = Math.abs(x(k) - px); best = k; } });
+    nums.forEach((_, k) => { if (Math.abs(x(k) - px) < d) { d = Math.abs(x(k) - px); best = k; } });
     onSel(best);
   };
   const s = pts[sel];
@@ -198,10 +203,10 @@ function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, bound
         {pts.map((p, k) => p && <circle key={k} cx={p[0]} cy={p[1]} r={k === sel ? 7 : 4.5} fill={k === sel ? 'var(--navy)' : 'var(--surface)'} stroke="var(--navy)" strokeWidth="2.5" />)}
         {xLabels.map((t, k) => <text key={k} x={x(k)} y={H - 10} textAnchor="middle" fontSize="12.5" fontWeight={k === sel ? 700 : 400} fill={k === sel ? 'var(--ink)' : 'var(--ink-2)'}>{t}</text>)}
       </svg>
-      {s && <div className="lc-tip" style={{ left: `${Math.min(92, Math.max(8, (s[0] / W) * 100))}%`, top: `${(s[1] / H) * 100}%` }}>{xLabels[sel]}: {cats ? cats[nums[sel]] : fmt(nums[sel])}</div>}
+      {sel >= 0 && <div className="lc-tip" style={{ left: `${Math.min(92, Math.max(8, (x(sel) / W) * 100))}%`, top: `${s ? (s[1] / H) * 100 : 50}%` }}>{xLabels[sel]}: {cats ? (nums[sel] == null ? 'Not measured' : cats[nums[sel]]) : fmt(nums[sel])}</div>}
       </div>
       <div className="lc-steps" role="group" aria-label="Choose a point">
-        {xLabels.map((t, k) => nums[k] != null && <button key={k} type="button" aria-pressed={k === sel} onClick={() => onSel(k)}>{t}</button>)}
+        {xLabels.map((t, k) => <button key={k} type="button" aria-pressed={k === sel} onClick={() => onSel(k)}>{t}</button>)}
       </div>
     </div>
   );
@@ -268,14 +273,23 @@ function Explorer({ checkins, twin, tracks }) {
   ];
   const [id, setId] = useState('twin');
   const it = items.find((x) => x.id === id) || items[0];
-  const lastK = it.values.reduce((m, v, k) => (v != null ? k : m), 0);
+  const lastK = Math.max(0, it.values.length - 1);
   const [sel, setSel] = useState(lastK);
   useEffect(() => { setSel(lastK); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const fmt = (v) => (v == null ? '' : `${Math.round(v * 100) / 100}${it.unit ? (/^[%/×]/.test(it.unit) ? it.unit : ` ${it.unit}`) : ''}`);
+  const fmt = (v) => formatReportValue(isMissingReportValue(v) ? v : Math.round(v * 100) / 100, it.unit);
   const sentence = it.spot
     ? (it.spot.changePct == null ? `First measured ${fmtDate(tracks.dates[it.spot.points.findIndex(Boolean)])} at ${it.spot.last} mm.` : `Measured ${it.spot.first} mm on ${fmtDate(tracks.dates[0])} and ${it.spot.last} mm on ${fmtDate(tracks.dates[tracks.dates.length - 1])}, as written in the radiology reports.`)
-    : describe(it.id, it.raw ? it.raw[0] : it.values[0], it.raw ? it.raw[it.raw.length - 1] : it.values[it.values.length - 1], first.cycle);
-  const latest = (x) => { const v = x.raw ? x.raw[x.raw.length - 1] : x.values.filter((v) => v != null).slice(-1)[0]; return x.cats ? v : x.id === 'twin' ? `${v}` : `${v}${/^[%/×]/.test(x.unit || '') ? x.unit : x.unit ? ` ${x.unit}` : ''}`; };
+    : it.id === 'twin'
+      ? `${describe(it.id, it.values[0], it.values[it.values.length - 1], first.cycle)} ${reportInputDescription(checkins, isDemoCheckins(checkins))}`
+      : (it.raw ? [it.raw[0], it.raw[it.raw.length - 1]].some(isMissingReportValue) : false)
+        ? 'Not measured for one or more selected check-ins.'
+        : describe(it.id, it.raw ? it.raw[0] : it.values[0], it.raw ? it.raw[it.raw.length - 1] : it.values[it.values.length - 1], first.cycle);
+  const latest = (x) => {
+    const v = x.raw ? x.raw[x.raw.length - 1] : x.values[x.values.length - 1];
+    return x.cats
+      ? formatReportValue(isMissingReportValue(v) ? v : x.cats[v])
+      : formatReportValue(v, x.unit);
+  };
   const groupNames = [...new Set(items.map((x) => x.group))];
   return (
     <section className="explore" aria-label="Explore your check-ins">
@@ -297,7 +311,7 @@ function Explorer({ checkins, twin, tracks }) {
         <p className="ex-sentence">{sentence}</p>
         <LineChart key={it.id} values={it.values} xLabels={it.xLabels} band={it.band} cats={it.cats} fmt={fmt} sel={sel} onSel={setSel} bounds={it.id === 'twin' ? [0, 100] : null}
           axisFmt={(v) => { const r = Math.abs(v) >= 10 ? Math.round(v) : Math.round(v * 10) / 10; return String(r); }} unitLabel={it.cats ? '' : it.id === 'twin' ? 'of 100' : it.unit === '×' ? 'times' : it.unit}
-          label={`${it.label}: ${it.values.map((v, k) => `${it.xLabels[k]} ${v == null ? 'none' : it.cats ? it.cats[v] : fmt(v)}`).join(', ')}`} />
+          label={`${it.label}: ${it.values.map((v, k) => `${it.xLabels[k]} ${isMissingReportValue(v) ? 'Not measured' : it.cats ? it.cats[v] : fmt(v)}`).join(', ')}`} />
         <p className="fine">{it.id === 'twin' ? 'The shaded area is model uncertainty. ' : ''}Hover or tap the graph to see each {it.spot ? 'scan' : 'check-in'}.</p>
         {it.id === 'twin' && <Glance items={items} first={checkins[0]} last={checkins[checkins.length - 1]} onPick={(k) => { setId(k); window.scrollTo({ top: document.querySelector('.explore').getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' }); }} />}
       </div>
@@ -360,7 +374,13 @@ export default function Report({ go }) {
   const changed = new Set(flags.map((f) => f.id));
   const questions = [...(out?.questions || []), ...scans.flatMap((s) => s.opinion?.questions || [])].filter((q, k, a) => a.indexOf(q) === k);
   const twoReads = groups.filter((g) => g.length > 1);
-  const headline = `Experimental function score ${r0(step.score)} out of 100, where 100 is how things were at cycle ${first.cycle}.`;
+  const scoreInputNote = reportInputDescription(twinInputs, demoMode);
+  const headline = `${demoMode ? 'Fictional demo' : 'Experimental'} function score ${r0(step.score)} out of 100; 100 is the first check-in, and lower scores indicate more model-estimated change. ${scoreInputNote}`;
+  const summarySourceLabel = out?.source === 'gemma'
+    ? `Source: Gemma 4 (${out.model}).`
+    : out?.source === 'template'
+      ? 'Source: built-in template.'
+      : 'Summary not generated yet.';
 
   const asText = () => [
     `Report for ${user.name}, ${fullRange ? `before cycle ${last.cycle + 1}` : `cycles ${first.cycle} to ${last.cycle}`} (${fmtDate(first.date)} to ${fmtDate(last.date)})`, '',
@@ -397,7 +417,7 @@ export default function Report({ go }) {
             <h1>{user.name}</h1>
             <p className="muted">{fullRange ? `Before cycle ${last.cycle + 1}. ` : ''}Check-ins {fmtDate(first.date)} to {fmtDate(last.date)}{fullRange ? '' : ` (cycles ${first.cycle} to ${last.cycle})`}{user.mode === 'demo' ? ', demo patient' : ''}.</p>
             <p className="fine">Experimental, unvalidated function estimate. The displayed range is model uncertainty, not a clinical confidence interval or a measured physical decline.</p>
-            <p className="for-team">This is made for your oncologist. It shows your check-in symptoms, verified physical measurements, and scan findings so your care team can see what changed. <b>You don’t need to read it yourself.</b> Copy it or show it at your next appointment.</p>
+            <p className="for-team">This is made for your oncologist. It shows your check-in symptoms, eligible recorded measurements, and scan findings. Sample or simulated measurements are identified separately. <b>You don’t need to read it yourself.</b> Copy it or show it at your next appointment.</p>
             {checkins.length === 1 && <p className="fine">Baseline recorded. Add another check-in to compare changes.</p>}
             {allCheckins.length > 1 && <div className="range no-print" role="group" aria-label="Date range">
               <label>From<select value={from} onChange={(e) => setRange([+e.target.value, Math.max(+e.target.value, to)])}>{allCheckins.map((c, k) => <option key={c.id} value={k}>C{c.cycle}, {fmtDate(c.date)}</option>)}</select></label>
@@ -446,20 +466,34 @@ export default function Report({ go }) {
           <ul className="checks">{questions.map((q) => <li key={q}>{q}</li>)}</ul>
         </section>}
 
-        <details className="quiet">
+        <section className="print-summaries" aria-label="Generated report summaries">
+          <h2>Report summaries</h2>
+          {out ? <>
+            <p className="fine">{summarySourceLabel}</p>
+            <h3>Patient summary</h3>
+            <p>{plain(out.patient)}</p>
+            <h3>Function twin summary</h3>
+            <p>{plain(out.twin)}</p>
+            {out.scans && <><h3>Scan summary</h3><p>{plain(out.scans)}</p></>}
+            <h3>Care-team summary</h3>
+            <p className="print-pre">{plain(out.clinician)}</p>
+          </> : <p>Summaries are not available yet. Printing does not generate AI content.</p>}
+        </section>
+
+        <details className="quiet summary-plain">
           <summary>Summary in plain words</summary>
           {busy && !out ? <p className="muted">Writing…</p> : out && <>
             <p>{plain(out.patient)}</p>
-            <p className="fine">{out.source === 'gemma' ? `Written by Gemma 4 (${out.model}).` : 'Template text. Gemma isn’t connected here.'} <button type="button" className="linkish no-print" disabled={busy} onClick={write}>{busy ? 'Rewriting…' : 'Rewrite'}</button></p>
+            <p className="fine">{summarySourceLabel} <button type="button" className="linkish no-print" disabled={busy} onClick={write}>{busy ? 'Rewriting…' : 'Rewrite'}</button></p>
           </>}
         </details>
 
-        <details className="quiet">
+        <details className="quiet summary-technical">
           <summary>Every number, for the oncology team</summary>
-          <p className="fine">Function twin: an uncalibrated Kalman filter over phone measures and symptom ratings, not nerve-specific. Experimental function score per cycle (100 = first check-in), with model uncertainty range: {twin.map((t) => `C${t.cycle} ${r0(t.score)} (${r0(t.scoreLow)}–${r0(t.scoreHigh)})`).join(', ')}. Changes are marked by fixed thresholds against the patient’s own first check-in. Unvalidated smartphone measures.</p>
+          <p className="fine">Function twin: an uncalibrated Kalman filter over phone measures and symptom ratings, not nerve-specific. Experimental function score per cycle (100 = first check-in; lower = more model-estimated change), with model uncertainty range: {twin.map((t) => `C${t.cycle} ${r0(t.score)} (${r0(t.scoreLow)}–${r0(t.scoreHigh)})`).join(', ')}. Changes are marked by fixed thresholds against the patient’s own first check-in. Unvalidated smartphone measures.</p>
           <div className="table-wrap"><table className="changes-table all">
             <thead><tr><th scope="col"><span className="sr-only">Measure</span></th>{checkins.map((c) => <th key={c.id} scope="col">C{c.cycle}</th>)}</tr></thead>
-            <tbody>{GROUPS.flatMap((g) => g.rows).map((r) => <tr key={r.id}><th scope="row">{r.label}{r.unit ? <span className="u"> {r.unit}</span> : null}</th>{displayCheckins.map((c) => <td key={c.id}>{r.get(c) ?? '–'}</td>)}</tr>)}</tbody>
+            <tbody>{GROUPS.flatMap((g) => g.rows).map((r) => <tr key={r.id}><th scope="row">{r.label}{r.unit ? <span className="u"> {r.unit}</span> : null}</th>{displayCheckins.map((c) => <td key={c.id}>{formatReportValue(r.get(c), r.unit)}</td>)}</tr>)}</tbody>
           </table></div>
         </details>
         <p className="fine foot">Phone measurements are approximate and measure function, not nerves directly. This is not a diagnosis.</p>

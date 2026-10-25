@@ -757,6 +757,38 @@ main[data-view="report"]::before { content: ""; position: fixed; inset: 0; z-ind
 .for-team { margin: 14px 0 0; max-width: 52ch; font-size: 1.05rem; line-height: 1.5; }
 .for-team b { font-weight: 600; }
 .opt-tag { color: var(--rose); font-weight: 600; font-size: 0.9rem; margin: 0 0 4px; }
+.print-summaries { display: none; }
+.print-summaries h2 { font-size: 1.35rem; margin: 0 0 6px; }
+.print-summaries h3 { font-size: 1rem; margin: 14px 0 4px; }
+.print-summaries p { margin: 4px 0; }
+.print-pre { white-space: pre-line; }
+
+@media print {
+  @page { margin: 12mm; }
+  html, body, #root { width: auto !important; min-width: 0 !important; height: auto !important; overflow: visible !important; background: #fff !important; }
+  #root { display: block; }
+  main[data-view="report"] { width: auto !important; max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+  .sheet-page, .sheet { width: auto !important; max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+  .rep-panel, .rep-panel + .rep-panel { margin: 0 !important; padding: 8mm 0 !important; border-radius: 0 !important; box-shadow: none !important; overflow: visible !important; }
+  .rep-panel + .rep-panel { border-top: 1px solid #bbb; }
+  .sheet-head { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .rep-panel, .mgroup, .print-summaries, .journey li { break-inside: auto; page-break-inside: auto; }
+  .mgroup h2, .print-summaries h2, .print-summaries h3 { break-after: avoid; page-break-after: avoid; }
+  .print-summaries { display: block !important; margin-top: 16mm; }
+  .quiet.summary-plain { display: none !important; }
+  .quiet summary { display: none !important; }
+  .quiet > :not(summary) { display: block !important; }
+  .quiet { display: block !important; break-inside: auto; }
+  .explore { display: block; }
+  .ex-list { position: static; display: none; }
+  .ex-main { min-width: 0; width: 100%; }
+  .table-wrap { overflow: visible !important; }
+  .changes-table { width: 100%; table-layout: fixed; }
+  .changes-table th, .changes-table td { white-space: normal !important; overflow-wrap: anywhere; }
+  .lc, .lc-plot, .lc svg, .twin-spark, .arings { max-width: 100% !important; }
+  svg { max-width: 100%; }
+  h1, h2, h3, p, li { orphans: 3; widows: 3; }
+}
 
 /* ---------- Landing: editorial sky hero (full-bleed, mono captions, big white type) ---------- */
 .sky-hero { position: relative; overflow: hidden; isolation: isolate; min-height: min(calc(100vh - 100px), 820px); display: flex; align-items: flex-end; color: #fff; margin-bottom: 0; }

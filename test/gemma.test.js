@@ -45,6 +45,10 @@ const wrap = (obj, thought) => ({ candidates: [{ content: { parts: [...(thought 
   const e = await explain(ck, []);
   const sent = lastReq.body.contents[0].parts[0].text;
   check('report: twin estimates included in prompt', /likely_range/.test(sent));
+  check('report: Gemma input specifies 100 as baseline and lower as more change', /function_score_direction/.test(sent) && /100 = first check-in; lower = more model-estimated change/.test(sent));
+  check('report: Gemma instructions use the same score direction', /100 is the first check-in and lower scores mean more estimated change/.test(lastReq.body.systemInstruction.parts[0].text));
+  check('report: Gemma is instructed to write questions from patient to clinician', /questions the patient is asking their clinician/.test(lastReq.body.systemInstruction.parts[0].text));
+  check('report: Gemma is instructed to summarize only supported changes', /Summarize only supported changes listed in changesSinceBaseline/.test(lastReq.body.systemInstruction.parts[0].text));
   check('report: Gemma output returned', e.source === 'gemma' && e.twin === 't');
 
   const sourced = [
@@ -69,10 +73,29 @@ const wrap = (obj, thought) => ({ candidates: [{ content: { parts: [...(thought 
   check('report: sensor measurements in mixed entries remain available', typeof reportPayload.rows[1].balance === 'object');
   check('report: genuine symptoms remain in personal twin flags', reportPayload.flags.some((flag) => flag.id === 'feetNumb'));
   check('report: demo entries retain simulated physical measurements', typeof buildPayload(ck.map((c) => ({ ...c, demo: true, source: 'simulated' }))).rows[0].walk === 'object');
+  check('report: Gemma payload carries score direction explicitly', reportPayload.rows[0].twin.function_score_direction === '100 = first check-in; lower = more model-estimated change');
+
+  reply = { candidates: [{ content: { parts: [{ text: 'not json at all' }] } }] };
+  const symptomOnly = [
+    { cycle: 1, date: '2026-01-01', symptoms: { feetNumb: 1, handsNumb: 0, feetPain: 0 } },
+    { cycle: 2, date: '2026-01-22', symptoms: { feetNumb: 4, handsNumb: 0, feetPain: 0 } },
+  ];
+  const symptomsOnlyReport = await explain(symptomOnly, []);
+  check('report: symptoms-only Gemma payload identifies eligible input type', /reported symptoms only; walking, balance, and hand performance were not measured/.test(lastReq.body.contents[0].parts[0].text));
+  check('report: symptoms-only fallback summarizes the supported symptom change', /numbness or tingling in the feet/.test(symptomsOnlyReport.patient));
+  check('report: symptoms-only fallback avoids claiming physical performance was measured', /walking, balance, and hand performance were not measured/.test(symptomsOnlyReport.patient));
+  check('report: fallback questions ask from the patient to the clinician', /\bI\b|\bme\b|\bmy\b/i.test(symptomsOnlyReport.questions[0]));
+
+  reply = { candidates: [{ content: { parts: [{ text: 'not json at all' }] } }] };
+  const demoCheckins = ck.slice(0, 2).map((checkin) => ({ ...checkin, demo: true, source: 'simulated' }));
+  const demoReport = await explain(demoCheckins, []);
+  check('report: demo Gemma payload is explicitly fictional', /fictional demo data; simulated measurements and fictional symptom responses/.test(lastReq.body.contents[0].parts[0].text));
+  check('report: demo fallback labels the summary as fictional', /Fictional demo data/.test(demoReport.patient) && /do not describe a real person/.test(demoReport.patient));
 
   reply = { candidates: [{ content: { parts: [{ text: 'not json at all' }] } }] };
   const bad = await explain(ck, []);
   check('report: bad Gemma output falls back to template', bad.source === 'template');
+  check('report: template summary uses the same score direction', /100 is the first check-in and lower scores mean more model-estimated change/.test(bad.twin));
   check('report fallback labels model uncertainty without claiming the model proves decline', /model uncertainty range/.test(bad.twin) && !/worse than the twin expected/i.test(bad.twin));
 
   global.fetch = async () => ({ ok: false, status: 429, text: async () => 'quota' });
