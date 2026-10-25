@@ -80,7 +80,7 @@ The Gemma key is only read on the server and never reaches the browser. Never co
 ## Tests
 
 ```bash
-npm test                    # gait, twin, scan/glossary, provenance, sensor, and Gemma tests (simulated API)
+npm test                    # gait, twin, scan/glossary, provenance, confirmation/save, sensor, and Gemma tests (simulated API)
 node test/validate.js trial.csv --steps 52 --time t --ax accX --ay accY --az accZ --time-unit s --accel-unit g
 ```
 

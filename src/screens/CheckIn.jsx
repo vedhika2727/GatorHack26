@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import Icon from '../components/Icon.jsx';
 import Gait from '../core/gait.js';
 import Trends from '../core/trends.js';
+import { buildCheckinRecord } from '../core/checkinRecord.js';
+import { confirmationMessage } from '../core/checkinConfirmation.js';
 import { checkinsForTwin, setMeasurementSource, skipMeasurements, sourceFromMeasurements } from '../core/checkinSource.js';
 import { useStore, HOSTED_PREVIEW } from '../store.jsx';
 import { requestMotion, record, speak, buzz } from '../lib/sensors.js';
@@ -155,13 +157,13 @@ export default function CheckIn({ go }) {
   }
 
   async function finish(extra) {
-    const c = {
-      ...d, ...extra,
-      source: sourceFromMeasurements(measurementSources.current),
-      measurementSources: { ...measurementSources.current },
-      id: 'c' + Date.now(),
-    };
-    if (user.mode === 'demo') c.demo = true;
+    const c = buildCheckinRecord(
+      d,
+      extra,
+      measurementSources.current,
+      'c' + Date.now(),
+      user.mode === 'demo',
+    );
     setSaveErr('');
     try { await addCheckin(c); setSaved(c); goStep(5); }
     catch (e) { setSaveErr(e.message); }
@@ -303,9 +305,7 @@ export default function CheckIn({ go }) {
           <h1>Check-in saved</h1>
           <div className="card">
             <p style={{ fontSize: '1.1rem' }}>
-              {all.length === 1 ? 'This is your baseline. Check in again before your next infusion and your twin will start showing changes.'
-                : flags.length ? `Compared with your first check-in, ${flags.length} thing${flags.length > 1 ? 's have' : ' has'} changed. Your twin shows the details.`
-                  : 'Things look about the same as at your first check-in.'}
+              {confirmationMessage(comparedCheckins.length, flags.length)}
             </p>
             {saved.source !== 'sensor' && <p className="fine">Some of this check-in used sample data instead of your phone sensors.</p>}
             <div className="actions" style={{ marginBottom: 0 }}>
