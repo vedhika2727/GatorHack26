@@ -76,7 +76,7 @@ function Rings({ step }) {
           <div key={a.id} className="aring" role="listitem" aria-label={`${a.name}: ${ringWord(fill)}`}>
             <svg viewBox="0 0 100 100" aria-hidden="true">
               <circle cx="50" cy="50" r="40" fill="none" stroke="var(--tint)" strokeWidth="11" />
-              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--navy)" strokeWidth="11" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - fill / 100)} transform="rotate(-90 50 50)" />
+              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--navy)" strokeWidth="11" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - fill / 100)} transform="rotate(-90 50 50)" className="ring-fill" style={{ '--from': C, '--to': C * (1 - fill / 100) }} />
             </svg>
             <b>{a.name}</b>
             <small>{ringWord(fill)}</small>
@@ -194,7 +194,7 @@ function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, bound
         {unitLabel && <text x={2} y={12} fontSize="12" fill="var(--ink-2)">{unitLabel}</text>}
         {band && <polygon points={band.map((b, k) => `${x(k)},${y(b.high)}`).concat(band.map((b, k) => `${x(k)},${y(b.low)}`).reverse()).join(' ')} fill="var(--navy-wash)" />}
         {s && <line x1={s[0]} x2={s[0]} y1={T - 10} y2={H - B} stroke="var(--ink)" strokeOpacity="0.25" />}
-        <polyline points={path} fill="none" stroke="var(--navy)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+        <polyline key={label} points={path} fill="none" stroke="var(--navy)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" pathLength="1" className="draw" />
         {pts.map((p, k) => p && <circle key={k} cx={p[0]} cy={p[1]} r={k === sel ? 7 : 4.5} fill={k === sel ? 'var(--navy)' : 'var(--surface)'} stroke="var(--navy)" strokeWidth="2.5" />)}
         {xLabels.map((t, k) => <text key={k} x={x(k)} y={H - 10} textAnchor="middle" fontSize="12.5" fontWeight={k === sel ? 700 : 400} fill={k === sel ? 'var(--ink)' : 'var(--ink-2)'}>{t}</text>)}
       </svg>

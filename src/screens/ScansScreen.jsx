@@ -289,7 +289,8 @@ export default function ScansScreen() {
             </div>
           </div>
           {scans.length ? <>
-            <SpotChart data={data} selected={i} focus={focus} onPick={setSel} />
+            <div className="lightbox"><SpotChart data={data} selected={i} focus={focus} onPick={setSel} onFocus={setFocus} /></div>
+            <p className="lightbox-hint">Tap a line to follow one spot. Tap a date to open that scan.</p>
             <div className="film" role="tablist" aria-label="Choose a scan date">
               {groups.map((gr, k) => {
                 const ex = gr[0].extracted;

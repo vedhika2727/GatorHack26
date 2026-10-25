@@ -5,7 +5,8 @@
  *   Twin.sparkline(svg, values, opts)    small trend chart across cycles
  */
 const NS = 'http://www.w3.org/2000/svg';
-const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+let scope = null; // element whose CSS variables the current chart reads (so a dark panel can restyle its own chart)
+const css = (name) => getComputedStyle(scope || document.documentElement).getPropertyValue(name).trim();
 function el(tag, attrs = {}, parent) {
   const e = document.createElementNS(NS, tag);
   for (const k in attrs) e.setAttribute(k, attrs[k]);
@@ -252,7 +253,13 @@ function spotChart(svg, data, opts = {}) {
   const H = wide ? 330 : 240, L = 44, R = wide ? 210 : 18, T = 22, B = 46;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   const { dates, tracks } = data;
+  scope = svg;
   const ink = css('--night-ink'), ink2 = css('--night-ink-2'), line = css('--night-line'), hi = css('--rose-glow'), raised = css('--night-2');
+  const night = css('--night');
+  scope = null;
+  // lines draw themselves in during the first moments after the chart appears, not on every redraw
+  if (!svg.dataset.born) svg.dataset.born = Date.now();
+  const intro = Date.now() - svg.dataset.born < 600;
   const n = dates.length;
   const x = (k) => n === 1 ? (L + W - R) / 2 : L + 18 + (k / (n - 1)) * (W - L - R - 36);
   const top = Math.max(10, ...tracks.flatMap((t) => t.points.filter(Boolean).map((p) => p.max))) * 1.12;
@@ -260,7 +267,7 @@ function spotChart(svg, data, opts = {}) {
   const y = (v) => T + (1 - v / top) * (H - T - B);
   const colW = n === 1 ? 120 : (W - L - R - 36) / (n - 1);
   // selected column
-  if (opts.selected != null) el('rect', { x: x(opts.selected) - Math.min(48, colW / 2), y: T - 10, width: Math.min(96, colW), height: H - T - B + 20, rx: 14, fill: raised }, svg);
+  if (opts.selected != null) el('rect', { x: x(opts.selected) - Math.min(48, colW / 2), y: T - 10, width: Math.min(96, colW), height: H - T - B + 20, rx: 14, fill: raised, class: 'sel-col' }, svg);
   for (let v = 0; v <= top; v += step) {
     el('line', { x1: L, x2: W - R + (wide ? 10 : 0), y1: y(v), y2: y(v), stroke: line, 'stroke-width': 1 }, svg);
     txt(svg, L - 8, y(v) + 5, v, { 'text-anchor': 'end', fill: ink2, 'font-size': 13 });
@@ -271,10 +278,14 @@ function spotChart(svg, data, opts = {}) {
     const t = tracks[i], on = opts.focus == null || opts.focus === i;
     const col = opts.focus === i ? hi : ink;
     const pts = t.points.map((p, k) => p && { k, p }).filter(Boolean);
-    if (pts.length > 1) el('polyline', { points: pts.map(({ k, p }) => `${x(k)},${y(p.mm)}`).join(' '), fill: 'none', stroke: col, 'stroke-width': opts.focus === i ? 3.5 : 2, opacity: on ? 1 : 0.28, 'stroke-linejoin': 'round' }, svg);
+    if (pts.length > 1) {
+      const d = pts.map(({ k, p }) => `${x(k)},${y(p.mm)}`).join(' ');
+      el('polyline', { points: d, fill: 'none', stroke: col, 'stroke-width': opts.focus === i ? 3.5 : 2, opacity: on ? 1 : 0.28, 'stroke-linejoin': 'round', pathLength: 1, class: intro ? 'draw' : '', style: `--d:${order.indexOf(i) * 120}ms` }, svg);
+      el('polyline', { points: d, fill: 'none', stroke: 'transparent', 'stroke-width': 16, 'data-spot': i, style: 'cursor:pointer' }, svg);
+    }
     for (const { k, p } of pts) {
       if (p.max - p.min > 0.5) el('line', { x1: x(k), x2: x(k), y1: y(p.max), y2: y(p.min), stroke: hi, 'stroke-width': 10, 'stroke-linecap': 'round', opacity: on ? 0.6 : 0.18 }, svg);
-      el('circle', { cx: x(k), cy: y(p.mm), r: opts.focus === i ? 6 : 4.5, fill: col, stroke: css('--night'), 'stroke-width': 2, opacity: on ? 1 : 0.35 }, svg);
+      el('circle', { cx: x(k), cy: y(p.mm), r: opts.focus === i ? 6 : 4.5, fill: col, stroke: night, 'stroke-width': 2, opacity: on ? 1 : 0.35, class: intro ? 'pop' : '', style: `--d:${300 + k * 90}ms`, 'data-spot': i }, svg);
     }
   }
   // end labels, nudged apart so they never overlap
@@ -296,7 +307,7 @@ function spotChart(svg, data, opts = {}) {
     const dt = new Date(d + 'T12:00:00');
     txt(svg, x(k), H - 22, dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), { 'text-anchor': 'middle', fill: k === opts.selected ? ink : ink2, 'font-size': 13.5, 'font-weight': k === opts.selected ? 700 : 400 });
     txt(svg, x(k), H - 6, dt.getFullYear(), { 'text-anchor': 'middle', fill: ink2, 'font-size': 11.5 });
-    el('rect', { x: x(k) - Math.min(48, colW / 2), y: 0, width: Math.min(96, colW), height: H, fill: 'transparent', 'data-k': k, style: 'cursor:pointer' }, svg);
+    svg.insertBefore(el('rect', { x: x(k) - Math.min(48, colW / 2), y: 0, width: Math.min(96, colW), height: H, fill: 'transparent', 'data-k': k, style: 'cursor:pointer' }), svg.firstChild); // under the lines, so lines stay tappable
   });
 }
 

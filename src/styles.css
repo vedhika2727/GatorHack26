@@ -701,3 +701,52 @@ main[data-view="report"] { background: var(--surface); }
 .story-sheet .sheet-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 4px; }
 .story-sheet h2 { margin: 0; font-size: 1.3rem; }
 .story-sheet .journey { margin-top: 18px; }
+
+/* ---------- Scans light box: a dark, softly lit panel behind the spot chart, like a film on a viewer ---------- */
+.lightbox {
+  --night: #0A0F1E; --night-2: rgba(255, 255, 255, 0.07); --night-line: rgba(255, 255, 255, 0.09);
+  --night-ink: #EEF1FA; --night-ink-2: #8C95B2; --rose-glow: #FF5C9A;
+  position: relative; overflow: hidden; isolation: isolate; margin: 14px 0 6px; padding: 18px 14px 6px; border-radius: 20px;
+  background: radial-gradient(120% 90% at 30% 0%, #1D2747 0%, #0F1529 48%, #0A0F1E 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 18px 40px -22px rgba(10, 15, 30, 0.7);
+}
+/* faint film grid */
+.lightbox::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: 0.5;
+  background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 28px 28px; mask-image: radial-gradient(90% 80% at 40% 30%, #000 30%, transparent 85%); }
+/* a slow scan light that sweeps across the panel */
+.lightbox::after { content: ""; position: absolute; top: 0; bottom: 0; left: -30%; width: 30%; z-index: -1; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(120, 150, 255, 0.10), transparent); animation: sweep 7s ease-in-out infinite; }
+@keyframes sweep { 0% { transform: translateX(0); } 55%, 100% { transform: translateX(440%); } }
+.lightbox .spots { display: block; width: 100%; }
+.spots * { pointer-events: none; }
+.spots [data-k], .spots [data-spot] { pointer-events: auto; }
+.lightbox-hint { color: var(--ink-2); font-size: 0.86rem; margin: 6px 2px 4px; }
+
+/* lines draw in, dots pop, the chosen date glows into place */
+.spots .draw, .lc .draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.1s cubic-bezier(.6, 0, .2, 1) var(--d, 0ms) forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.spots .pop { transform-box: fill-box; transform-origin: center; animation: pop .45s cubic-bezier(.3, 1.6, .5, 1) var(--d, 0ms) backwards; }
+@keyframes pop { from { transform: scale(0); opacity: 0; } }
+.spots .sel-col { animation: glowin .35s ease-out; }
+@keyframes glowin { from { opacity: 0; } }
+.spots [data-spot] { transition: opacity .2s, stroke-width .2s; }
+
+/* film strip on the light page: lift on hover */
+.frame { transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+.frame:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -12px rgba(0, 0, 0, 0.35); }
+
+/* report rings fill up when the page opens */
+.ring-fill { animation: ringfill 1.2s cubic-bezier(.5, 0, .2, 1) .15s backwards; }
+@keyframes ringfill { from { stroke-dashoffset: var(--from); } to { stroke-dashoffset: var(--to); } }
+.aring { animation: rise .5s ease-out backwards; }
+.aring:nth-child(2) { animation-delay: .08s; } .aring:nth-child(3) { animation-delay: .16s; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+.aring svg { transition: transform .2s ease; }
+.aring:hover svg { transform: scale(1.06) rotate(-4deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox::after, .spots .draw, .lc .draw, .spots .pop, .spots .sel-col, .ring-fill, .aring { animation: none !important; }
+  .spots .draw, .lc .draw { stroke-dashoffset: 0; }
+  .frame:hover, .aring:hover svg { transform: none; }
+}

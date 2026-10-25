@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { renderBody, Walker as WalkerDraw, sparkline, bandChart, dualTimeline, spotChart } from '../viz/draw.js';
 
-export function SpotChart({ data, selected, focus, onPick }) {
+export function SpotChart({ data, selected, focus, onPick, onFocus }) {
   const ref = useRef(null);
   useEffect(() => {
     const draw = () => ref.current && spotChart(ref.current, data, { selected, focus });
@@ -10,7 +10,10 @@ export function SpotChart({ data, selected, focus, onPick }) {
     const ro = new ResizeObserver(draw); ro.observe(ref.current);
     return () => ro.disconnect();
   }, [data, selected, focus]);
-  const click = (e) => { const k = e.target.getAttribute?.('data-k'); if (k != null) onPick?.(+k); };
+  const click = (e) => {
+    const s = e.target.getAttribute?.('data-spot'); if (s != null) { onFocus?.(focus === +s ? null : +s); return; }
+    const k = e.target.getAttribute?.('data-k'); if (k != null) onPick?.(+k);
+  };
   const label = `Measured size of each spot across ${data.dates.length} scan dates: ` + data.tracks.map((t) => `${t.location} ${t.points.map((p) => (p ? p.mm : 'none')).join(', ')} mm`).join('; ');
   return <svg ref={ref} className="spots" role="img" aria-label={label} onClick={click} />;
 }
