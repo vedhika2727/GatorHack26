@@ -96,32 +96,18 @@ export default function Twin({ go }) {
   const gnum = (g) => (g?.ok ? `${Math.round(g.cadence)} steps/min` : 'no walk');
 
   return (
-    <div className="wrap wide page-ed">
-      <section className="ed-hero" aria-labelledby="twin-h">
-        <div>
-          <p className="mono ed-kicker">Function twin · cycle {cur.cycle}, {fmtDate(cur.date)}</p>
-          <h1 id="twin-h">Your function<br />twin.</h1>
+    <div className="wrap wide page-ed tw-page">
+      <section className="tw-hero" aria-labelledby="twin-h">
+        <p className="mono tw-k">Function twin · cycle {cur.cycle} · {fmtDate(cur.date)}</p>
+        <h1 id="twin-h">Your function twin</h1>
+        <div className="tw-score">
+          <b>{Math.round(step.score)}</b>
+          <span>of 100<em>{i === 0 ? 'your starting point' : `likely ${Math.round(step.scoreLow)}–${Math.round(step.scoreHigh)}`}</em></span>
         </div>
-        <div className="ed-next">
-          <p className="mono ed-kicker">How it works</p>
-          <p className="ed-next-t">Each test on its own is noisy. Your twin combines all your signals, trusts the reliable ones more, and turns them into one function score. 100 is how you were at your first check-in.</p>
-        </div>
+        <p className="tw-sub">Each test on its own is noisy. Your twin combines them, trusts the reliable ones more, and gives one score. 100 is how you were at your first check-in.</p>
       </section>
-      <ul className="ed-stats" aria-label="At a glance">
-        <li><span className="mono">[01]</span><b>{Math.round(step.score)}</b><small>function score at cycle {cur.cycle}</small></li>
-        <li><span className="mono">[02]</span><b>{Math.round(step.scoreLow)}–{Math.round(step.scoreHigh)}</b><small>likely range</small></li>
-        <li><span className="mono">[03]</span><b>{checkins.length}</b><small>check-ins combined</small></li>
-        <li><span className="mono">[04]</span><b>{i > 0 ? flags.length : 0}</b><small>changes since your first check-in</small></li>
-      </ul>
-      <div className="page-ed-body">
-
-      <section className="card twin-hero" aria-label="Twin estimate">
-        <div className="score-row" style={{ justifyContent: 'space-between' }}>
-          <div className="score-row"><span className="score">{Math.round(step.score)}</span><span className="muted">of 100 at cycle {cur.cycle}. 100 is how you were at your first check-in.</span></div>
-          {level && <Chip level={level} />}
-        </div>
-        <p>{i === 0 ? (checkins.length === 1 ? 'This is your baseline. The twin starts learning at your next check-in.' : `Cycle ${base.cycle} is your baseline, so the twin starts at 100.`)
-          : `Likely between ${Math.round(step.scoreLow)} and ${Math.round(step.scoreHigh)} on ${fmtDate(cur.date)}.`}</p>
+      <section className="tw-chart" aria-label="Twin estimate over time">
+        <div className="tw-chart-top"><p className="mono">Cycle {base.cycle} → {checkins[checkins.length - 1].cycle}</p>{level && <Chip level={level} />}</div>
         <BandChart steps={twin} selected={i} />
         <ul className="legend" aria-label="Chart key">
           <li><span className="k k-line" />Twin’s estimate</li>
@@ -129,6 +115,7 @@ export default function Twin({ go }) {
           <li><span className="k k-dot" />Individual signals</li>
         </ul>
       </section>
+      <div className="page-ed-body">
 
       <h2>Your infusions</h2>
       <div className="beads" role="tablist" aria-label="Choose a check-in">

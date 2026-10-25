@@ -286,17 +286,11 @@ export default function ScansScreen() {
     <>
       <section className="reading" aria-labelledby="scans-h">
         <div className="wrap wide">
-          <div className="ed-hero scans-ed">
-            <div>
-              <p className="mono ed-kicker">Scans · {scans.length} report{scans.length === 1 ? '' : 's'}</p>
-              <h1 id="scans-h">Your scans,<br />spot by spot.</h1>
-            </div>
-            <div className="ed-next">
-              <p className="mono ed-kicker">Checked against the report</p>
-              <p className="ed-next-t">{scans.length ? 'Every size your radiologists measured. A number only appears here if it’s written in the report itself.' : 'Add a radiology report and each measured spot shows up here, scan after scan.'}</p>
-            </div>
+          <div className="sc-head">
+            <h1 id="scans-h">Scans</h1>
+            <p className="mono">{scans.length} report{scans.length === 1 ? '' : 's'} · every size checked against the report’s own words</p>
           </div>
-          {scans.length ? <>
+          {scans.length ? <div className="sc-room">
             <div className="lightbox"><SpotChart data={data} selected={i} focus={focus} onPick={setSel} onFocus={setFocus} /></div>
             <p className="lightbox-hint">Tap a line to follow one spot. Tap a date to open that scan.</p>
             <div className="film" role="tablist" aria-label="Choose a scan date">
@@ -311,7 +305,7 @@ export default function ScansScreen() {
                 );
               })}
             </div>
-          </> : (
+          </div> : (
             <div className="reading-empty">
               <p>Add a report and you’ll see each measured spot here, scan after scan. If you got a second opinion, add both and they’re compared line by line.</p>
               <button type="button" className="btn light" onClick={() => setAdding(true)}><Icon name="plus" size={18} /> Add your first report</button>
