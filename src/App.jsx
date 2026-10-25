@@ -55,6 +55,7 @@ export default function App() {
         {HOSTED_PREVIEW && !signedIn && <div className="strip"><div className="wrap wide">Preview mode. Accounts, Gemma, and motion sensors run in the full app.</div></div>}
       </header>
 
+      {v !== 'welcome' && <div className="app-sky" aria-hidden="true"><span className="cloud c1" /><span className="cloud c2" /><span className="cloud c3" /></div>}
       <main className="page" id="main" data-view={v}>
         {v === 'welcome' && <Landing go={go} />}
         {(v === 'signin' || v === 'signup') && <Auth key={v} mode={v} go={go} />}

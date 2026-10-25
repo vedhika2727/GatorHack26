@@ -92,7 +92,6 @@ export default function Home({ go }) {
         ))}
       </nav>
 
-      <p className="ed-watermark" aria-hidden="true">steadi</p>
     </div>
   );
 }

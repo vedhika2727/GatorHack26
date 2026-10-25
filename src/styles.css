@@ -1136,3 +1136,20 @@ main[data-view="home"] { padding-bottom: 0; overflow: hidden; }
 .land-end .btn.ghost { background: transparent; border-color: rgba(255,255,255,.4); color: #fff; }
 main[data-view="welcome"] { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .land-route .bar { animation: none; } }
+
+/* ===================== Sky across the top of every app page ===================== */
+.app-sky { position: absolute; left: 0; right: 0; top: 0; height: 520px; z-index: -1; overflow: hidden; pointer-events: none;
+  background: linear-gradient(180deg, #6F95C8 0%, #94B3DA 34%, #C2D3E8 62%, rgba(241,238,230,0) 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%); mask-image: linear-gradient(180deg, #000 55%, transparent 100%); }
+.app-sky .cloud { position: absolute; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,255,255,.95), rgba(255,255,255,.5) 55%, rgba(255,255,255,0)); filter: blur(6px); animation: drift 80s linear infinite; }
+.app-sky .c1 { width: 520px; height: 140px; top: 70px; left: -6%; }
+.app-sky .c2 { width: 380px; height: 110px; top: 40px; left: 58%; opacity: .85; animation-duration: 100s; animation-delay: -40s; }
+.app-sky .c3 { width: 620px; height: 160px; top: 230px; left: 24%; opacity: .55; animation-duration: 120s; animation-delay: -70s; }
+#root::before { background: linear-gradient(180deg, #E9EAE5 0%, #F1EEE6 30%, #F2EEE5 100%); }
+.topbar { background: rgba(255, 255, 255, 0.28); border-bottom-color: rgba(255,255,255,.35); }
+.strip { border-top-color: rgba(255,255,255,.35); }
+@media (prefers-reduced-motion: reduce) { .app-sky .cloud { animation: none; } }
+/* landing: no watermark, sky band closes the page */
+.land-ed + .sky-end { margin-top: 80px; }
+.topbar { background: rgba(255, 255, 255, 0.4); }
+.topnav button[aria-current="page"] { background: rgba(255,255,255,.75); }

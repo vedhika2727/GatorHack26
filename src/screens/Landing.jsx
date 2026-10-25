@@ -104,13 +104,22 @@ export default function Landing({ go }) {
             <p>The phone measures how you walk, balance, and tap. Those can change from chemo side effects, and also from tiredness, anemia, pain, and plenty else. Only your care team can say why.</p>
             <p className="fine">This is a hackathon prototype, not a medical device, and it hasn’t been clinically validated. The tests follow a published smartphone study in people on chemotherapy (NeuroDetect, JMIR 2025). Explanations are written by Gemma 4, Google’s open AI model.</p>
           </div>
-          <div className="land-end">
-            <h2>Bring something concrete to your next appointment.</h2>
-            <div className="actions"><button type="button" className="btn" onClick={() => go('signup')}>Create an account <Icon name="arrowRight" size={18} /></button><button type="button" className="btn ghost" onClick={() => go('signin')}>I already have one</button></div>
-          </div>
         </section>
       </div>
-      <p className="ed-watermark" aria-hidden="true">steadi</p>
+      <section className="sky-hero sky-end" aria-labelledby="end-h">
+        <div className="sky" aria-hidden="true">
+          <span className="cloud c1" /><span className="cloud c3" />
+          <span className="meadow" />
+        </div>
+        <div className="wrap wide sky-inner">
+          <p className="mono sky-ml">Know what’s changing. Understand what it means.</p>
+          <h2 id="end-h">Bring something concrete to your next appointment.</h2>
+          <div className="actions">
+            <button type="button" className="btn sky-btn" onClick={() => go('signup')}>Create an account</button>
+            <button type="button" className="btn sky-ghost" onClick={() => { startDemo(); go('home'); }}><Icon name="play" size={16} /> Try the demo patient</button>
+          </div>
+        </div>
+      </section>
     </>
   );
 }
