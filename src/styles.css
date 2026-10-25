@@ -2,34 +2,34 @@
    Light pages with a few deliberate dark "night" bands: the header, the Scans reading room, the landing hero.
    One ink color, four accents, each with one job. */
 :root {
-  --bg: #F2F2F7;          /* page: pale grey, like Apple Health */
+  --bg: #DCE6F2;          /* fallback behind the fixed sky */
   --surface: #FFFFFF;     /* cards and panels */
-  --ink: #1C1C1E;         /* text and primary buttons */
-  --ink-2: #6C6C70;       /* secondary text */
-  --line: #E5E5EA;
-  --navy: #2F45D0;        /* blue: the twin and its charts */
-  --navy-2: #3B55E6;
-  --navy-wash: #E8EBFB;
-  --forest: #0E7A55;      /* steady / improving */
-  --forest-wash: #DDF4EA;
-  --rose: #E0216F;        /* pink: scans, tumor, and "worth mentioning" */
-  --rose-wash: #FFE4EE;
+  --ink: #2E4560;         /* text and primary buttons: soft slate blue, not black */
+  --ink-2: #6A7C90;       /* secondary text */
+  --line: rgba(27, 42, 58, 0.10);
+  --navy: #3C68A8;        /* sky blue: actions, the twin and its charts */
+  --navy-2: #4F79B8;
+  --navy-wash: #DCE7F5;
+  --forest: #5F7A3A;      /* meadow green: steady / improving */
+  --forest-wash: #E8EEDB;
+  --rose: #2D7A78;        /* sea green: scans, tumor, and "worth mentioning" (name kept for history) */
+  --rose-wash: #DCEEEC;
   --red: #E0281E;         /* only "worse than expected" and safety */
   --red-wash: #FFE7E4;
   --body: #E5E5EA;
   --body-line: #C7C7CC;
-  --focus: #3B55E6;
+  --focus: #3C68A8;
   --on-accent: #FFFFFF;
   --surface-line: rgba(28, 28, 30, 0.06);
-  --tint: #F2F2F7;        /* quiet fill inside white cards */
+  --tint: rgba(60, 104, 168, 0.08); /* quiet fill inside cards */
   /* "night" bands are white now: header, Scans chart panel, landing hero */
   --night: #FFFFFF;
   --night-2: #F2F2F7;
   --night-line: #E5E5EA;
-  --night-ink: #1C1C1E;
-  --night-ink-2: #6C6C70;
-  --rose-glow: #E0216F;
-  --forest-glow: #0E7A55;
+  --night-ink: #2E4560;
+  --night-ink-2: #6A7C90;
+  --rose-glow: #2D7A78;
+  --forest-glow: #5F7A3A;
   --red-glow: #E0281E;
 
   --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -309,7 +309,7 @@ main[data-view="scans"] { padding-top: 0; }
 .frame.notable { border-left-color: var(--red-glow); }
 .frame[aria-selected="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
 .frame[aria-selected="true"] span { color: #D1D1D6; }
-.frame[aria-selected="true"] em { color: #FF8AB8; }
+.frame[aria-selected="true"] em { color: #BFE3DF; }
 .reading-empty { margin-top: 18px; padding: 22px; border: 1px dashed var(--night-line); border-radius: 16px; }
 .reading-empty p { color: var(--night-ink-2); max-width: 56ch; margin-top: 0; }
 .btn.light { background: var(--night-ink); border-color: var(--night-ink); color: var(--night); }
@@ -476,7 +476,6 @@ dialog::backdrop { background: rgba(22, 23, 28, 0.55); }
 main[data-view="report"] { padding-top: 0; }
 .sheet-page { max-width: 960px; }
 /* No card: the whole report page is white, like a printed sheet */
-body:has(main[data-view="report"]) { background: var(--bg); }
 main[data-view="report"] { background: transparent; position: relative; isolation: isolate; }
 .sheet { padding: 40px 0 40px; }
 .sheet-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px 56px; align-items: end; padding-bottom: 30px; border-bottom: 2px solid var(--ink); }
@@ -738,12 +737,6 @@ main[data-view="report"] { background: transparent; position: relative; isolatio
 }
 
 /* report: two separate panels that scroll over a background that stays still */
-main[data-view="report"]::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background:
-    radial-gradient(38vw 38vw at 8% 18%, rgba(224, 33, 111, 0.13), transparent 70%),
-    radial-gradient(34vw 34vw at 92% 42%, rgba(255, 166, 122, 0.16), transparent 70%),
-    radial-gradient(40vw 40vw at 30% 95%, rgba(224, 33, 111, 0.08), transparent 70%),
-    var(--bg); }
 .rep-panel { background: var(--surface); border-radius: 28px; padding: 36px 40px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 24px 48px -28px rgba(60, 20, 40, 0.22); }
 .rep-panel + .rep-panel { margin-top: 28px; }
 @media (max-width: 600px) { .rep-panel { padding: 24px 18px; border-radius: 22px; } }
@@ -811,14 +804,7 @@ main[data-view="welcome"] .sky-hero { margin-top: 0; }
 .sky-hero + section { margin-top: 56px; }
 
 /* ---------- Landing: the sky carries through the page ---------- */
-body:has(main[data-view="welcome"]) { background: #E6EEF7; }
 main[data-view="welcome"] { position: relative; isolation: isolate; padding-bottom: 0; }
-main[data-view="welcome"]::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background:
-    radial-gradient(40vw 14vw at 18% 22%, rgba(255,255,255,.9), transparent 70%),
-    radial-gradient(34vw 12vw at 80% 48%, rgba(255,255,255,.75), transparent 70%),
-    radial-gradient(46vw 16vw at 40% 82%, rgba(255,255,255,.6), transparent 70%),
-    linear-gradient(180deg, #A9C3E4 0%, #CFDDEE 45%, #ECEBE3 100%); }
 .land-panel { background: rgba(255, 255, 255, 0.72); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2);
   border-radius: 28px; padding: 36px 40px 40px; margin-block: 28px; box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 24px 50px -30px rgba(40, 60, 90, 0.35);
   max-width: min(1120px, calc(100% - 32px)); }
@@ -831,3 +817,68 @@ main[data-view="welcome"]::before { content: ""; position: fixed; inset: 0; z-in
 .sky-end { min-height: 480px; margin-top: 48px; }
 .sky-end h2 { color: #fff; font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.02; letter-spacing: -0.035em; max-width: 16ch; margin: 0 0 24px; text-shadow: 0 1px 24px rgba(0,0,0,.12); }
 .sky-end .sky-inner { padding-block: 72px 64px; }
+
+
+/* ===================== Sky theme (whole site) =====================
+   The sky is the page: one fixed background behind every screen, and clear
+   frosted-glass boxes on top that scroll over it. Blue and meadow green only;
+   red is kept for safety. */
+:root { --glass: rgba(255, 255, 255, 0.58); --glass-strong: rgba(255, 255, 255, 0.82); --glass-line: rgba(255, 255, 255, 0.75); --glass-blur: blur(18px) saturate(1.25); }
+#root { position: relative; isolation: isolate; }
+#root::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(42vw 13vw at 16% 16%, rgba(255,255,255,.85), transparent 70%),
+    radial-gradient(36vw 11vw at 82% 34%, rgba(255,255,255,.7), transparent 70%),
+    radial-gradient(48vw 15vw at 38% 70%, rgba(255,255,255,.55), transparent 70%),
+    linear-gradient(180deg, #9EBCE2 0%, #C4D6EC 42%, #E3E8EC 78%, #E8E6D8 100%); }
+main[data-view="report"], main[data-view="welcome"] { background: transparent; }
+main[data-view="report"]::before, main[data-view="welcome"]::before { content: none; }
+
+/* glass boxes */
+.card, .panel, .rep-panel, .land-panel, .chg-group, .scan-detail, .safety, details.more, .quick button, .spot-list li button, .hero-visual:not(.sky-card) {
+  background: var(--glass); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-line); box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 18px 40px -28px rgba(30, 55, 90, 0.35); }
+.rep-panel, .land-panel { background: rgba(255, 255, 255, 0.62); }
+dialog, .term-pop, .lc-tip { background: var(--glass-strong); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.field input, .field select, .field textarea, .range select { background: rgba(255,255,255,.7); }
+.scale button, .choice, .bead, .lc-steps button { background: rgba(255,255,255,.55); }
+
+/* header and phone tab bar: clear glass over the sky */
+.topbar { background: rgba(255, 255, 255, 0.45); border-bottom-color: rgba(255,255,255,.6); }
+body::before { background: rgba(255,255,255,.45); }
+.tabbar { background: rgba(255, 255, 255, 0.7); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-line); }
+.reading, .night-hero { background: transparent; border-bottom: 0; }
+
+/* buttons: deep blue-black primary, glass secondary */
+.btn { background: rgba(255,255,255,.6); border-color: rgba(27, 42, 58, 0.55); }
+.btn:hover { background: rgba(255,255,255,.85); }
+.btn.primary, .topbar .btn.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+.btn.primary:hover { background: #3A5575; }
+.night-hero .btn.light, .reading .btn.light { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+/* logo wordmark */
+.brand-name { display: none; }
+.brand .wordmark { display: block; height: 30px; width: auto; }
+.wordmark { font: 700 1.6rem/1 var(--display); letter-spacing: -0.04em; color: var(--ink); position: relative; display: inline-block; padding-bottom: 6px; }
+.wordmark::after { content: ""; position: absolute; left: 1px; right: 1px; bottom: 0; height: 2.5px; border-radius: 2px; background: var(--forest); }
+.wordmark .wm-i { position: relative; }
+.wordmark .wm-i::before { content: ""; position: absolute; left: 50%; top: -0.08em; width: 0.26em; height: 0.26em; margin-left: -0.13em; border-radius: 50%; background: var(--navy); }
+.wordmark.light { color: #fff; } .wordmark.light::after { background: rgba(255,255,255,.75); } .wordmark.light .wm-i::before { background: #fff; }
+.brand .wordmark { display: inline-block; height: auto; }
+
+/* actions and "you are here" use sky blue, not the scans color */
+.topnav button[aria-current="page"] { background: rgba(255,255,255,.7); color: var(--navy); }
+.avatar { background: var(--navy); }
+.tabbar button[aria-current="page"] { color: var(--navy); }
+.tabbar button.cta span.ic { background: var(--navy); }
+.strip .linkish { color: var(--navy); }
+.route li.done .stop { background: var(--forest); border-color: var(--forest); }
+.scale button.mid[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); }
+.opt-tag, .kicker-line { color: var(--navy) !important; }
+
+/* softer headings and a gentler red for "tell your care team" */
+h1, h2, h3, .display { color: #2A405A; }
+.chip.notable { background: rgba(255,255,255,.7); color: #A2453B; }
+.btn { border-color: rgba(46, 69, 96, 0.35); }
+.chip.notable .dot, .chip.notable svg, .chip.notable i { color: #A2453B; fill: #A2453B; background: #A2453B; }
+.wordmark .wm-i::before { margin-left: -0.17em; }

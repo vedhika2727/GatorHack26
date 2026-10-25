@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import Icon from './components/Icon.jsx';
-import Logo from './components/Logo.jsx';
+import { Wordmark } from './components/Logo.jsx';
 import { useStore, HOSTED_PREVIEW } from './store.jsx';
 import Landing from './screens/Landing.jsx';
 import Auth from './screens/Auth.jsx';
@@ -38,7 +38,7 @@ export default function App() {
     <>
       <header className="topbar">
         <div className="wrap wide topbar-inner">
-          <button type="button" className="brand" onClick={() => go(signedIn ? 'home' : 'welcome')} aria-label="Steadi home"><Logo /><span className="brand-name">Steadi</span></button>
+          <button type="button" className="brand" onClick={() => go(signedIn ? 'home' : 'welcome')} aria-label="Steadi home"><Wordmark /></button>
           {signedIn ? <>
             <nav className="topnav" aria-label="Sections">
               {NAV.map((n) => <button key={n.id} type="button" aria-current={v === n.id ? 'page' : undefined} onClick={() => go(n.id)}><Icon name={n.icon} size={18} />{n.label}</button>)}

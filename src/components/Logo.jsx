@@ -1,23 +1,16 @@
-import { useId } from 'react';
-
-// Steadi mark: a white sun resting on a level horizon, in the sky palette.
-export default function Logo({ size = 32 }) {
-  const id = useId().replace(/:/g, '');
+// Steadi mark: a sun resting just above a level horizon (used for the browser tab and small spots).
+export default function Logo({ size = 32, light = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      <defs>
-        <linearGradient id={`sky${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#4F79B8" />
-          <stop offset="1" stopColor="#A9C3E4" />
-        </linearGradient>
-        <clipPath id={`tile${id}`}><rect width="32" height="32" rx="9" /></clipPath>
-      </defs>
-      <g clipPath={`url(#tile${id})`}>
-        <rect width="32" height="32" fill={`url(#sky${id})`} />
-        <path d="M9.5 21a6.5 6.5 0 0 1 13 0z" fill="#fff" />
-        <rect y="21" width="32" height="11" fill="#8E9A6A" />
-        <rect x="4" y="20.1" width="24" height="1.8" rx="0.9" fill="#fff" />
-      </g>
+    <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
+      <circle cx="20" cy="17" r="8" fill={light ? '#FFFFFF' : '#3C68A8'} />
+      <rect x="3" y="28" width="34" height="3.4" rx="1.7" fill={light ? 'rgba(255,255,255,.85)' : '#5F7A3A'} />
     </svg>
+  );
+}
+
+// Steadi wordmark: the dot on the i is a small sun, with a level line under the word.
+export function Wordmark({ light = false }) {
+  return (
+    <span className={`wordmark${light ? ' light' : ''}`} aria-hidden="true">stead<span className="wm-i">ı</span></span>
   );
 }

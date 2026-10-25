@@ -63,7 +63,7 @@ export default function Landing({ go }) {
       </section>
 
       <section className="wrap wide land-panel">
-        <p className="mono kicker-mono">01 / The check-in</p>
+        <p className="mono kicker-mono">01 / Under two minutes</p>
         <h2>A check-in, start to finish</h2>
         <p className="muted" style={{ marginTop: 0 }}>Under two minutes from start to finish.</p>
         <ol className="route">
@@ -85,7 +85,7 @@ export default function Landing({ go }) {
       </section>
 
       <section className="wrap wide land-panel">
-        <p className="mono kicker-mono">02 / What’s inside</p>
+        <p className="mono kicker-mono">02 / Six tools, one app</p>
         <h2>What’s inside</h2>
         <div className="feature-list">
           {FEATURES.map((f) => (
@@ -98,7 +98,7 @@ export default function Landing({ go }) {
       </section>
 
       <section className="wrap wide land-panel">
-        <p className="mono kicker-mono">03 / Where it stops</p>
+        <p className="mono kicker-mono">03 / Honest about limits</p>
         <h2>Where it stops</h2>
         <div className="safety">
           <p>The phone measures how you walk, balance, and tap. Those can change from chemo side effects, and also from tiredness, anemia, pain, and plenty else. Only your care team can say why. This is a hackathon prototype, not a medical device, and it hasn’t been clinically validated.</p>
