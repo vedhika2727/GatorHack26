@@ -30,6 +30,22 @@ export default function Landing({ go }) {
   const last = twin[twin.length - 1];
   return (
     <>
+      <section className="sky-hero" aria-labelledby="sky-h">
+        <div className="sky" aria-hidden="true">
+          <span className="cloud c1" /><span className="cloud c2" /><span className="cloud c3" /><span className="cloud c4" />
+          <span className="meadow" />
+        </div>
+        <div className="wrap wide sky-inner">
+          <p className="mono sky-tr">Two minutes on your phone,<br />before every infusion,<br />for you and your<br />oncologist</p>
+          <p className="mono sky-ml">Walking. Balance. Hands.<br />Scans, side by side.</p>
+          <h1 id="sky-h">Notice what’s changing between infusions, and bring it to the people treating you.</h1>
+          <div className="actions">
+            <button type="button" className="btn sky-btn" onClick={() => go('signup')}>Create an account</button>
+            <button type="button" className="btn sky-ghost" onClick={() => { startDemo(); go('home'); }}><Icon name="play" size={16} /> Try the demo patient</button>
+          </div>
+        </div>
+      </section>
+
       <section className="night-hero">
       <div className="wrap wide hero">
         <div>

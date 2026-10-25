@@ -756,3 +756,32 @@ main[data-view="report"]::before { content: ""; position: fixed; inset: 0; z-ind
 .for-team { margin: 14px 0 0; max-width: 52ch; font-size: 1.05rem; line-height: 1.5; }
 .for-team b { font-weight: 600; }
 .opt-tag { color: var(--rose); font-weight: 600; font-size: 0.9rem; margin: 0 0 4px; }
+
+/* ---------- Landing: editorial sky hero (full-bleed, mono captions, big white type) ---------- */
+.sky-hero { position: relative; overflow: hidden; isolation: isolate; min-height: min(calc(100vh - 100px), 820px); display: flex; align-items: flex-end; color: #fff; margin-bottom: 0; }
+main[data-view="welcome"] .sky-hero { margin-top: 0; }
+.sky { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, #4F79B8 0%, #7FA3D3 38%, #B9CFE6 64%, #DCE3E6 74%, #C9C9A6 80%, #8E9A6A 100%); }
+.cloud { position: absolute; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,255,255,.95), rgba(255,255,255,.55) 55%, rgba(255,255,255,0)); filter: blur(6px); animation: drift 70s linear infinite; }
+.c1 { width: 520px; height: 150px; top: 9%; left: -8%; }
+.c2 { width: 380px; height: 110px; top: 24%; left: 52%; opacity: .85; animation-duration: 90s; animation-delay: -30s; }
+.c3 { width: 640px; height: 170px; top: 44%; left: 18%; opacity: .7; animation-duration: 110s; animation-delay: -60s; }
+.c4 { width: 300px; height: 90px; top: 6%; left: 78%; opacity: .75; animation-duration: 80s; animation-delay: -10s; }
+@keyframes drift { from { transform: translateX(-12vw); } to { transform: translateX(22vw); } }
+/* grass: soft blades at the horizon, gently swaying */
+.meadow { position: absolute; left: -5%; right: -5%; bottom: 0; height: 26%;
+  background: repeating-linear-gradient(97deg, rgba(60,70,35,.0) 0 5px, rgba(70,82,40,.28) 5px 6px, rgba(230,226,190,.18) 6px 9px),
+              linear-gradient(180deg, rgba(210,206,160,0) 0%, rgba(150,150,95,.55) 45%, rgba(95,100,60,.9) 100%);
+  filter: blur(.6px); transform-origin: bottom; animation: sway 6s ease-in-out infinite alternate; }
+@keyframes sway { from { transform: skewX(-1.5deg); } to { transform: skewX(1.5deg); } }
+.sky-hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(20,24,18,.35) 100%); }
+.sky-inner { position: relative; width: 100%; padding-block: 80px 64px; display: grid; }
+.mono { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; text-transform: uppercase; font-size: 0.86rem; line-height: 1.45; letter-spacing: 0.02em; color: rgba(255,255,255,.92); margin: 0; }
+.sky-tr { justify-self: end; text-align: left; max-width: 30ch; margin-bottom: 9vh; }
+.sky-ml { margin-bottom: 22px; }
+.sky-hero h1 { color: #fff; font-size: clamp(2.1rem, 5.4vw, 4rem); line-height: 1.02; letter-spacing: -0.035em; font-weight: 600; margin: 0 0 26px; max-width: 18ch; text-shadow: 0 1px 24px rgba(0,0,0,.12); }
+.sky-btn { background: #fff; color: var(--ink); border-color: #fff; }
+.sky-btn:hover { background: #F2F2F7; }
+.sky-ghost { background: rgba(255,255,255,.14); color: #fff; border-color: rgba(255,255,255,.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.sky-hero + .night-hero { padding-top: 8px; }
+@media (max-width: 600px) { .sky-tr { margin-bottom: 14vh; } .mono { font-size: 0.78rem; } }
+@media (prefers-reduced-motion: reduce) { .cloud, .meadow { animation: none; } }
