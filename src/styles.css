@@ -147,27 +147,30 @@ main[data-view="welcome"] { padding-top: 0; }
 .btn.on-night { background: transparent; border-color: var(--night-line); color: var(--night-ink); }
 .btn.on-night:hover { background: rgba(255, 255, 255, 0.08); }
 .hero-visual { background: var(--surface); color: var(--ink); border-radius: 24px; box-shadow: var(--lift); padding: 20px; margin-bottom: -40px !important; position: relative; }
-/* Check-in clock: phases sized by how many seconds they take */
-.clock { list-style: none; padding: 0; margin: 18px 0 0; display: flex; gap: 6px; }
-.clock li { flex-basis: 0; min-width: 0; position: relative; padding-right: 14px; }
-.clock li:last-child::after { content: "1:50"; position: absolute; right: 0; top: 0; font: 700 0.9rem/1 var(--display); color: var(--ink-2); }
-.clock .stamp { display: block; font: 700 0.9rem/1 var(--display); color: var(--ink-2); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
-.clock .bar { display: flex; gap: 3px; height: 30px; margin-bottom: 14px; }
-.clock .bar span { flex-basis: 0; min-width: 0; border-radius: 6px; background: var(--navy); display: flex; align-items: center; padding: 0 8px; overflow: hidden; }
-.clock li:nth-child(2) .bar span { background: var(--navy-2); }
-.clock li:nth-child(3) .bar span { background: #7A8BE6; }
-.clock li:last-child .bar { margin-right: -14px; }
-.clock em { font-style: normal; font-size: 0.78rem; font-weight: 600; color: #fff; white-space: nowrap; }
-.clock h3 { font-size: 1.12rem; margin: 0 0 4px; }
-.clock p { margin: 0; font-size: 0.95rem; max-width: 34ch; }
+/* Check-in route: a line with a stop per step, spaced by how many seconds each takes.
+   Across on wide screens, down the left on phones. */
+.route { list-style: none; padding: 0; margin: 22px 0 0; display: flex; }
+.route li { flex-basis: 0; min-width: 0; position: relative; padding: 52px 22px 0 0; }
+.route li::before { content: ""; position: absolute; left: 0; right: 0; top: 30px; height: 4px; background: var(--ink); }
+.route .stop { position: absolute; left: 0; top: 22px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); border: 4px solid var(--ink); z-index: 1; }
+.route .t { position: absolute; left: 0; top: 0; font: 700 0.88rem/1 var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.route h3 { font-size: 1.12rem; margin: 0 0 4px; }
+.route h3 small { font: 600 0.82rem var(--sans); color: var(--ink-2); margin-left: 4px; letter-spacing: 0; }
+.route p { margin: 0; font-size: 0.95rem; max-width: 30ch; }
+.route li.done { flex: 0 0 0; padding: 0; }
+.route li.done::before, .route li.done h3, .route li.done p { display: none; }
+.route li.done .stop { left: -20px; background: var(--rose); border-color: var(--rose); }
+.route li.done .t { left: auto; right: 0; }
 @media (max-width: 760px) {
-  .clock { flex-direction: column; gap: 22px; }
-  .clock li { padding: 0 0 0 64px; }
-  .clock li:last-child::after { display: none; }
-  .clock .stamp { position: absolute; left: 0; top: 8px; }
-  .clock .bar { height: 26px; margin-bottom: 10px; }
-  .clock li:last-child .bar { margin-right: 0; }
-  .clock li:nth-child(1) .bar { width: 29%; } .clock li:nth-child(3) .bar { width: 29%; }
+  .route { flex-direction: column; }
+  .route li { padding: 0 0 26px 92px; }
+  .route li::before { left: 62px; right: auto; top: 6px; bottom: -6px; width: 4px; height: auto; }
+  .route .stop { left: 54px; top: 2px; }
+  .route .t { top: 5px; }
+  .route li.done { flex: none; padding: 0 0 0 92px; }
+  .route li.done h3, .route li.done p { display: block; }
+  .route li.done .stop { left: 54px; }
+  .route li.done .t { left: 0; right: auto; }
 }
 .feature-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
 @media (max-width: 760px) { .feature-list { grid-template-columns: 1fr; } }

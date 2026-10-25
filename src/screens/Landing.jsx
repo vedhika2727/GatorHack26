@@ -17,9 +17,10 @@ const FEATURES = [
 ];
 
 const CLOCK = [
-  { at: '0:00', title: 'Three questions', text: 'Numbness, tingling, and pain in feet and hands, 0 to 10. Any falls.', parts: [{ label: 'rate', s: 20 }] },
-  { at: '0:20', title: 'Walk, then stand still', text: 'Phone in your pocket. 30 seconds walking, then 20 seconds standing with eyes open and 20 closed.', parts: [{ label: 'walk', s: 30 }, { label: 'eyes open', s: 20 }, { label: 'eyes closed', s: 20 }] },
-  { at: '1:30', title: 'Tap, each hand', text: 'Two circles, back and forth, 10 seconds a hand.', parts: [{ label: 'right', s: 10 }, { label: 'left', s: 10 }] },
+  { at: '0:00', s: 20, title: 'Three questions', text: 'Numbness, tingling, and pain in your feet and hands, 0 to 10. Any falls.' },
+  { at: '0:20', s: 30, title: 'Walk', text: 'Phone in your pocket. Walk the way you normally do.' },
+  { at: '0:50', s: 40, title: 'Stand still', text: '20 seconds with eyes open, then 20 with eyes closed.' },
+  { at: '1:30', s: 20, title: 'Tap, each hand', text: 'Two circles, back and forth, 10 seconds a hand.' },
 ];
 
 export default function Landing({ go }) {
@@ -55,16 +56,22 @@ export default function Landing({ go }) {
 
       <section className="wrap wide">
         <h2>A check-in, start to finish</h2>
-        <p className="muted" style={{ marginTop: 0 }}>Drawn to scale. The whole thing takes under two minutes.</p>
-        <ol className="clock">
-          {CLOCK.map((ph) => (
-            <li key={ph.title} style={{ flexGrow: ph.parts.reduce((t, x) => t + x.s, 0) }}>
-              <span className="stamp">{ph.at}</span>
-              <span className="bar">{ph.parts.map((x) => <span key={x.label} style={{ flexGrow: x.s }} title={`${x.label}, ${x.s} s`}><em>{x.label}</em></span>)}</span>
-              <h3>{ph.title}</h3>
-              <p className="muted">{ph.text}</p>
+        <p className="muted" style={{ marginTop: 0 }}>Under two minutes from start to finish.</p>
+        <ol className="route">
+          {CLOCK.map((st) => (
+            <li key={st.title} style={{ flexGrow: st.s }}>
+              <span className="stop" aria-hidden="true" />
+              <span className="t">{st.at}</span>
+              <h3>{st.title} <small>{st.s} s</small></h3>
+              <p className="muted">{st.text}</p>
             </li>
           ))}
+          <li className="done">
+            <span className="stop" aria-hidden="true" />
+            <span className="t">1:50</span>
+            <h3>Done</h3>
+            <p className="muted">Your twin updates and the report is ready to share.</p>
+          </li>
         </ol>
       </section>
 
