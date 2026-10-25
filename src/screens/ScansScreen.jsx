@@ -130,8 +130,8 @@ function CompareView({ a, b }) {
         <ul>{o.questions.map((q) => <li key={q}>{q}</li>)}</ul>
         <p className="fine">{o.source === 'gemma' ? `Written by Gemma 4 (${o.model}). It doesn’t say which doctor is right.` : `Template text, Gemma not connected. ${o.note || ''}`}</p>
       </div>}
-      <button type="button" className="btn rose primary" disabled={busy} onClick={async () => { setBusy(true); const r = await explainOpinions(a, b); setO(r); setBusy(false); if (user.mode !== 'demo') saveScan({ ...b, opinion: r }).catch(() => {}); }}>
-        <Icon name="sparkle" size={18} /> {busy ? 'Comparing…' : o ? 'Explain again' : 'Explain the differences'}
+      <button type="button" className="btn primary" disabled={busy} onClick={async () => { setBusy(true); const r = await explainOpinions(a, b); setO(r); setBusy(false); if (user.mode !== 'demo') saveScan({ ...b, opinion: r }).catch(() => {}); }}>
+        {busy ? 'Comparing…' : o ? 'Explain again' : 'Explain the differences'}
       </button>
     </div>
   );
@@ -195,7 +195,7 @@ function AddScan({ onDone, onCancel }) {
         <p className="fine">{pending.out.source === 'gemma' ? `Read by Gemma 4 (${pending.out.model}).` : `Read by built-in rules. ${pending.out.note || ''}`}</p>
         {err && <p className="error" role="alert">{err}</p>}
         <div className="actions" style={{ marginBottom: 0 }}>
-          <button type="button" className="btn rose primary" onClick={async () => { try { await saveScan(pending.scan); setPending(null); setF({ date: today(), kind: 'CT', reader: '', text: '' }); onDone(pending.scan); } catch (e2) { setErr(e2.message); } }}><Icon name="check" size={18} /> Save report</button>
+          <button type="button" className="btn primary" onClick={async () => { try { await saveScan(pending.scan); setPending(null); setF({ date: today(), kind: 'CT', reader: '', text: '' }); onDone(pending.scan); } catch (e2) { setErr(e2.message); } }}><Icon name="check" size={18} /> Save report</button>
           <button type="button" className="btn ghost" onClick={() => setPending(null)}>Back</button>
         </div>
       </div>
@@ -217,7 +217,7 @@ function AddScan({ onDone, onCancel }) {
       </div>
       {err && <p className="error" role="alert">{err}</p>}
       <div className="actions" style={{ marginBottom: 0 }}>
-        <button type="submit" className="btn rose primary" disabled={busy}><Icon name="sparkle" size={18} /> {busy ? 'Reading…' : 'Read report'}</button>
+        <button type="submit" className="btn primary" disabled={busy}>{busy ? 'Reading…' : 'Read report'}</button>
         <button type="button" className="btn ghost" onClick={onCancel}>Cancel</button>
       </div>
     </form>

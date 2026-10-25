@@ -38,7 +38,7 @@ export default function Report({ go }) {
         <h1>Report for your care team</h1>
         <p className="lede">Bring this to your next infusion or send it through your patient portal. It’s written by Gemma, an open AI model, from your measurements.</p>
         <div className="actions">
-          <button type="button" className="btn primary" disabled={busy} onClick={async () => { setBusy(true); setOut(await writeReport(checkins, scans)); setBusy(false); }}><Icon name="sparkle" size={18} /> {busy ? 'Writing your report…' : out ? 'Write it again' : 'Write my report'}</button>
+          <button type="button" className="btn primary" disabled={busy} onClick={async () => { setBusy(true); setOut(await writeReport(checkins, scans)); setBusy(false); }}>{busy ? 'Writing your report…' : out ? 'Write it again' : 'Write my report'}</button>
           {out && <button type="button" className="btn" onClick={copy}><Icon name="copy" size={18} /> Copy report text</button>}
           {out && !HOSTED_PREVIEW && <button type="button" className="btn" onClick={() => window.print()}><Icon name="printer" size={18} /> Print or save as PDF</button>}
         </div>
