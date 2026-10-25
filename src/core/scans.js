@@ -137,6 +137,56 @@ function compareReads(a, b) {
   return { rows, sameChange, sameNew, differences };
 }
 
+/**
+ * Compare any number of reads of the same scan, spot by spot.
+ * rows: [{ location, values: [mm | null per read], status: 'agree' | 'differ' | 'some', spread }]
+ * 'agree' means every read measured it and the sizes are within 15% of each other.
+ */
+function compareMany(reads) {
+  const n = reads.length, rows = [];
+  reads.forEach((r, i) => {
+    for (const l of r.extracted?.lesions || []) {
+      let best = 0, row = null;
+      for (const x of rows) {
+        if (x.values[i] != null) continue;
+        const sc = Math.max(siteScore(l.location, x.location), siteScore(x.location, l.location));
+        if (sc > best) { best = sc; row = x; }
+      }
+      if (!row || best < 0.5) { row = { location: l.location, values: Array(n).fill(null) }; rows.push(row); }
+      row.values[i] = l.sizeMm;
+    }
+  });
+  for (const x of rows) {
+    const v = x.values.filter((m) => m != null);
+    x.spread = +(Math.max(...v) - Math.min(...v)).toFixed(1);
+    x.status = v.length < n ? 'some' : x.spread / Math.max(...v) <= 0.15 ? 'agree' : 'differ';
+  }
+  const newFinding = reads.map((r) => !!r.extracted?.newLesions);
+  const change = reads.map((r) => r.extracted?.change || 'unclear');
+  const sameNew = newFinding.every((v) => v === newFinding[0]);
+  const sameChange = change.every((v) => v === change[0]);
+  const differences = rows.filter((x) => x.status !== 'agree').length + (sameNew ? 0 : 1) + (sameChange ? 0 : 1);
+  return { rows, newFinding, change, sameNew, sameChange, differences };
+}
+
+/** Neutral template explanation for several reads, used when Gemma isn't connected. */
+function opinionsTemplate(reads) {
+  const cmp = compareMany(reads), name = (i) => reads[i].reader || `Doctor ${i + 1}`, parts = [];
+  const agree = cmp.rows.filter((x) => x.status === 'agree').map((x) => x.location);
+  if (agree.length) parts.push(`All ${reads.length} reports give similar sizes for: ${agree.join(', ')}.`);
+  for (const x of cmp.rows) {
+    if (x.status === 'differ') parts.push(`The ${x.location} was measured differently: ${x.values.map((v, i) => `${name(i)} ${v} mm`).join(', ')}.`);
+    if (x.status === 'some') parts.push(`Only ${x.values.map((v, i) => (v != null ? name(i) : null)).filter(Boolean).join(' and ')} measured the ${x.location}.`);
+  }
+  if (!cmp.sameNew) parts.push('The reports disagree on whether there is a new finding.');
+  if (!cmp.sameChange) parts.push('Their overall conclusions about change differ.');
+  parts.push('Radiologists can differ because they measure at slightly different points or compare with different earlier scans. Your oncologist can help you understand what the differences mean for you.');
+  return {
+    summary: parts.join(' '),
+    questions: ['Which measurements will you use to judge how treatment is working?', 'Does the difference between the reports change anything about my care?', 'Should the finding they disagree on be checked again on my next scan?'],
+  };
+}
+
 const total = (s) => s.extracted.lesions.reduce((t, l) => t + l.sizeMm, 0);
 /** One point per scan date: total of measured sizes; min/max when several doctors read it. */
 function tumorSeries(scans) {
@@ -216,6 +266,6 @@ function sourceOf(text, lesion) {
 
 const CHANGE_WORDS = { first: 'First scan (nothing to compare with)', mixed: 'Some smaller, some larger', smaller: 'Smaller than before', larger: 'Larger than before', stable: 'About the same', unclear: 'Not stated clearly' };
 
-const api = { extractRules, verify, sourceOf, groupOpinions, compareReads, tumorSeries, lesionTracks, allSizesMm, CHANGE_WORDS };
+const api = { extractRules, verify, sourceOf, groupOpinions, compareReads, compareMany, opinionsTemplate, tumorSeries, lesionTracks, allSizesMm, CHANGE_WORDS };
 export const Scans = api;
 export default api;

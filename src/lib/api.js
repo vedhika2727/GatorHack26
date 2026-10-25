@@ -24,9 +24,10 @@ export async function writeReport(checkins, scans) {
   catch (_) { return localReport(checkins, scans, NO_SERVER); }
 }
 
-export async function explainOpinions(a, b) {
-  try { return await post('/api/opinions', { a: { reader: a.reader, text: a.text, extracted: a.extracted }, b: { reader: b.reader, text: b.text, extracted: b.extracted } }); }
-  catch (_) { return localOpinions(a, b, NO_SERVER); }
+export async function explainOpinions(...args) {
+  const reads = (Array.isArray(args[0]) ? args[0] : args).map((r) => ({ reader: r.reader, text: r.text, extracted: r.extracted }));
+  try { return await post('/api/opinions', { reads }); }
+  catch (_) { return { ...Scans.opinionsTemplate(reads), source: 'template', note: NO_SERVER }; }
 }
 
 export async function explainTerm(term, context) {
@@ -61,17 +62,3 @@ export function localReport(list, scanList, why) {
   };
 }
 
-export function localOpinions(a, b, why) {
-  const cmp = Scans.compareReads(a, b), parts = [];
-  const agree = cmp.rows.filter((r) => r.status === 'agree').map((r) => r.location);
-  if (agree.length) parts.push(`Both reports give similar measurements for: ${agree.join(', ')}.`);
-  for (const r of cmp.rows) {
-    if (r.status === 'size') parts.push(`They measured the ${r.location} differently: ${r.a} mm versus ${r.b} mm.`);
-    if (r.status === 'only-a') parts.push(`Only the first report lists the ${r.location}.`);
-    if (r.status === 'only-b') parts.push(`Only the second report lists the ${r.location}.`);
-  }
-  if (!cmp.sameNew) parts.push('One report describes a new finding and the other does not.');
-  if (!cmp.sameChange) parts.push('Their overall conclusions about change differ.');
-  parts.push('Radiologists can differ because they measure at slightly different points or compare with different earlier scans. Your oncologist can help you understand what the differences mean for you.');
-  return { summary: parts.join(' '), questions: ['Which measurements will you use to judge how treatment is working?', 'Does the difference between the two reports change anything about my care?', 'Should the finding they disagree on be checked again on my next scan?'], source: 'template', note: why };
-}

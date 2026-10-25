@@ -110,33 +110,72 @@ function ReadView({ s, onOpenImage }) {
   );
 }
 
-function CompareView({ a, b }) {
-  const { saveScan, user } = useStore();
-  const cmp = Scans.compareReads(a, b);
-  const [o, setO] = useState(b.opinion || null);
-  const [busy, setBusy] = useState(false);
-  const word = { agree: 'Close', size: 'Different size', 'only-a': 'Only in first read', 'only-b': 'Only in second read' };
+const LETTERS = 'ABCDEF';
+
+/** A ruler for one spot: each doctor's measurement is a lettered dot, so agreement is visible at a glance. */
+function Ruler({ values, max }) {
+  const placed = [];
+  const dots = values.map((v, i) => {
+    if (v == null) return null;
+    const left = (v / max) * 100;
+    const lane = placed.filter((p) => Math.abs(p - left) < 7).length;
+    placed.push(left);
+    return <span key={i} className={`rdot lane${Math.min(lane, 2)}`} style={{ left: `${left}%` }} title={`${LETTERS[i]}: ${v} mm`}>{LETTERS[i]}</span>;
+  });
   return (
-    <div className="read">
-      <p className="compare-lead">{cmp.differences ? `The two reads differ on ${cmp.differences} point${cmp.differences > 1 ? 's' : ''}.` : 'The two reads match.'} <span className="muted">Radiologists often measure the same spot a few millimeters apart. Bigger gaps are worth asking about.</span></p>
-      <div className="table-wrap">
-        <table className="lesions compare">
-          <thead><tr><th scope="col">Spot</th><th scope="col">{a.reader}</th><th scope="col">{b.reader}</th><th scope="col"><span className="sr-only">Result</span></th></tr></thead>
-          <tbody>
-            {cmp.rows.map((r, k) => <tr key={k} className={r.status === 'agree' ? 'same' : 'diff'}><td>{r.location}</td><td>{r.a != null ? `${r.a} mm` : '–'}</td><td>{r.b != null ? `${r.b} mm` : '–'}</td><td>{word[r.status]}</td></tr>)}
-            <tr className={cmp.sameNew ? 'same' : 'diff'}><td>New finding</td><td>{a.extracted.newLesions ? 'Yes' : 'No'}</td><td>{b.extracted.newLesions ? 'Yes' : 'No'}</td><td>{cmp.sameNew ? 'Same' : 'Different'}</td></tr>
-            <tr className={cmp.sameChange ? 'same' : 'diff'}><td>Overall</td><td>{SHORT[a.extracted.change]}</td><td>{SHORT[b.extracted.change]}</td><td>{cmp.sameChange ? 'Same' : 'Different'}</td></tr>
-          </tbody>
-        </table>
+    <div className="ruler" aria-hidden="true">
+      <span className="rline" />
+      {[0, max / 2, max].map((t, k) => <span key={k} className="rtick" style={{ left: `${(t / max) * 100}%` }}><i>{Math.round(t)}</i></span>)}
+      {dots}
+    </div>
+  );
+}
+
+function CompareView({ reads }) {
+  const { saveScan, user } = useStore();
+  const cmp = Scans.compareMany(reads);
+  const lastRead = reads[reads.length - 1];
+  const [o, setO] = useState(lastRead.opinion || null);
+  const [busy, setBusy] = useState(false);
+  const max = Math.ceil(Math.max(10, ...cmp.rows.flatMap((x) => x.values.filter((v) => v != null))) / 10) * 10;
+  const agree = cmp.rows.filter((x) => x.status === 'agree').length, differ = cmp.rows.length - agree;
+  const who = (vals) => vals.map((v, i) => (v != null ? LETTERS[i] : null)).filter(Boolean);
+  const note = (x) => (x.status === 'agree' ? (x.spread ? `Within ${x.spread} mm` : 'Same size') : x.status === 'differ' ? `${x.spread} mm apart` : `Only ${who(x.values).join(' and ')} measured it`);
+  return (
+    <div className="read cmp">
+      <p className="compare-lead">{reads.length} radiologists read this {reads[0].kind}. {cmp.rows.length ? `They agree on ${agree} of ${cmp.rows.length} spots${differ ? ` and see ${differ} differently` : ''}.` : ''}</p>
+
+      <ol className="readers">
+        {reads.map((r, i) => <li key={r.id}><span className="ltr">{LETTERS[i]}</span><span><b>{r.reader}</b><small>{fmtDate(r.date)}</small></span></li>)}
+      </ol>
+
+      <div className="spots-cmp">
+        {cmp.rows.map((x, k) => (
+          <div key={k} className={`cspot ${x.status}`}>
+            <div className="cspot-name">
+              <b>{x.location}</b>
+              <small>{note(x)}</small>
+            </div>
+            <Ruler values={x.values} max={max} />
+            <div className="cspot-vals">{x.values.map((v, i) => <span key={i}><em>{LETTERS[i]}</em>{v != null ? `${v} mm` : 'not measured'}</span>)}</div>
+          </div>
+        ))}
+        <p className="fine">Ruler in millimeters. Radiologists often measure the same spot a few millimeters apart; bigger gaps are worth asking about.</p>
       </div>
+
+      <div className="also">
+        <div className="also-row"><span className="also-k">New finding mentioned</span>{cmp.newFinding.map((v, i) => <span key={i}><em>{LETTERS[i]}</em>{v ? 'Yes' : 'No'}</span>)}</div>
+        <div className="also-row"><span className="also-k">Overall, compared with the last scan</span>{cmp.change.map((v, i) => <span key={i}><em>{LETTERS[i]}</em>{SHORT[v] || v}</span>)}</div>
+      </div>
+
       {o && <div className="explain">
         <p>{o.summary}</p>
         <h4>Questions for your oncologist</h4>
         <ul>{o.questions.map((q) => <li key={q}>{q}</li>)}</ul>
         <p className="fine">{o.source === 'gemma' ? `Written by Gemma 4 (${o.model}). It doesn’t say which doctor is right.` : `Template text, Gemma not connected. ${o.note || ''}`}</p>
       </div>}
-      <button type="button" className="btn primary" disabled={busy} onClick={async () => { setBusy(true); const r = await explainOpinions(a, b); setO(r); setBusy(false); if (user.mode !== 'demo') saveScan({ ...b, opinion: r }).catch(() => {}); }}>
-        {busy ? 'Comparing…' : o ? 'Explain again' : 'Explain the differences'}
+      <button type="button" className="btn primary" disabled={busy} onClick={async () => { setBusy(true); const r = await explainOpinions(reads); setO(r); setBusy(false); if (user.mode !== 'demo') saveScan({ ...lastRead, opinion: r }).catch(() => {}); }}>
+        {busy ? 'Comparing…' : o ? 'Explain again' : `Explain the differences`}
       </button>
     </div>
   );
@@ -152,10 +191,10 @@ function ScanDetail({ group, onOpenImage }) {
       {group.length > 1 && (
         <div className="tabs" role="tablist" aria-label="Choose a read">
           <button type="button" role="tab" aria-selected={tab === 'compare'} className="cmp" onClick={() => setTab('compare')}><Icon name="doctors" size={17} /> Compare reads</button>
-          {group.map((g, k) => <button key={g.id} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{g.reader}</button>)}
+          {group.map((g, k) => <button key={g.id} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}><span className="ltr sm">{LETTERS[k]}</span>{g.reader}</button>)}
         </div>
       )}
-      {tab === 'compare' && group.length > 1 ? <CompareView a={group[0]} b={group[1]} /> : <ReadView s={s} onOpenImage={onOpenImage} />}
+      {tab === 'compare' && group.length > 1 ? <CompareView reads={group} /> : <ReadView s={s} onOpenImage={onOpenImage} />}
     </article>
   );
 }
@@ -213,7 +252,7 @@ function AddScan({ onDone, onCancel }) {
         <label className="field">Scan date<input id="sc-date" type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></label>
         <label className="field">Type of scan<select id="sc-kind" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>{['CT', 'MRI', 'PET-CT', 'Ultrasound', 'Mammogram', 'Other'].map((k) => <option key={k}>{k}</option>)}</select></label>
       </div>
-      <label className="field">Who read it<input id="sc-reader" value={f.reader} onChange={(e) => setF({ ...f, reader: e.target.value })} placeholder="Hospital radiologist, second opinion…" maxLength={80} /></label>
+      <label className="field">Who read it<input id="sc-reader" value={f.reader} onChange={(e) => setF({ ...f, reader: e.target.value })} placeholder="Doctor’s name or hospital, like Dr. Patel or UF Health" maxLength={80} /><span className="hint">This names the read. If you add more than one report for the same scan, they’re compared side by side under these names.</span></label>
       <label className="field">Report text<textarea id="sc-text" rows={6} value={f.text} onChange={(e) => setF({ ...f, text: e.target.value })} placeholder="The Findings and Impression sections matter most." /></label>
       <div className="grid2">
         <label className="field dropzone"><span><Icon name="upload" size={18} /> Upload the report</span><input id="sc-file" ref={fileRef} type="file" accept=".pdf,.txt,text/plain,application/pdf,image/*" /><span className="hint">PDF, text, or a photo of the printout</span></label>

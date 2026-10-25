@@ -19,6 +19,20 @@ const src = Scans.sourceOf(rep, { location: 'Segment 7 lesion', sizeMm: 18, prev
 check('source: finds the sentence that states the size', src && /Segment 7/.test(src.sentence), src?.sentence);
 check('source: marks the size and the previous size', src?.marks.length === 2 && src.sentence.slice(...src.marks[0]) === '1.8 cm' && src.sentence.slice(...src.marks[1]) === '2.4 cm');
 check('source: none for a size not in the report', Scans.sourceOf(rep, { location: 'lung', sizeMm: 33 }) === null);
+const lk = (loc, mm) => ({ location: loc, sizeMm: mm });
+const reads = [
+  { reader: 'A', extracted: { lesions: [lk('Segment 7 lesion', 18), lk('axillary lymph node', 11)], newLesions: true, change: 'smaller' } },
+  { reader: 'B', extracted: { lesions: [lk('liver segment 7', 22), lk('axillary node', 11)], newLesions: false, change: 'smaller' } },
+  { reader: 'C', extracted: { lesions: [lk('segment 7 lesion', 19), lk('axillary lymph node', 12), lk('right adrenal nodule', 8)], newLesions: false, change: 'smaller' } },
+];
+const many = Scans.compareMany(reads);
+const r7 = many.rows.find((x) => /7/.test(x.location));
+check('compare 3 reads: one row per spot, a value per read', many.rows.length === 3 && r7.values.join() === '18,22,19', r7?.values.join());
+check('compare 3 reads: a 4 mm gap on an 18-22 mm spot differs', r7.status === 'differ' && r7.spread === 4);
+check('compare 3 reads: close sizes agree', many.rows.find((x) => /axillary/.test(x.location)).status === 'agree');
+check('compare 3 reads: a spot only one doctor measured is marked', many.rows.find((x) => /adrenal/.test(x.location)).status === 'some');
+check('compare 3 reads: disagreement on new findings counts', !many.sameNew && many.sameChange && many.differences === 3, `differences ${many.differences}`);
+check('template explanation names every doctor', /A 18 mm, B 22 mm, C 19 mm/.test(Scans.opinionsTemplate(reads).summary));
 check('no tracks from no scans', Scans.lesionTracks([]).tracks.length === 0);
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nAll checks passed');

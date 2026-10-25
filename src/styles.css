@@ -626,3 +626,30 @@ main[data-view="report"] { background: var(--surface); }
 .gcol li button:hover { background: var(--tint); }
 .gcol li small { color: var(--ink-2); font-size: 0.84rem; font-variant-numeric: tabular-nums; }
 .gcol .muted { margin: 8px 4px; }
+
+/* Compare any number of reads */
+.ltr { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--surface); border: 2px solid var(--ink); color: var(--ink); font-weight: 700; font-size: 0.85rem; flex: 0 0 auto; }
+.ltr.sm { width: 20px; height: 20px; font-size: 0.72rem; margin-right: 6px; }
+.readers { list-style: none; padding: 0; margin: 4px 0 22px; display: flex; flex-wrap: wrap; gap: 10px 22px; }
+.readers li { display: flex; gap: 10px; align-items: center; }
+.readers li > span:last-child { display: grid; line-height: 1.25; }
+.readers small { color: var(--ink-2); font-size: 0.82rem; }
+.spots-cmp { display: grid; gap: 0; }
+.cspot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); grid-template-areas: "name ruler" "name vals"; column-gap: 24px; row-gap: 4px; padding: 14px 0; border-top: 1px solid var(--line); }
+.cspot-name { grid-area: name; display: grid; align-content: start; gap: 2px; }
+.cspot-name small { color: var(--ink-2); }
+.cspot.differ .cspot-name small, .cspot.some .cspot-name small { color: var(--ink); font-weight: 600; }
+.cspot .ruler { grid-area: ruler; }
+.cspot-vals { grid-area: vals; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.cspot-vals em, .also-row em { font-style: normal; font-weight: 700; margin-right: 5px; }
+@media (max-width: 600px) { .cspot { grid-template-columns: 1fr; grid-template-areas: "name" "ruler" "vals"; } }
+.ruler { position: relative; height: 50px; margin: 10px 14px 0; }
+.rline { position: absolute; left: 0; right: 0; top: 22px; height: 2px; background: var(--line); }
+.rtick { position: absolute; top: 18px; height: 10px; width: 1px; background: var(--body-line); }
+.rtick i { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 0.68rem; color: var(--ink-2); }
+.rdot { position: absolute; top: 10px; transform: translateX(-50%); width: 26px; height: 26px; border-radius: 50%; background: var(--surface); border: 2px solid var(--ink); display: grid; place-items: center; font-size: 0.75rem; font-weight: 700; color: var(--ink); transition: left 0.4s ease; }
+.rdot.lane1 { top: -16px; } .rdot.lane2 { top: 36px; }
+.also { margin: 18px 0 6px; border-top: 1px solid var(--line); }
+.also-row { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
+.also-k { flex: 1 1 100%; color: var(--ink-2); font-size: 0.85rem; }
+@media (min-width: 601px) { .also-k { flex: 0 0 15rem; } }
