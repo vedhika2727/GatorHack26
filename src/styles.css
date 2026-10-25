@@ -476,8 +476,8 @@ dialog::backdrop { background: rgba(22, 23, 28, 0.55); }
 main[data-view="report"] { padding-top: 0; }
 .sheet-page { max-width: 960px; }
 /* No card: the whole report page is white, like a printed sheet */
-body:has(main[data-view="report"]) { background: var(--surface); }
-main[data-view="report"] { background: var(--surface); }
+body:has(main[data-view="report"]) { background: var(--bg); }
+main[data-view="report"] { background: transparent; position: relative; isolation: isolate; }
 .sheet { padding: 40px 0 40px; }
 .sheet-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px 56px; align-items: end; padding-bottom: 30px; border-bottom: 2px solid var(--ink); }
 @media (max-width: 760px) { .sheet-head { grid-template-columns: 1fr; } }
@@ -737,26 +737,22 @@ main[data-view="report"] { background: var(--surface); }
   .frame:hover, .aring:hover svg { transform: none; }
 }
 
-/* report: who it's for, then an "only if you want to" handoff into the details */
+/* report: two separate panels that scroll over a background that stays still */
+main[data-view="report"]::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(38vw 38vw at 8% 18%, rgba(224, 33, 111, 0.13), transparent 70%),
+    radial-gradient(34vw 34vw at 92% 42%, rgba(255, 166, 122, 0.16), transparent 70%),
+    radial-gradient(40vw 40vw at 30% 95%, rgba(224, 33, 111, 0.08), transparent 70%),
+    var(--bg); }
+.rep-panel { background: var(--surface); border-radius: 28px; padding: 36px 40px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 24px 48px -28px rgba(60, 20, 40, 0.22); }
+.rep-panel + .rep-panel { margin-top: 28px; }
+@media (max-width: 600px) { .rep-panel { padding: 24px 18px; border-radius: 22px; } }
+.rep-top .sheet-head { border-bottom: 0; padding-bottom: 0; }
+.rep-top .score-explain { margin-top: 26px; }
+.detail-head { margin-bottom: 24px; }
+.detail-head h2 { margin: 0 0 6px; font-size: 1.6rem; letter-spacing: -0.02em; }
+.detail-head p:last-child { margin: 0; color: var(--ink-2); max-width: 60ch; }
+.rep-detail .foot { margin-bottom: 0; }
 .for-team { margin: 14px 0 0; max-width: 52ch; font-size: 1.05rem; line-height: 1.5; }
 .for-team b { font-weight: 600; }
-.section-intro.optional { margin-top: 44px; text-align: center; display: grid; justify-items: center; }
-.section-intro.optional::before { content: ""; width: 1px; height: 34px; background: linear-gradient(var(--line), var(--ink-2)); margin-bottom: 14px; }
-.opt-tag { color: var(--rose) !important; font-weight: 600; font-size: 0.9rem; margin: 0 0 4px !important; }
-.section-intro.optional p:last-child { max-width: 56ch; }
-
-/* Twin: what changed, grouped by area */
-.chg-intro { margin: -4px 0 14px; }
-.changes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-.chg-group { background: var(--surface); border-radius: 16px; padding: 16px 18px 6px; }
-.chg-group h3 { margin: 0 0 4px; font-size: 1.05rem; display: flex; justify-content: space-between; align-items: baseline; }
-.chg-group h3 span { font-size: 0.82rem; font-weight: 500; color: var(--ink-2); }
-.chg-group ul { list-style: none; margin: 0; padding: 0; }
-.chg-group li { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 11px 0; border-top: 1px solid var(--line); }
-.chg-group li:first-child { border-top: 0; }
-.chg-group li > div { display: grid; min-width: 0; }
-.chg-group li > div b { font-weight: 600; }
-.chg-group li > div span { color: var(--ink-2); font-size: 0.9rem; }
-.chg-vals { margin: 0; display: flex; align-items: baseline; gap: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 0.92rem; }
-.chg-vals span { color: var(--ink-2); }
-.chg-vals i { font-style: normal; color: var(--ink-2); }
+.opt-tag { color: var(--rose); font-weight: 600; font-size: 0.9rem; margin: 0 0 4px; }

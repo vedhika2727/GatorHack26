@@ -369,6 +369,7 @@ export default function Report({ go }) {
   return (
     <div className="wrap wide sheet-page">
       <article className="sheet">
+        <section className="rep-panel rep-top" aria-label="Report summary">
         <header className="sheet-head">
           <div className="who">
             <p className="kicker-line">Report for your care team</p>
@@ -402,14 +403,14 @@ export default function Report({ go }) {
             <li><b>It isn’t a diagnosis.</b> It doesn’t measure nerves directly or say why something changed. That’s for you and your care team.</li>
           </ul>
         </section>}
+        </section>
 
-
-
-        {checkins.length > 1 && <div className="section-intro optional">
+        <section className="rep-panel rep-detail" aria-labelledby="detail-h">
+        <div className="detail-head">
           <p className="opt-tag">Only if you want to</p>
-          <h2>Look through it yourself</h2>
-          <p>Everything from here down is the detail your care team uses. Pick anything on the left to see it at every check-in. It’s fine to skip it.</p>
-        </div>}
+          <h2 id="detail-h">Look through it yourself</h2>
+          <p>This part is the detail your care team uses. Pick anything on the left to see it at every check-in. It’s fine to skip it.</p>
+        </div>
         {checkins.length > 1 ? <Explorer key={`${from}-${to}`} checkins={checkins} twin={twin} tracks={tracks} /> : <p className="headline">Pick at least two check-ins to see how things changed.</p>}
 
         {questions.length > 0 && <section className="mgroup" aria-label="Questions">
@@ -433,6 +434,8 @@ export default function Report({ go }) {
             <tbody>{GROUPS.flatMap((g) => g.rows).map((r) => <tr key={r.id}><th scope="row">{r.label}{r.unit ? <span className="u"> {r.unit}</span> : null}</th>{checkins.map((c) => <td key={c.id}>{r.get(c) ?? '–'}</td>)}</tr>)}</tbody>
           </table></div>
         </details>
+        <p className="fine foot">Phone measurements are approximate and measure function, not nerves directly. This is not a diagnosis.</p>
+        </section>
 
         <dialog ref={storyRef} className="sheet story-sheet" aria-labelledby="st-h" onClose={() => setStoryOpen(false)} onClick={(e) => { if (e.target === storyRef.current) setStoryOpen(false); }}>
           {storyOpen && <>
@@ -441,8 +444,6 @@ export default function Report({ go }) {
             <Journey checkins={checkins} />
           </>}
         </dialog>
-
-        <p className="fine foot">Phone measurements are approximate and measure function, not nerves directly. This is not a diagnosis.</p>
       </article>
     </div>
   );
