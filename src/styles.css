@@ -1367,3 +1367,11 @@ main.page { padding-bottom: 0 !important; }
 .fl-items .opts { margin-top: 12px; }
 .fl-items .nrs-val { margin-top: 10px; font-size: .88rem; }
 .form-list .form-foot { align-items: center; border-top: 0; margin-top: 18px; padding-top: 0; }
+/* four individual rings */
+.irings { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.irings li { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 12px; border-radius: 16px; background: rgba(255,255,255,.55); }
+.irings svg { width: 64px; height: 64px; display: block; }
+.irings b { display: block; font-size: .98rem; font-weight: 600; }
+.irings span { display: block; font-size: .82rem; font-weight: 600; color: var(--ink); }
+.irings small { display: block; color: var(--ink-2); font-size: .74rem; line-height: 1.3; margin-top: 2px; }
+@media (max-width: 460px) { .irings { grid-template-columns: 1fr; } }

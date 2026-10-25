@@ -73,28 +73,22 @@ function Rings({ step }) {
     const fill = vals.length ? Math.max(0, Math.min(100, 100 - vals.reduce((x, y) => x + y, 0) / vals.length)) : 100;
     return { ...a, fill, has: vals.length > 0 };
   });
-  const S = 9, GAP = 3.5;
+  const C = 2 * Math.PI * 40;
   return (
-    <div className="crings">
-      <svg viewBox="0 0 120 120" className="crings-svg" aria-hidden="true">
-        {rows.map((r, k) => {
-          const rad = 54 - k * (S + GAP), C = 2 * Math.PI * rad, off = C * (1 - r.fill / 100);
-          return <g key={r.id}>
-            <circle cx="60" cy="60" r={rad} fill="none" stroke={r.color} strokeOpacity="0.16" strokeWidth={S} />
-            <circle cx="60" cy="60" r={rad} fill="none" stroke={r.color} strokeWidth={S} strokeLinecap="round" strokeDasharray={C} strokeDashoffset={off} transform="rotate(-90 60 60)" className="ring-fill" style={{ '--from': C, '--to': off, animationDelay: `${0.1 + k * 0.12}s` }} />
-          </g>;
-        })}
-      </svg>
-      <ul className="crings-key">
-        {rows.map((r) => (
+    <ul className="irings">
+      {rows.map((r, k) => {
+        const off = C * (1 - r.fill / 100);
+        return (
           <li key={r.id} aria-label={`${r.name}: ${r.has ? ringWord(r.fill) : 'not measured'}`}>
-            <i style={{ background: r.color }} aria-hidden="true" />
-            <div><b>{r.name}</b><small>{r.what}</small></div>
-            <span>{r.has ? ringWord(r.fill) : 'Not measured'}</span>
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="40" fill="none" stroke={r.color} strokeOpacity="0.15" strokeWidth="10" />
+              <circle cx="50" cy="50" r="40" fill="none" stroke={r.color} strokeWidth="10" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={off} transform="rotate(-90 50 50)" className="ring-fill" style={{ '--from': C, '--to': off, animationDelay: `${0.1 + k * 0.1}s` }} />
+            </svg>
+            <div><b>{r.name}</b><span>{r.has ? ringWord(r.fill) : 'Not measured'}</span><small>{r.what}</small></div>
           </li>
-        ))}
-      </ul>
-    </div>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -410,7 +404,7 @@ export default function Report({ go }) {
         {showRingHelp && <section className="score-explain" id="ring-help" aria-labelledby="se-h">
           <h2 id="se-h">How to read the rings</h2>
           <ul>
-            <li><b>A full ring is your starting point.</b> It’s how you were at cycle {first.cycle}, your first check-in. Outer ring is walking, then balance, hands, and the symptoms you rated.</li>
+            <li><b>A full ring is your starting point.</b> It’s how you were at cycle {first.cycle}, your first check-in. Outer ring is one area: walking, balance, hands, and the symptoms you rated.</li>
             <li><b>The ring opens up as things change.</b> Each row in the key says which measures go into that ring.</li>
             <li><b>It isn’t a grade.</b> Some change during chemo is common. The rings help you see where it’s happening, so you know what to mention.</li>
             <li><b>It isn’t a diagnosis.</b> It doesn’t measure nerves directly or say why something changed. That’s for you and your care team.</li>
