@@ -396,7 +396,15 @@ dialog.sheet h2 { margin-top: 0; }
 }
 
 /* Report: a one-page visit sheet */
-.report { padding: 28px; }
+.report { padding: 32px 36px; }
+@media (max-width: 600px) { .report { padding: 22px 18px; } }
+main[data-view="report"] { padding-top: 0; }
+.rep-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px 24px; flex-wrap: wrap; margin: 22px 0 18px; }
+.rep-top h1 { margin: 0 0 4px; }
+.rep-top .lede { margin: 0; }
+.rep-top .actions { margin: 0; }
+.rep-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 40px; }
+@media (max-width: 860px) { .rep-pair { grid-template-columns: 1fr; } }
 .rep-head h2 { margin: 0 0 4px; font-size: 1.6rem; }
 .rep-head p { margin: 0; }
 .rep-sec { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 18px; }

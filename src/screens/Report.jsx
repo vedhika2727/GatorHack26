@@ -101,10 +101,12 @@ export default function Report({ go }) {
   }
 
   return (
-    <div className="wrap">
-      <div className="no-print">
-        <h1>Report for your care team</h1>
-        <p className="lede">One page to bring to your next infusion or send through your patient portal.</p>
+    <div className="wrap wide">
+      <div className="no-print rep-top">
+        <div>
+          <h1>Report for your care team</h1>
+          <p className="lede">One page to bring to your next infusion or send through your patient portal.</p>
+        </div>
         <div className="actions">
           <button type="button" className="btn primary" onClick={copy}><Icon name="copy" size={18} /> Copy report text</button>
           {!HOSTED_PREVIEW && <button type="button" className="btn" onClick={() => window.print()}><Icon name="printer" size={18} /> Print or save as PDF</button>}
@@ -118,6 +120,7 @@ export default function Report({ go }) {
           <p className="muted">Before cycle {last.cycle + 1}. {checkins.length} check-in{checkins.length > 1 ? 's' : ''} from {fmtDate(first.date)} to {fmtDate(last.date)}.{user.mode === 'demo' ? ' Demo patient with simulated data.' : ''}</p>
         </header>
 
+        <div className="rep-pair">
         <section className="rep-sec">
           <h3>The short version</h3>
           <ul className="short">{short.map((s) => <li key={s}>{s}</li>)}</ul>
@@ -130,6 +133,7 @@ export default function Report({ go }) {
             <p className="fine">{out.source === 'gemma' ? `Written by Gemma 4 (${out.model}) from the numbers below.` : 'Template text. Gemma isn’t connected here.'} <button type="button" className="linkish no-print" disabled={busy} onClick={write}>{busy ? 'Rewriting…' : 'Rewrite'}</button></p>
           </> : null}
         </section>
+        </div>
 
         {checkins.length > 1 && <section className="rep-sec">
           <h3>What changed since the first check-in</h3>
