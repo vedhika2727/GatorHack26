@@ -186,14 +186,10 @@ function bandChart(svg, steps, selected) {
   // Uncertainty band
   const up = steps.map((s, i) => `${x(i)},${y(s.scoreHigh)}`), dn = steps.map((s, i) => `${x(i)},${y(s.scoreLow)}`).reverse();
   el('polygon', { points: up.concat(dn).join(' '), fill: css('--navy-wash'), stroke: 'none', opacity: 0.95 }, svg);
-  // Expected-before-check-in markers
-  steps.forEach((s, i) => { if (i) el('circle', { cx: x(i), cy: y(s.scorePrior), r: 5, fill: 'none', stroke: ink, 'stroke-width': 1.5, 'stroke-dasharray': '2 2', opacity: 0.6 }, svg); });
   el('polyline', { points: steps.map((s, i) => `${x(i)},${y(s.score)}`).join(' '), fill: 'none', stroke: teal, 'stroke-width': 3, 'stroke-linejoin': 'round' }, svg);
   steps.forEach((s, i) => {
-    const worse = s.surprise === 'worse';
-    el('circle', { cx: x(i), cy: y(s.score), r: i === selected ? 7 : 5, fill: worse ? css('--red') : teal, stroke: css('--surface'), 'stroke-width': 2 }, svg);
+    el('circle', { cx: x(i), cy: y(s.score), r: i === selected ? 7 : 5, fill: teal, stroke: css('--surface'), 'stroke-width': 2 }, svg);
     txt(svg, x(i), H - 10, 'C' + s.cycle, { 'text-anchor': 'middle', 'font-weight': i === selected ? 700 : 400, fill: i === selected ? ink : css('--ink-2') });
-    if (worse) txt(svg, x(i), Math.min(H - B - 4, y(s.scoreLow) + 18), 'worse than expected', { 'text-anchor': 'middle', fill: css('--red'), 'font-size': 14, 'font-weight': 700 });
   });
 }
 
@@ -240,7 +236,7 @@ function dualTimeline(svg, tumor, nerve) {
     el('polygon', { points: up.concat(dn).join(' '), fill: css('--navy-wash') }, svg);
     el('polyline', { points: nerve.map((s) => `${x(s.date)},${yb(s.score)}`).join(' '), fill: 'none', stroke: teal, 'stroke-width': 3 }, svg);
     for (const s of nerve) {
-      el('circle', { cx: x(s.date), cy: yb(s.score), r: 4.5, fill: s.surprise === 'worse' ? css('--red') : teal }, svg);
+      el('circle', { cx: x(s.date), cy: yb(s.score), r: 4.5, fill: teal }, svg);
       txt(svg, x(s.date), Bp.b + 16, 'C' + s.cycle, { 'text-anchor': 'middle', 'font-size': 14 });
     }
   }

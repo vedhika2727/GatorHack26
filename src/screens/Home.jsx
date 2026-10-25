@@ -14,7 +14,7 @@ export default function Home({ go }) {
   const last = checkins[checkins.length - 1];
   const step = twin[twin.length - 1];
   const flags = checkins.length > 1 ? Trends.compare(checkins[0], last) : [];
-  const level = checkins.length > 1 ? (step.surprise === 'worse' ? 'notable' : Trends.overall(flags)) : null;
+  const level = checkins.length > 1 ? Trends.overall(flags) : null;
   const lastScan = scans[scans.length - 1];
   const doneToday = last?.date === today() && !last.demo;
   const groups = Scans.groupOpinions(scans);
@@ -48,7 +48,7 @@ export default function Home({ go }) {
           </div>
           <p className="muted" style={{ marginTop: 6 }}>
             {checkins.length === 1 ? 'Your baseline is set. Your twin starts learning at your next check-in.'
-              : `Likely between ${Math.round(step.scoreLow)} and ${Math.round(step.scoreHigh)} at cycle ${last.cycle}. Lower means bigger changes in walking, balance, or hands.${step.surprise === 'worse' ? ' This check-in was worse than your twin expected.' : ''}`}
+              : `Likely between ${Math.round(step.scoreLow)} and ${Math.round(step.scoreHigh)} at cycle ${last.cycle}. Lower means bigger changes in walking, balance, or hands.`}
           </p>
           {checkins.length > 1 && <BandChart steps={twin} selected={twin.length - 1} />}
           <div className="actions" style={{ marginBottom: 0 }}><button type="button" className="btn" onClick={() => go('twin')}>Open my twin <Icon name="arrowRight" size={18} /></button></div>

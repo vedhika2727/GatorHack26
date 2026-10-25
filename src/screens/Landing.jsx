@@ -49,7 +49,7 @@ export default function Landing({ go }) {
             <Chip level="notable" />
           </div>
           <BandChart steps={twin} selected={twin.length - 1} />
-          <figcaption className="fine">Six cycles of a demo patient. At the red point, the check-in came in worse than the twin expected.</figcaption>
+          <figcaption className="fine">Six cycles of a demo patient. 100 is how they were at their first check-in.</figcaption>
         </figure>
       </div>
       </section>

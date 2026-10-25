@@ -56,6 +56,70 @@ function TwinSpark({ twin }) {
   );
 }
 
+
+/* ---------- Overview: rings per ability, and a cycle-by-cycle story ---------- */
+// Which twin signals belong to which ability. Each signal is 0 (same as the first check-in) to 100.
+const AREAS = [
+  { id: 'walking', name: 'Walking', signals: ['pace', 'timing', 'evenness', 'feet'] },
+  { id: 'balance', name: 'Balance', signals: ['sway', 'romberg'] },
+  { id: 'hands', name: 'Hands', signals: ['tapping', 'hands-fine', 'hands'] },
+];
+const ringWord = (f) => (f >= 80 ? 'Close to where you started' : f >= 50 ? 'Some change' : f >= 25 ? 'More change' : 'The most change');
+function Rings({ step }) {
+  return (
+    <div className="rings" role="list">
+      {AREAS.map((a) => {
+        const vals = step.signals.filter((g) => a.signals.includes(g.id) && g.value != null).map((g) => g.value);
+        const fill = vals.length ? Math.max(0, Math.min(100, 100 - vals.reduce((x, y) => x + y, 0) / vals.length)) : 100;
+        const C = 2 * Math.PI * 40;
+        return (
+          <div key={a.id} className="ring" role="listitem" aria-label={`${a.name}: ${ringWord(fill)}`}>
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--tint)" strokeWidth="11" />
+              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--navy)" strokeWidth="11" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - fill / 100)} transform="rotate(-90 50 50)" />
+            </svg>
+            <b>{a.name}</b>
+            <small>{ringWord(fill)}</small>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const NOTE = {
+  cadence: 'walking slower', variability: 'steps less steady', regularity: 'steps less even', hesitations: 'pauses while walking',
+  sway: 'more sway standing still', romberg: 'more sway with eyes closed', 'tap-right': 'right-hand tapping slower', 'tap-left': 'left-hand tapping slower',
+  feetNumb: 'more numbness in the feet', handsNumb: 'more numbness in the hands', feetPain: 'more foot pain', buttons: 'trouble with buttons or zips',
+};
+const sentence = (parts) => { const p = parts.slice(0, 4); const t = p.length > 1 ? `${p.slice(0, -1).join(', ')} and ${p[p.length - 1]}` : p[0]; return t[0].toUpperCase() + t.slice(1) + '.'; };
+function Journey({ checkins }) {
+  const notes = checkins.map((c, k) => {
+    if (k === 0) return { c, text: 'Your starting point.', n: 0 };
+    const prev = checkins[k - 1];
+    const flags = Trends.compare(prev, c);
+    const parts = flags.map((f) => (f.id === 'falls' ? (c.falls === 'fall' ? 'a fall' : 'a near-fall') : NOTE[f.id])).filter(Boolean);
+    if (!parts.length) {
+      const small = [];
+      if ((c.symptoms?.feetNumb || 0) > (prev.symptoms?.feetNumb || 0)) small.push(`a little more tingling in the feet (${c.symptoms.feetNumb} out of 10)`);
+      if ((c.symptoms?.handsNumb || 0) > (prev.symptoms?.handsNumb || 0)) small.push(`a little tingling in the hands (${c.symptoms.handsNumb} out of 10)`);
+      return { c, text: small.length ? `About the same as last time, with ${small.join(' and ')}.` : 'About the same as last time.', n: 0 };
+    }
+    return { c, text: sentence(parts), n: parts.length };
+  });
+  const most = notes.reduce((m, x, k) => (x.n > (notes[m]?.n || 0) ? k : m), -1);
+  return (
+    <ol className="journey">
+      {notes.map((x, k) => (
+        <li key={x.c.id} className={k === most && x.n >= 3 ? 'big' : ''}>
+          <b>Cycle {x.c.cycle}, {fmtDate(x.c.date)}</b>
+          <span>{k === most && x.n >= 3 ? 'Biggest change from the check-in before. ' : ''}{x.text}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 /* ---------- Explore: pick a measure, see it as a line across every check-in ---------- */
 const CATS = { buttons: ['No', 'Yes'], falls: ['None', 'Near-fall', 'Fall'] };
 const num = (id, v) => (CATS[id] ? CATS[id].indexOf(v) : v);
@@ -275,14 +339,13 @@ export default function Report({ go }) {
   const first = checkins[0], last = checkins[checkins.length - 1], step = twin[twin.length - 1];
   const flags = Trends.compare(first, last);
   const changed = new Set(flags.map((f) => f.id));
-  const worse = twin.filter((t) => t.surprise === 'worse').map((t) => t.cycle);
   const questions = [...(out?.questions || []), ...scans.flatMap((s) => s.opinion?.questions || [])].filter((q, k, a) => a.indexOf(q) === k);
   const twoReads = groups.filter((g) => g.length > 1);
   const headline = `Function score ${r0(step.score)} out of 100, where 100 is how things were at cycle ${first.cycle}.`;
 
   const asText = () => [
     `Report for ${user.name}, ${fullRange ? `before cycle ${last.cycle + 1}` : `cycles ${first.cycle} to ${last.cycle}`} (${fmtDate(first.date)} to ${fmtDate(last.date)})`, '',
-    `${headline} Likely ${r0(step.scoreLow)} to ${r0(step.scoreHigh)}.${worse.length ? ` Cycle ${worse.join(', ')} was worse than expected.` : ''}`, '',
+    `${headline} Likely ${r0(step.scoreLow)} to ${r0(step.scoreHigh)}.`, '',
     ...(out?.patient ? ['Summary', plain(out.patient), ''] : []),
     `Changes since cycle ${first.cycle} (cycle ${first.cycle} → cycle ${last.cycle})`, '',
     ...GROUPS.flatMap((g) => [g.name, ...g.rows.map((r) => `- ${r.label}: ${show(r.get(first), r.unit)} → ${show(r.get(last), r.unit)}${changed.has(r.id) ? '  (changed)' : ''}`), '']),
@@ -318,22 +381,25 @@ export default function Report({ go }) {
             </div>
             {copied && <p className="fine" role="status">{copied}</p>}
           </div>
-          <div className="score-block">
-            <div className="score-num"><b>{r0(step.score)}</b><span>of 100</span></div>
-            <TwinSpark twin={twin} />
-            <p className="fine">Function score. 100 is how you were at cycle {first.cycle}; lower means bigger changes in walking, balance, and hands. Likely {r0(step.scoreLow)} to {r0(step.scoreHigh)}.</p>
+          <div className="ring-block">
+            <Rings step={step} />
           </div>
         </header>
 
         <section className="score-explain" aria-labelledby="se-h">
-          <h2 id="se-h">How to read the score</h2>
+          <h2 id="se-h">How to read the rings</h2>
           <ul>
-            <li><b>100 is your starting point.</b> It’s how your walking, balance, and hands were at cycle {first.cycle}, your first check-in.</li>
-            <li><b>Lower means more change.</b> The score drops as your walking pace, steadiness, balance, tapping speed, and the numbness or pain you report move away from where you started.</li>
-            <li><b>It combines every test.</b> One test can be thrown off by a tired day, so the score weighs all of them together and trusts the steadier ones more. The “likely” range shows how sure it is.</li>
-            <li><b>It isn’t a diagnosis.</b> It doesn’t measure nerves directly or say why something changed. That’s a conversation for you and your care team.</li>
+            <li><b>A full ring is your starting point.</b> It’s how your walking, balance, and hands were at cycle {first.cycle}, your first check-in.</li>
+            <li><b>The ring opens up as things change.</b> Walking uses your pace, steadiness, and foot symptoms; balance uses standing still with eyes open and closed; hands use tapping, buttons, and hand symptoms.</li>
+            <li><b>It isn’t a grade.</b> Some change during chemo is common. The rings help you see where it’s happening, so you know what to mention.</li>
+            <li><b>It isn’t a diagnosis.</b> It doesn’t measure nerves directly or say why something changed. That’s for you and your care team.</li>
           </ul>
         </section>
+
+        {checkins.length > 1 && <section className="story" aria-labelledby="st-h">
+          <h2 id="st-h">Your treatment, cycle by cycle</h2>
+          <Journey checkins={checkins} />
+        </section>}
 
         {checkins.length > 1 ? <Explorer key={`${from}-${to}`} checkins={checkins} twin={twin} tracks={tracks} /> : <p className="headline">Pick at least two check-ins to see how things changed.</p>}
 

@@ -8,7 +8,7 @@ function TwinArt({ twin }) {
   return <>
     <polygon points={up.concat(dn).join(' ')} fill="var(--navy-wash)" />
     <polyline points={twin.map((s, i) => `${x(i)},${y(s.score)}`).join(' ')} fill="none" stroke="var(--navy)" strokeWidth="2.5" strokeLinejoin="round" />
-    {twin.map((s, i) => <circle key={i} cx={x(i)} cy={y(s.score)} r="3.5" fill={s.surprise === 'worse' ? 'var(--red)' : 'var(--navy)'} />)}
+    {twin.map((s, i) => <circle key={i} cx={x(i)} cy={y(s.score)} r="3.5" fill="var(--navy)" />)}
   </>;
 }
 

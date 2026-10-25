@@ -43,7 +43,7 @@ export default function Twin({ go }) {
   const i = Math.min(sel, checkins.length - 1);
   const base = checkins[0], cur = checkins[i], step = twin[i];
   const flags = Trends.compare(base, cur);
-  const level = i === 0 ? null : step.surprise === 'worse' ? 'notable' : Trends.overall(flags);
+  const level = i === 0 ? null : Trends.overall(flags);
   const gnum = (g) => (g?.ok ? `${Math.round(g.cadence)} steps/min` : 'no walk');
 
   return (
@@ -57,15 +57,11 @@ export default function Twin({ go }) {
           {level && <Chip level={level} />}
         </div>
         <p>{i === 0 ? (checkins.length === 1 ? 'This is your baseline. The twin starts learning at your next check-in.' : `Cycle ${base.cycle} is your baseline, so the twin starts at 100.`)
-          : `Likely between ${Math.round(step.scoreLow)} and ${Math.round(step.scoreHigh)} on ${fmtDate(cur.date)}. Before this check-in, the twin expected about ${Math.round(step.scorePrior)}.`}</p>
-        {step.surprise === 'worse' && <p className="notice red"><strong>Worse than your twin expected.</strong> This is worth telling your care team before your next infusion.</p>}
-        {step.surprise === 'better' && <p className="notice">This check-in was better than your twin expected.</p>}
+          : `Likely between ${Math.round(step.scoreLow)} and ${Math.round(step.scoreHigh)} on ${fmtDate(cur.date)}.`}</p>
         <BandChart steps={twin} selected={i} />
         <ul className="legend" aria-label="Chart key">
           <li><span className="k k-line" />Twin’s estimate</li>
           <li><span className="k k-band" />Likely range</li>
-          <li><span className="k k-prior" />What it expected</li>
-          <li><span className="k k-red" />Worse than expected</li>
           <li><span className="k k-dot" />Individual signals</li>
         </ul>
       </section>
@@ -73,7 +69,7 @@ export default function Twin({ go }) {
       <h2>Your infusions</h2>
       <div className="beads" role="tablist" aria-label="Choose a check-in">
         {checkins.map((c, k) => {
-          const lv = k === 0 ? 'steady' : twin[k].surprise === 'worse' ? 'notable' : Trends.overall(Trends.compare(base, c));
+          const lv = k === 0 ? 'steady' : Trends.overall(Trends.compare(base, c));
           return <button key={c.id} type="button" role="tab" aria-selected={k === i} className={`bead ${lv}`} onClick={() => setSel(k)} aria-label={`Cycle ${c.cycle}, ${fmtDate(c.date)}`}>C{c.cycle}<small>{fmtDate(c.date)}</small></button>;
         })}
       </div>
@@ -135,7 +131,7 @@ export default function Twin({ go }) {
 
       <details className="more" style={{ marginTop: 18 }}>
         <summary>How the twin works</summary>
-        <p>The twin is a state-space model (a Kalman filter), the kind of model engineers use to track things they can’t see directly. It assumes each chemo cycle may bring a little change. At each check-in it compares that expectation with your signals and trusts the less noisy ones more. When a check-in is much worse than it expected, it flags it.</p>
+        <p>The twin is a state-space model (a Kalman filter), the kind of model engineers use to track things they can’t see directly. At each check-in it combines all your signals, trusts the less noisy ones more, and carries forward what it learned from earlier check-ins, so one off day doesn’t swing the result.</p>
         <p>It measures function, not your nerves directly. Changes can come from nerve side effects, tiredness, anemia, pain, or other causes, which is why they’re worth showing your care team. Its settings are reasonable starting values for this prototype, not clinically calibrated, and it doesn’t predict your future.</p>
       </details>
 
