@@ -10,18 +10,27 @@ const WALK_S = 30, BAL_S = 20, TAP_S = 10;
 const STEP_NAMES = ['Symptoms', 'Walk', 'Balance', 'Hands', 'Done'];
 
 const WORD = (v) => (v === 0 ? 'None' : v <= 3 ? 'Mild' : v <= 6 ? 'Moderate' : 'Severe');
-function Scale({ id, n, tag, label, value, onChange }) {
+function Scale({ id, label, value, onChange }) {
   return (
-    <fieldset className="sym-card">
+    <fieldset className="nrs">
       <legend className="sr-only">{label}</legend>
-      <p className="sym-read" aria-live="polite"><b>{value}</b><span>/10</span><em>{WORD(value)}</em></p>
-      <div className="sym-scale" role="group" aria-label={label}>
+      <div className="nrs-row" role="radiogroup" aria-label={label}>
         {Array.from({ length: 11 }, (_, i) => (
-          <button key={i} id={`${id}-${i}`} type="button" aria-pressed={value === i} aria-label={`${i} out of 10`} onClick={() => onChange(i)}>{i}</button>
+          <button key={i} id={`${id}-${i}`} type="button" role="radio" aria-checked={value === i} aria-pressed={value === i} aria-label={`${i} out of 10, ${WORD(i)}`} onClick={() => onChange(i)}>{i}</button>
         ))}
       </div>
-      <div className="sym-ends"><span>None</span><span>Worst imaginable</span></div>
+      <div className="nrs-bands" aria-hidden="true"><span style={{ flex: 1 }}>None</span><span style={{ flex: 3 }}>Mild</span><span style={{ flex: 3 }}>Moderate</span><span style={{ flex: 4 }}>Severe</span></div>
+      <p className="nrs-val" aria-live="polite">Selected: <b>{value}</b> ({WORD(value)})</p>
     </fieldset>
+  );
+}
+function Options({ label, options, value, onChange }) {
+  return (
+    <div className="opts" role="radiogroup" aria-label={label}>
+      {options.map(([v, t]) => (
+        <button key={String(v)} type="button" role="radio" aria-checked={value === v} aria-pressed={value === v} onClick={() => onChange(v)}><span className="rb" aria-hidden="true" />{t}</button>
+      ))}
+    </div>
   );
 }
 
@@ -121,7 +130,7 @@ export default function CheckIn({ go }) {
   const flags = saved && all.length > 1 ? Trends.compare(all[0], saved) : [];
 
   return (
-    <div className={step === 1 ? 'wrap ci-ed' : step < 5 ? 'wrap wide ci-tests' : 'wrap'}>
+    <div className={step === 1 ? 'wrap wide ci-form' : step < 5 ? 'wrap wide ci-tests' : 'wrap'}>
       <div className="wizard-head">
         <button type="button" className="btn ghost small" onClick={() => (step === 1 && q > 0 ? setQ(q - 1) : step > 1 && step < 5 ? (step === 2 && setQ(4), goStep(step - 1)) : go('home'))}><Icon name="arrowLeft" size={18} /> {(step === 1 && q > 0) || (step > 1 && step < 5) ? 'Back' : 'Home'}</button>
         <span className="step-label">Step {step} of 5: {STEP_NAMES[step - 1]}</span>
@@ -130,41 +139,43 @@ export default function CheckIn({ go }) {
 
       {step === 1 && (() => {
         const QS = [
-          { tag: 'Feet', title: 'How much numbness or tingling have you had in your feet this week?', body: <Scale id="feet" label="Numbness or tingling in my feet" value={d.symptoms.feetNumb} onChange={(v) => sym('feetNumb', v)} /> },
-          { tag: 'Hands', title: 'How much numbness or tingling have you had in your hands this week?', body: <Scale id="hands" label="Numbness or tingling in my hands" value={d.symptoms.handsNumb} onChange={(v) => sym('handsNumb', v)} /> },
-          { tag: 'Feet', title: 'How much burning or pain have you had in your feet this week?', body: <Scale id="pain" label="Burning or pain in my feet" value={d.symptoms.feetPain} onChange={(v) => sym('feetPain', v)} /> },
-          { tag: 'Hands', title: 'Any trouble with buttons, zips, or picking up small things?', body: (
-            <div className="tag-choices" role="group" aria-label="Trouble with buttons or small things">
-              <button type="button" aria-pressed={!d.buttons} onClick={() => set({ buttons: false })}>No</button>
-              <button type="button" aria-pressed={d.buttons} onClick={() => set({ buttons: true })}>Yes</button>
-            </div>) },
-          { tag: 'Falls', title: 'Have you fallen or tripped since your last check-in?', body: (<>
-            <div className="tag-choices" role="group" aria-label="Falls since last check-in">
-              <button type="button" aria-pressed={d.falls === 'none'} onClick={() => set({ falls: 'none' })}>No</button>
-              <button type="button" aria-pressed={d.falls === 'near'} onClick={() => set({ falls: 'near' })}>Tripped or caught myself</button>
-              <button type="button" aria-pressed={d.falls === 'fall'} onClick={() => set({ falls: 'fall' })}>Fallen</button>
-            </div>
+          { short: 'Numbness or tingling, feet', ans: `${d.symptoms.feetNumb}/10`, title: 'Rate the numbness or tingling in your feet over the past 7 days.', body: <Scale id="feet" label="Numbness or tingling in my feet" value={d.symptoms.feetNumb} onChange={(v) => sym('feetNumb', v)} /> },
+          { short: 'Numbness or tingling, hands', ans: `${d.symptoms.handsNumb}/10`, title: 'Rate the numbness or tingling in your hands over the past 7 days.', body: <Scale id="hands" label="Numbness or tingling in my hands" value={d.symptoms.handsNumb} onChange={(v) => sym('handsNumb', v)} /> },
+          { short: 'Burning or pain, feet', ans: `${d.symptoms.feetPain}/10`, title: 'Rate any burning or pain in your feet over the past 7 days.', body: <Scale id="pain" label="Burning or pain in my feet" value={d.symptoms.feetPain} onChange={(v) => sym('feetPain', v)} /> },
+          { short: 'Fine hand tasks', ans: d.buttons ? 'Yes' : 'No', title: 'Have you had trouble with buttons, zips, or picking up small objects?', body: <Options label="Trouble with fine hand tasks" value={d.buttons} onChange={(v) => set({ buttons: v })} options={[[false, 'No'], [true, 'Yes']]} /> },
+          { short: 'Falls', ans: { none: 'None', near: 'Near-fall', fall: 'Fall' }[d.falls], title: 'Since your last check-in, have you fallen or tripped?', body: (<>
+            <Options label="Falls since last check-in" value={d.falls} onChange={(v) => set({ falls: v })} options={[['none', 'No falls or trips'], ['near', 'Tripped or caught myself'], ['fall', 'Fell']]} />
             {d.falls === 'fall' && <p className="notice red" style={{ marginTop: 14 }}>If you fell and were hurt, or your numbness came on suddenly, call your care team today rather than waiting for your next visit.</p>}
           </>) },
         ];
         const cur = QS[q], lastQ = q === QS.length - 1;
         return (
-          <form onSubmit={(e) => { e.preventDefault(); if (lastQ) goStep(2); else setQ(q + 1); }}>
-            <div className="ci-top">
-              <p className="mono ci-dot">Question {q + 1} of {QS.length} · {cur.tag}</p>
-              {q === 0 ? <div className="ci-pills">
-                <label className="pill-field">Cycle<input id="ci-cycle" type="number" min="1" max="60" inputMode="numeric" value={d.cycle} onChange={(e) => set({ cycle: Math.max(1, parseInt(e.target.value || '1', 10)) })} /></label>
-                <label className="pill-field">Date<input id="ci-date" type="date" value={d.date} onChange={(e) => set({ date: e.target.value || today() })} /></label>
-              </div> : <p className="mono ci-dot ci-when">Cycle {d.cycle}</p>}
-            </div>
-            <section className="q-card" key={q} aria-labelledby="q-title">
+          <form className="form-ed" onSubmit={(e) => { e.preventDefault(); if (lastQ) goStep(2); else setQ(q + 1); }}>
+            <aside className="form-rail" aria-label="Questions">
+              <p className="mono">Symptom questionnaire</p>
+              <dl className="form-meta">
+                <div><dt>Cycle</dt><dd><input id="ci-cycle" type="number" min="1" max="60" inputMode="numeric" value={d.cycle} onChange={(e) => set({ cycle: Math.max(1, parseInt(e.target.value || '1', 10)) })} /></dd></div>
+                <div><dt>Date</dt><dd><input id="ci-date" type="date" value={d.date} onChange={(e) => set({ date: e.target.value || today() })} /></dd></div>
+              </dl>
+              <ol>
+                {QS.map((x, k) => (
+                  <li key={k} className={k === q ? 'on' : k < q ? 'done' : ''}>
+                    <button type="button" onClick={() => setQ(k)} aria-current={k === q ? 'step' : undefined}>
+                      <span className="n">{String(k + 1).padStart(2, '0')}</span><span className="t">{x.short}</span><span className="a">{k < q || k === q ? x.ans : ''}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </aside>
+            <section className="form-q" aria-labelledby="q-title">
+              <p className="mono form-k">Question {q + 1} of {QS.length}{q < 3 ? ' · past 7 days · 0 = none, 10 = worst imaginable' : ''}</p>
               <h1 id="q-title">{cur.title}</h1>
               {cur.body}
+              <div className="form-foot">
+                <button type="button" className="btn" disabled={q === 0} onClick={() => setQ(q - 1)}>Previous</button>
+                <button type="submit" className="btn primary">{lastQ ? 'Continue to walking test' : 'Continue'}</button>
+              </div>
             </section>
-            <div className="q-nav">
-              <div className="q-dots" aria-hidden="true">{QS.map((_, i) => <span key={i} className={i === q ? 'on' : i < q ? 'done' : ''} />)}</div>
-              <button type="submit" className="btn primary">{lastQ ? 'Next: walking test' : 'Next'} <Icon name="arrowRight" size={18} /></button>
-            </div>
           </form>
         );
       })()}
