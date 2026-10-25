@@ -1153,3 +1153,49 @@ main[data-view="welcome"] { overflow: hidden; }
 .sky-end { margin-top: 80px !important; }
 .topbar { background: rgba(255, 255, 255, 0.4); }
 .topnav button[aria-current="page"] { background: rgba(255,255,255,.75); }
+
+/* ===================== Editorial headers on Twin, Scans, Report + green ===================== */
+.page-ed { max-width: 1200px; padding-top: 24px; }
+.page-ed-body { max-width: 760px; margin: 36px auto 0; }
+.page-ed .ed-hero h1, .rep-ed .ed-hero h1, .scans-ed h1 { font-size: clamp(2.8rem, 7vw, 5.6rem); }
+.scans-ed { padding: 28px 0 20px; }
+.reading .scans-ed h1 { color: #363B40; }
+/* report: no box around the header, rings in the stats row */
+.rep-ed { padding-top: 0; }
+.rep-ed .ed-hero { padding-top: 24px; }
+.rep-ed .sheet-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.rep-stats { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); margin-bottom: 28px; }
+.rep-stats > div { padding: 14px 22px 22px 0; border-right: 1px solid rgba(58,63,68,.12); display: grid; align-content: start; gap: 12px; }
+.rep-stats > div:last-child { border-right: 0; padding-left: 22px; }
+.rep-stats .mono { color: var(--ink-2); font-size: .75rem; }
+.rep-rings .arings { justify-content: flex-start; }
+.rep-rings .ring-help { margin: 0; }
+.rep-range .range { margin: 0; }
+@media (max-width: 760px) { .rep-stats { grid-template-columns: 1fr; } .rep-stats > div { border-right: 0; padding-left: 0 !important; } .rep-stats > div + div { border-top: 1px solid rgba(58,63,68,.12); } }
+/* green: olive rings and accents */
+.aring svg circle:last-child { stroke: var(--forest); }
+.aring:nth-child(1) svg circle:last-child { stroke: var(--navy); }
+.aring:nth-child(3) svg circle:last-child { stroke: #8E9A6A; }
+.ed-kicker::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--forest); margin-right: 8px; vertical-align: 1px; }
+.ed-stats { border-top-color: rgba(95,112,64,.45); }
+.ed-stats b { color: #363B40; }
+.ed-stats li:first-child b { color: var(--forest); }
+.opt-tag, .kicker-line { color: var(--forest) !important; }
+.topnav button[aria-current="page"] { color: var(--forest); box-shadow: inset 0 -2px 0 var(--forest); }
+/* meadow at the bottom of every app page */
+.app-meadow { height: 150px; margin-top: 40px; position: relative; overflow: hidden;
+  background: repeating-linear-gradient(97deg, transparent 0 5px, rgba(70,82,40,.26) 5px 6px, rgba(230,226,190,.18) 6px 9px),
+              linear-gradient(180deg, rgba(241,238,230,0) 0%, rgba(201,201,166,.6) 35%, rgba(142,154,106,.85) 70%, #6E7C4C 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 40%); mask-image: linear-gradient(180deg, transparent 0%, #000 40%);
+  transform-origin: bottom; animation: sway 7s ease-in-out infinite alternate; }
+main.page { padding-bottom: 0 !important; }
+@media (max-width: 760px) { .app-meadow { height: 110px; margin-bottom: 80px; } }
+@media (prefers-reduced-motion: reduce) { .app-meadow { animation: none; } }
+.rep-stats .aring b { font: 600 0.98rem/1.3 var(--sans); letter-spacing: 0; color: var(--ink); }
+.rep-stats .aring small { font-size: .8rem; max-width: none; }
+.rep-stats .arings { gap: 26px; }
+.rep-ed .sheet-actions .btn { width: auto; }
+.rep-ed .ed-hero { align-items: end; }
+.rep-ed .sheet-actions { flex-direction: row; }
+.rep-ed .sheet-actions .btn { flex: 0 0 auto; }
+.rep-rings .ring-help { justify-self: start; }

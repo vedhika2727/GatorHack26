@@ -369,31 +369,34 @@ export default function Report({ go }) {
   return (
     <div className="wrap wide sheet-page">
       <article className="sheet">
-        <section className="rep-panel rep-top" aria-label="Report summary">
-        <header className="sheet-head">
-          <div className="who">
-            <p className="kicker-line">Report for your care team</p>
-            <h1>{user.name}</h1>
-            <p className="muted">{fullRange ? `Before cycle ${last.cycle + 1}. ` : ''}Check-ins {fmtDate(first.date)} to {fmtDate(last.date)}{fullRange ? '' : ` (cycles ${first.cycle} to ${last.cycle})`}{user.mode === 'demo' ? ', demo patient' : ''}.</p>
-            <p className="for-team">This is made for your oncologist. It has every measurement from your check-ins and scans, so your care team can see what changed. <b>You don’t need to read it yourself.</b> Copy it or show it at your next appointment.</p>
-            {allCheckins.length > 1 && <div className="range no-print" role="group" aria-label="Date range">
-              <label>From<select value={from} onChange={(e) => setRange([+e.target.value, Math.max(+e.target.value, to)])}>{allCheckins.map((c, k) => <option key={c.id} value={k}>C{c.cycle}, {fmtDate(c.date)}</option>)}</select></label>
-              <label>To<select value={to} onChange={(e) => setRange([Math.min(from, +e.target.value), +e.target.value])}>{allCheckins.map((c, k) => <option key={c.id} value={k} disabled={k < from}>C{c.cycle}, {fmtDate(c.date)}</option>)}</select></label>
+        <section className="rep-ed" aria-label="Report summary">
+          <div className="ed-hero">
+            <div>
+              <p className="mono ed-kicker">Report for your care team · {fmtDate(first.date)} – {fmtDate(last.date)}{user.mode === 'demo' ? ' · demo patient' : ''}</p>
+              <h1>{user.name}.</h1>
+            </div>
+            <div className="ed-next">
+              <p className="mono ed-kicker">{fullRange ? `Before cycle ${last.cycle + 1}` : `Cycles ${first.cycle} to ${last.cycle}`}</p>
+              <p className="ed-next-t">This is made for your oncologist. <b>You don’t need to read it yourself.</b> Copy it or show it at your next appointment.</p>
+              <div className="sheet-actions no-print">
+                <button type="button" className="btn primary" onClick={copy}><Icon name="copy" size={16} /> Copy report text</button>
+                {checkins.length > 1 && <button type="button" className="btn" onClick={() => setStoryOpen(true)}><Icon name="timeline" size={16} /> Cycle by cycle</button>}
+                {!HOSTED_PREVIEW && <button type="button" className="btn" onClick={() => window.print()}><Icon name="printer" size={16} /> Print</button>}
+              </div>
+              {copied && <p className="fine" role="status">{copied}</p>}
+            </div>
+          </div>
+          <div className="ed-stats rep-stats">
+            <div className="rep-rings"><span className="mono">[01–03] Since your first check-in</span><Rings step={step} />
+              <button type="button" className="linkish ring-help no-print" aria-expanded={showRingHelp} aria-controls="ring-help" onClick={() => setShowRingHelp(!showRingHelp)}>{showRingHelp ? 'Hide' : 'What do the rings mean?'}</button></div>
+            {allCheckins.length > 1 && <div className="rep-range no-print"><span className="mono">[04] Date range</span>
+              <div className="range" role="group" aria-label="Date range">
+                <label>From<select value={from} onChange={(e) => setRange([+e.target.value, Math.max(+e.target.value, to)])}>{allCheckins.map((c, k) => <option key={c.id} value={k}>C{c.cycle}, {fmtDate(c.date)}</option>)}</select></label>
+                <label>To<select value={to} onChange={(e) => setRange([Math.min(from, +e.target.value), +e.target.value])}>{allCheckins.map((c, k) => <option key={c.id} value={k} disabled={k < from}>C{c.cycle}, {fmtDate(c.date)}</option>)}</select></label>
+              </div>
               {!fullRange && <button type="button" className="linkish" onClick={() => setRange([0, allCheckins.length - 1])}>Show everything</button>}
             </div>}
-            <div className="sheet-actions no-print">
-              <button type="button" className="btn primary small" onClick={copy}><Icon name="copy" size={16} /> Copy report text</button>
-              {checkins.length > 1 && <button type="button" className="btn small" onClick={() => setStoryOpen(true)}><Icon name="timeline" size={16} /> Cycle by cycle</button>}
-              {!HOSTED_PREVIEW && <button type="button" className="btn small" onClick={() => window.print()}><Icon name="printer" size={16} /> Print</button>}
-            </div>
-            {copied && <p className="fine" role="status">{copied}</p>}
           </div>
-          <div className="ring-block">
-            <Rings step={step} />
-            <button type="button" className="linkish ring-help no-print" aria-expanded={showRingHelp} aria-controls="ring-help" onClick={() => setShowRingHelp(!showRingHelp)}>{showRingHelp ? 'Hide' : 'What do the rings mean?'}</button>
-          </div>
-        </header>
-
         {showRingHelp && <section className="score-explain" id="ring-help" aria-labelledby="se-h">
           <h2 id="se-h">How to read the rings</h2>
           <ul>

@@ -96,9 +96,24 @@ export default function Twin({ go }) {
   const gnum = (g) => (g?.ok ? `${Math.round(g.cadence)} steps/min` : 'no walk');
 
   return (
-    <div className="wrap">
-      <h1>Your function twin</h1>
-      <p className="lede">Each test on its own is noisy: a tired day or different shoes can change one result. Your twin combines all your signals, trusts the reliable ones more, and turns that into one function score: 100 is how your walking, balance, and hands were at your first check-in, and it drops as they change.</p>
+    <div className="wrap wide page-ed">
+      <section className="ed-hero" aria-labelledby="twin-h">
+        <div>
+          <p className="mono ed-kicker">Function twin · cycle {cur.cycle}, {fmtDate(cur.date)}</p>
+          <h1 id="twin-h">Your function<br />twin.</h1>
+        </div>
+        <div className="ed-next">
+          <p className="mono ed-kicker">How it works</p>
+          <p className="ed-next-t">Each test on its own is noisy. Your twin combines all your signals, trusts the reliable ones more, and turns them into one function score. 100 is how you were at your first check-in.</p>
+        </div>
+      </section>
+      <ul className="ed-stats" aria-label="At a glance">
+        <li><span className="mono">[01]</span><b>{Math.round(step.score)}</b><small>function score at cycle {cur.cycle}</small></li>
+        <li><span className="mono">[02]</span><b>{Math.round(step.scoreLow)}–{Math.round(step.scoreHigh)}</b><small>likely range</small></li>
+        <li><span className="mono">[03]</span><b>{checkins.length}</b><small>check-ins combined</small></li>
+        <li><span className="mono">[04]</span><b>{i > 0 ? flags.length : 0}</b><small>changes since your first check-in</small></li>
+      </ul>
+      <div className="page-ed-body">
 
       <section className="card twin-hero" aria-label="Twin estimate">
         <div className="score-row" style={{ justifyContent: 'space-between' }}>
@@ -187,6 +202,7 @@ export default function Twin({ go }) {
       <div className="actions">
         <button type="button" className="btn primary" onClick={() => go('checkin')}><Icon name="plus" size={18} /> New check-in</button>
         <button type="button" className="btn" onClick={() => go('report')}><Icon name="report" size={18} /> Make a report for my care team</button>
+      </div>
       </div>
     </div>
   );

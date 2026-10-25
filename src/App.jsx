@@ -67,6 +67,7 @@ export default function App() {
         {v === 'account' && <Account go={go} />}
       </main>
 
+      {v !== 'welcome' && <div className="app-meadow" aria-hidden="true" />}
       {!signedIn && <footer className="site-foot"><div className="wrap wide"><p className="fine">Prototype built for Gator Hack V. Not a medical device. Explanations by Gemma 4. Measurements are approximate and only meaningful compared with your own earlier check-ins.</p></div></footer>}
 
       {signedIn && (
