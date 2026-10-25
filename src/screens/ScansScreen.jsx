@@ -288,7 +288,15 @@ export default function ScansScreen() {
         <div className="wrap wide">
           <div className="sc-head">
             <h1 id="scans-h">Scans</h1>
-            <p className="mono">{scans.length} report{scans.length === 1 ? '' : 's'} · every size checked against the report’s own words</p>
+            <p className="mono">Every size checked against the report’s own words</p>
+          </div>
+          <ul className="sc-stats" aria-label="At a glance">
+            <li><b>{scans.length}</b><span className="mono">reports</span></li>
+            <li><b>{data.tracks.length}</b><span className="mono">spots tracked</span></li>
+            {(() => { const ch = data.tracks.map((t) => t.changePct).filter((v) => v != null); const m = ch.length ? Math.min(...ch) : null; return m != null ? <li><b>{m > 0 ? '+' : ''}{m}%</b><span className="mono">biggest change in size</span></li> : null; })()}
+            {groups.length > 0 && <li><b>{fmtDate(groups[groups.length - 1][0].date)}</b><span className="mono">latest scan</span></li>}
+          </ul>
+          <div hidden>
           </div>
           {scans.length ? <div className="sc-room">
             <div className="lightbox"><SpotChart data={data} selected={i} focus={focus} onPick={setSel} onFocus={setFocus} /></div>

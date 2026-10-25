@@ -66,7 +66,7 @@ export default function Landing({ go }) {
         <ul className="ed-stats" aria-label="At a glance">
           <li><span className="mono">[01]</span><b>2 min</b><small>per check-in, before each infusion</small></li>
           <li><span className="mono">[02]</span><b>4</b><small>quick tests: questions, walk, balance, tapping</small></li>
-          <li><span className="mono">[03]</span><b>Every</b><small>scan size checked against the report’s own words</small></li>
+          <li><span className="mono">[03]</span><b>100%</b><small>of scan sizes checked against the report’s own words</small></li>
           <li><span className="mono">[04]</span><b>1 page</b><small>for your oncologist, ready to share</small></li>
         </ul>
 
