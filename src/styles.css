@@ -809,3 +809,25 @@ main[data-view="welcome"] .sky-hero { margin-top: 0; }
 .sky-lede { color: rgba(255, 255, 255, 0.95); font-size: 1.12rem; line-height: 1.55; max-width: 46ch; margin: 0 0 26px; text-shadow: 0 1px 14px rgba(0, 0, 0, 0.18); }
 .sky-card { margin-bottom: 0 !important; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 .sky-hero + section { margin-top: 56px; }
+
+/* ---------- Landing: the sky carries through the page ---------- */
+body:has(main[data-view="welcome"]) { background: #E6EEF7; }
+main[data-view="welcome"] { position: relative; isolation: isolate; padding-bottom: 0; }
+main[data-view="welcome"]::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(40vw 14vw at 18% 22%, rgba(255,255,255,.9), transparent 70%),
+    radial-gradient(34vw 12vw at 80% 48%, rgba(255,255,255,.75), transparent 70%),
+    radial-gradient(46vw 16vw at 40% 82%, rgba(255,255,255,.6), transparent 70%),
+    linear-gradient(180deg, #A9C3E4 0%, #CFDDEE 45%, #ECEBE3 100%); }
+.land-panel { background: rgba(255, 255, 255, 0.72); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border-radius: 28px; padding: 36px 40px 40px; margin-block: 28px; box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 24px 50px -30px rgba(40, 60, 90, 0.35);
+  max-width: min(1120px, calc(100% - 32px)); }
+.sky-hero + .land-panel { margin-top: 40px; }
+.land-panel h2 { margin-top: 2px; }
+.kicker-mono { color: var(--ink-2); font-size: 0.8rem; margin: 0 0 6px; }
+.land-panel .feature { border-top-color: rgba(0, 0, 0, 0.08); }
+@media (max-width: 600px) { .land-panel { padding: 24px 18px 28px; border-radius: 22px; } }
+/* closing band */
+.sky-end { min-height: 480px; margin-top: 48px; }
+.sky-end h2 { color: #fff; font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.02; letter-spacing: -0.035em; max-width: 16ch; margin: 0 0 24px; text-shadow: 0 1px 24px rgba(0,0,0,.12); }
+.sky-end .sky-inner { padding-block: 72px 64px; }

@@ -62,7 +62,8 @@ export default function Landing({ go }) {
         </div>
       </section>
 
-      <section className="wrap wide">
+      <section className="wrap wide land-panel">
+        <p className="mono kicker-mono">01 / The check-in</p>
         <h2>A check-in, start to finish</h2>
         <p className="muted" style={{ marginTop: 0 }}>Under two minutes from start to finish.</p>
         <ol className="route">
@@ -83,7 +84,8 @@ export default function Landing({ go }) {
         </ol>
       </section>
 
-      <section className="wrap wide">
+      <section className="wrap wide land-panel">
+        <p className="mono kicker-mono">02 / What’s inside</p>
         <h2>What’s inside</h2>
         <div className="feature-list">
           {FEATURES.map((f) => (
@@ -95,13 +97,28 @@ export default function Landing({ go }) {
         </div>
       </section>
 
-      <section className="wrap wide">
+      <section className="wrap wide land-panel">
+        <p className="mono kicker-mono">03 / Where it stops</p>
         <h2>Where it stops</h2>
         <div className="safety">
           <p>The phone measures how you walk, balance, and tap. Those can change from chemo side effects, and also from tiredness, anemia, pain, and plenty else. Only your care team can say why. This is a hackathon prototype, not a medical device, and it hasn’t been clinically validated.</p>
           <p className="fine">The tests follow a published smartphone study in people on chemotherapy (NeuroDetect, JMIR 2025). Explanations are written by Gemma 4, Google’s open AI model.</p>
         </div>
-        <div className="actions"><button type="button" className="btn primary" onClick={() => go('signup')}>Create an account</button><button type="button" className="btn ghost" onClick={() => go('signin')}>I already have one</button></div>
+      </section>
+
+      <section className="sky-hero sky-end" aria-labelledby="end-h">
+        <div className="sky" aria-hidden="true">
+          <span className="cloud c1" /><span className="cloud c3" />
+          <span className="meadow" />
+        </div>
+        <div className="wrap wide sky-inner">
+          <p className="mono sky-ml">Before your next infusion</p>
+          <h2 id="end-h">Bring something concrete to your next appointment.</h2>
+          <div className="actions">
+            <button type="button" className="btn sky-btn" onClick={() => go('signup')}>Create an account</button>
+            <button type="button" className="btn sky-ghost" onClick={() => go('signin')}>I already have one</button>
+          </div>
+        </div>
       </section>
     </>
   );
