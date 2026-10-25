@@ -110,25 +110,17 @@ function ReadView({ s, onOpenImage }) {
   );
 }
 
-// Each doctor's read gets a shape, so reads can be told apart without colors (and in print).
-const SHAPES = ['fill', 'ring', 'diamond', 'square', 'triangle', 'cross'];
-const SHAPE_WORDS = ['filled dot', 'ring', 'diamond', 'square', 'triangle', 'cross'];
-const Mark = ({ i }) => <span className={`mark m-${SHAPES[i % SHAPES.length]}`} aria-hidden="true" />;
-
-/** A ruler for one spot: a marker per doctor, and a band from the smallest to the largest size. */
-function Ruler({ values, max }) {
-  const seen = {};
-  const got = values.filter((v) => v != null);
-  const lo = Math.min(...got), hi = Math.max(...got);
+/** One spot across doctors: a thin bar per doctor, labeled with their name, as long as the size they gave. */
+function Bars({ values, reads, max }) {
   return (
-    <div className="ruler" aria-hidden="true">
-      <span className="rline" />
-      {got.length > 1 && hi > lo && <span className="rband" style={{ left: `${(lo / max) * 100}%`, width: `${((hi - lo) / max) * 100}%` }} />}
-      {values.map((v, i) => {
-        if (v == null) return null;
-        const n = (seen[v] = (seen[v] || 0) + 1) - 1; // nudge markers that land on the same size
-        return <span key={i} className="rmark" style={{ left: `calc(${(v / max) * 100}% + ${n * 10}px)` }}><Mark i={i} /></span>;
-      })}
+    <div className="dbars">
+      {values.map((v, i) => (
+        <div key={i} className="dbar">
+          <span className="dbar-who">{reads[i].reader}</span>
+          <span className="dbar-track" aria-hidden="true">{v != null && <i style={{ width: `${Math.max(2, (v / max) * 100)}%` }} />}</span>
+          <span className="dbar-v">{v != null ? `${v} mm` : 'not measured'}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -147,9 +139,7 @@ function CompareView({ reads }) {
     <div className="read cmp">
       <p className="compare-lead">{reads.length} radiologists read this {reads[0].kind}. {cmp.rows.length ? `They agree on ${agree} of ${cmp.rows.length} spots${differ ? ` and see ${differ} differently` : ''}.` : ''}</p>
 
-      <ol className="readers">
-        {reads.map((r, i) => <li key={r.id}><Mark i={i} /><span><b>{r.reader}</b> <small>{fmtDate(r.date)}</small></span><span className="sr-only">, shown as a {SHAPE_WORDS[i]}</span></li>)}
-      </ol>
+      <p className="muted read-by">Read by {reads.map((r, i) => <span key={r.id}>{i ? (i === reads.length - 1 ? ' and ' : ', ') : ''}<b>{r.reader}</b> ({fmtDate(r.date)})</span>)}.</p>
 
       <div className="spots-cmp">
         {cmp.rows.map((x, k) => (
@@ -158,16 +148,15 @@ function CompareView({ reads }) {
               <b>{x.location}</b>
               <small>{note(x)}</small>
             </div>
-            <Ruler values={x.values} max={max} />
-            <div className="cspot-vals">{x.values.map((v, i) => <span key={i} title={reads[i].reader}><Mark i={i} />{v != null ? `${v} mm` : 'not measured'}</span>)}</div>
+            <Bars values={x.values} reads={reads} max={max} />
           </div>
         ))}
-        <p className="fine">Ruler in millimeters. The grey band runs from the smallest to the largest size given. Radiologists often measure the same spot a few millimeters apart; bigger gaps are worth asking about.</p>
+        <p className="fine">Bars are drawn to the same scale, so bars that end in the same place mean the doctors agree. Radiologists often measure the same spot a few millimeters apart; bigger gaps are worth asking about.</p>
       </div>
 
       <div className="also">
-        <div className="also-row"><span className="also-k">New finding mentioned</span>{cmp.newFinding.map((v, i) => <span key={i} title={reads[i].reader}><Mark i={i} />{v ? 'Yes' : 'No'}</span>)}</div>
-        <div className="also-row"><span className="also-k">Overall, compared with the last scan</span>{cmp.change.map((v, i) => <span key={i} title={reads[i].reader}><Mark i={i} />{SHORT[v] || v}</span>)}</div>
+        <div className="also-row"><span className="also-k">New finding mentioned</span>{cmp.newFinding.map((v, i) => <span key={i}><small>{reads[i].reader}</small>{v ? 'Yes' : 'No'}</span>)}</div>
+        <div className="also-row"><span className="also-k">Overall, compared with the last scan</span>{cmp.change.map((v, i) => <span key={i}><small>{reads[i].reader}</small>{SHORT[v] || v}</span>)}</div>
       </div>
 
       {o && <div className="explain">
@@ -193,7 +182,7 @@ function ScanDetail({ group, onOpenImage }) {
       {group.length > 1 && (
         <div className="tabs" role="tablist" aria-label="Choose a read">
           <button type="button" role="tab" aria-selected={tab === 'compare'} className="cmp" onClick={() => setTab('compare')}><Icon name="doctors" size={17} /> Compare reads</button>
-          {group.map((g, k) => <button key={g.id} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}><Mark i={k} />{g.reader}</button>)}
+          {group.map((g, k) => <button key={g.id} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{g.reader}</button>)}
         </div>
       )}
       {tab === 'compare' && group.length > 1 ? <CompareView reads={group} /> : <ReadView s={s} onOpenImage={onOpenImage} />}

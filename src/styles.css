@@ -627,35 +627,28 @@ main[data-view="report"] { background: var(--surface); }
 .gcol li small { color: var(--ink-2); font-size: 0.84rem; font-variant-numeric: tabular-nums; }
 .gcol .muted { margin: 8px 4px; }
 
-/* Compare any number of reads: one shape per doctor */
-.mark { display: inline-block; width: 13px; height: 13px; flex: 0 0 auto; position: relative; }
-.m-fill { border-radius: 50%; background: var(--ink); }
-.m-ring { border-radius: 50%; border: 2.5px solid var(--ink); background: var(--bg); }
-.m-diamond { background: var(--ink); transform: rotate(45deg) scale(0.8); border-radius: 2px; }
-.m-square { border: 2.5px solid var(--ink); border-radius: 2px; background: var(--bg); }
-.m-triangle { width: 0; height: 0; border-left: 7.5px solid transparent; border-right: 7.5px solid transparent; border-bottom: 13px solid var(--ink); }
-.m-cross { background: linear-gradient(var(--ink), var(--ink)) center / 100% 3px no-repeat, linear-gradient(var(--ink), var(--ink)) center / 3px 100% no-repeat; }
-.readers { list-style: none; padding: 0; margin: 2px 0 20px; display: flex; flex-wrap: wrap; gap: 8px 26px; }
-.readers li { display: flex; gap: 9px; align-items: center; }
-.readers small { color: var(--ink-2); font-size: 0.85rem; margin-left: 2px; }
-.tabs .mark { margin-right: 7px; }
+/* Compare any number of reads: a labeled bar per doctor */
+.read-by { margin: 0 0 16px; }
+.read-by b { color: var(--ink); font-weight: 600; }
 .spots-cmp { display: grid; }
-.cspot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); grid-template-areas: "name ruler" "name vals"; column-gap: 28px; row-gap: 2px; padding: 14px 0; border-top: 1px solid var(--line); align-items: center; }
-.cspot-name { grid-area: name; display: grid; gap: 1px; }
+.cspot { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr); column-gap: 28px; padding: 16px 0; border-top: 1px solid var(--line); align-items: center; }
+.cspot-name { display: grid; gap: 1px; align-self: start; }
 .cspot-name small { color: var(--ink-2); }
 .cspot.differ .cspot-name small, .cspot.some .cspot-name small { color: var(--ink); font-weight: 600; }
-.cspot .ruler { grid-area: ruler; }
-.cspot-vals { grid-area: vals; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 0.88rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.cspot-vals span, .also-row span[title] { display: inline-flex; align-items: center; gap: 7px; }
-@media (max-width: 600px) { .cspot { grid-template-columns: 1fr; grid-template-areas: "name" "ruler" "vals"; } }
-.ruler { position: relative; height: 26px; margin: 0 8px; }
-.rline { position: absolute; left: 0; right: 0; top: 12px; height: 2px; background: var(--body-line); opacity: 0.6; border-radius: 1px; }
-.rband { position: absolute; top: 8px; height: 10px; border-radius: 5px; background: rgba(28, 28, 30, 0.12); }
-.rmark { position: absolute; top: 6.5px; transform: translateX(-50%); line-height: 0; transition: left 0.4s ease; }
+@media (max-width: 600px) { .cspot { grid-template-columns: 1fr; row-gap: 10px; } }
+.dbars { display: grid; gap: 7px; }
+.dbar { display: grid; grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) 5.5rem; gap: 12px; align-items: center; font-size: 0.88rem; }
+.dbar-who { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dbar-track { height: 8px; border-radius: 4px; background: var(--tint); overflow: hidden; }
+.dbar-track i { display: block; height: 100%; border-radius: 4px; background: var(--ink); transition: width 0.4s ease; }
+.dbar-v { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 600px) { .dbar { grid-template-columns: minmax(0, 1fr) 5rem; row-gap: 3px; } .dbar-who { grid-column: 1; } .dbar-v { grid-column: 2; grid-row: 1; } .dbar-track { grid-column: 1 / -1; } }
 .also { margin: 16px 0 6px; border-top: 1px solid var(--line); }
-.also-row { display: flex; flex-wrap: wrap; gap: 6px 20px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 0.95rem; align-items: center; }
+.also-row { display: flex; flex-wrap: wrap; gap: 6px 28px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 0.95rem; align-items: baseline; }
+.also-row > span:not(.also-k) { display: grid; }
+.also-row small { color: var(--ink-2); font-size: 0.8rem; }
 .also-k { flex: 1 1 100%; color: var(--ink-2); font-size: 0.85rem; }
-@media (min-width: 601px) { .also-k { flex: 0 0 15rem; } }
+@media (min-width: 601px) { .also-k { flex: 0 0 13rem; } }
 
 /* Scan details sit on the page, not in a white box */
 .scan-detail { background: none; border-radius: 0; padding: 4px 0 0; }

@@ -100,7 +100,13 @@ function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, sel, 
   const n = values.length;
   const x = (k) => (n === 1 ? (L + W - R) / 2 : L + (k / (n - 1)) * (W - L - R));
   const y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
-  const ticks = cats ? cats.map((_, i) => i) : [lo, (lo + hi) / 2, hi];
+  let ticks;
+  if (cats) ticks = cats.map((_, i) => i);
+  else {
+    const raw = (hi - lo) / 3, mag = 10 ** Math.floor(Math.log10(raw)), stepN = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((m) => m >= raw) || raw;
+    lo = Math.floor(lo / stepN) * stepN; hi = Math.ceil(hi / stepN) * stepN;
+    ticks = []; for (let t = lo; t <= hi + 1e-9; t += stepN) ticks.push(+t.toFixed(4));
+  }
   const pts = nums.map((v, k) => (v == null ? null : [x(k), y(v)]));
   const path = pts.filter(Boolean).map((p) => p.join(',')).join(' ');
   const pick = (e) => {
@@ -126,7 +132,7 @@ function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, sel, 
         {pts.map((p, k) => p && <circle key={k} cx={p[0]} cy={p[1]} r={k === sel ? 7 : 4.5} fill={k === sel ? 'var(--navy)' : 'var(--surface)'} stroke="var(--navy)" strokeWidth="2.5" />)}
         {xLabels.map((t, k) => <text key={k} x={x(k)} y={H - 10} textAnchor="middle" fontSize="12.5" fontWeight={k === sel ? 700 : 400} fill={k === sel ? 'var(--ink)' : 'var(--ink-2)'}>{t}</text>)}
       </svg>
-      {s && <div className="lc-tip" style={{ left: `${Math.min(92, Math.max(8, (s[0] / W) * 100))}%`, top: `${(s[1] / H) * 100}%` }}>{cats ? cats[nums[sel]] : fmt(nums[sel])}</div>}
+      {s && <div className="lc-tip" style={{ left: `${Math.min(92, Math.max(8, (s[0] / W) * 100))}%`, top: `${(s[1] / H) * 100}%` }}>{xLabels[sel]}: {cats ? cats[nums[sel]] : fmt(nums[sel])}</div>}
       </div>
       <div className="lc-steps" role="group" aria-label="Choose a point">
         {xLabels.map((t, k) => nums[k] != null && <button key={k} type="button" aria-pressed={k === sel} onClick={() => onSel(k)}>{t}</button>)}
@@ -187,7 +193,7 @@ function Explorer({ checkins, twin, tracks }) {
   const lastK = it.values.reduce((m, v, k) => (v != null ? k : m), 0);
   const [sel, setSel] = useState(lastK);
   useEffect(() => { setSel(lastK); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const fmt = (v) => (v == null ? '' : `${Math.round(v * 100) / 100}${it.unit && !['of 100'].includes(it.unit) ? (/^[%/×]/.test(it.unit) ? it.unit : ` ${it.unit}`) : ''}`);
+  const fmt = (v) => (v == null ? '' : `${Math.round(v * 100) / 100}${it.unit ? (/^[%/×]/.test(it.unit) ? it.unit : ` ${it.unit}`) : ''}`);
   const sentence = it.spot
     ? (it.spot.changePct == null ? `First measured ${fmtDate(tracks.dates[it.spot.points.findIndex(Boolean)])} at ${it.spot.last} mm.` : `Measured ${it.spot.first} mm on ${fmtDate(tracks.dates[0])} and ${it.spot.last} mm on ${fmtDate(tracks.dates[tracks.dates.length - 1])}, as written in the radiology reports.`)
     : describe(it.id, it.raw ? it.raw[0] : it.values[0], it.raw ? it.raw[it.raw.length - 1] : it.values[it.values.length - 1], first.cycle);
