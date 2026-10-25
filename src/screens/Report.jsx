@@ -135,6 +135,45 @@ function LineChart({ values, xLabels, band, cats, fmt, axisFmt, unitLabel, sel, 
   );
 }
 
+
+/* At a glance: every measure sorted into Better / About the same / Worse versus the first check-in.
+   "Worse" is exactly what the fixed change rules flag; "Better" uses the same size of change in the
+   other direction. */
+const SOME = { cadence: [-1, 8, 'pct'], variability: [1, 1.5, 'abs'], regularity: [-1, 0.1, 'abs'], hesitations: [1, 1, 'abs'], sway: [1, 50, 'pct'], romberg: [1, 30, 'pct'], 'tap-right': [-1, 15, 'pct'], 'tap-left': [-1, 15, 'pct'], feetNumb: [1, 2, 'abs'], handsNumb: [1, 2, 'abs'], feetPain: [1, 2, 'abs'] };
+function sortOf(id, a, b, flagged) {
+  if (flagged) return 'worse';
+  if (id === 'buttons') return a === 'Yes' && b === 'No' ? 'better' : 'same';
+  if (id === 'falls') return a !== 'None' && b === 'None' ? 'better' : 'same';
+  const t = SOME[id]; if (!t || a == null || b == null) return 'same';
+  const raw = t[2] === 'pct' ? (a ? ((b - a) / a) * 100 : 0) : b - a;
+  return raw * t[0] <= -t[1] ? 'better' : 'same';
+}
+function Glance({ items, first, last, onPick }) {
+  const flags = new Set(Trends.compare(first, last).map((f) => f.id));
+  const rows = items.filter((x) => x.raw).map((x) => ({ x, a: x.raw[0], b: x.raw[x.raw.length - 1], k: sortOf(x.id, x.raw[0], x.raw[x.raw.length - 1], flags.has(x.id)) }));
+  const cols = [['better', 'Better'], ['same', 'About the same'], ['worse', 'Worse']];
+  return (
+    <div className="glance" aria-label={`Every measure compared with cycle ${first.cycle}`}>
+      <p className="glance-lead">Every measure, cycle {first.cycle} compared with cycle {last.cycle}:</p>
+      <div className="glance-cols">
+        {cols.map(([k, name]) => {
+          const list = rows.filter((r) => r.k === k);
+          return (
+            <div key={k} className={`gcol ${k}`}>
+              <h3>{name} <span>{list.length}</span></h3>
+              {list.length ? <ul>{list.map(({ x, a, b }) => (
+                <li key={x.id}><button type="button" onClick={() => onPick(x.id)}>
+                  <span>{x.label}</span><small>{show(a, x.unit)} → {show(b, x.unit)}</small>
+                </button></li>
+              ))}</ul> : <p className="muted">None</p>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Explorer({ checkins, twin, tracks }) {
   const first = checkins[0];
   const cyc = checkins.map((c) => `C${c.cycle}`);
@@ -176,6 +215,7 @@ function Explorer({ checkins, twin, tracks }) {
           axisFmt={(v) => { const r = Math.abs(v) >= 10 ? Math.round(v) : Math.round(v * 10) / 10; return String(r); }} unitLabel={it.cats ? '' : it.id === 'twin' ? 'of 100' : it.unit === '×' ? 'times' : it.unit}
           label={`${it.label}: ${it.values.map((v, k) => `${it.xLabels[k]} ${v == null ? 'none' : it.cats ? it.cats[v] : fmt(v)}`).join(', ')}`} />
         <p className="fine">{it.id === 'twin' ? 'The shaded area is the likely range. ' : ''}Hover or tap the graph to see each {it.spot ? 'scan' : 'check-in'}.</p>
+        {it.id === 'twin' && <Glance items={items} first={checkins[0]} last={checkins[checkins.length - 1]} onPick={(k) => { setId(k); window.scrollTo({ top: document.querySelector('.explore').getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' }); }} />}
       </div>
     </section>
   );

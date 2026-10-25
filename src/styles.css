@@ -612,3 +612,17 @@ main[data-view="report"] { background: var(--surface); }
 .range select { font: 500 0.95rem var(--sans); color: var(--ink); padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 9px; background: var(--surface); min-height: 42px; }
 .range .linkish { padding-bottom: 10px; font-size: 0.92rem; }
 .sheet-head .sheet-actions { margin-top: 14px; }
+
+/* Overall at a glance: three plain columns */
+.glance { margin-top: 30px; border-top: 1px solid var(--line); padding-top: 18px; }
+.glance-lead { margin: 0 0 14px; font-weight: 600; }
+.glance-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+@media (max-width: 680px) { .glance-cols { grid-template-columns: 1fr; gap: 18px; } }
+.gcol h3 { font-size: 1rem; margin: 0 0 6px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); display: flex; justify-content: space-between; }
+.gcol.same h3 { border-bottom-color: var(--body-line); }
+.gcol h3 span { color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.gcol ul { list-style: none; padding: 0; margin: 0; }
+.gcol li button { width: 100%; display: grid; gap: 1px; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 9px 4px; font: inherit; color: var(--ink); cursor: pointer; border-radius: 0; }
+.gcol li button:hover { background: var(--tint); }
+.gcol li small { color: var(--ink-2); font-size: 0.84rem; font-variant-numeric: tabular-nums; }
+.gcol .muted { margin: 8px 4px; }
