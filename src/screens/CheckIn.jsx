@@ -9,17 +9,20 @@ import { today } from '../lib/format.js';
 const WALK_S = 30, BAL_S = 20, TAP_S = 10;
 const STEP_NAMES = ['Symptoms', 'Walk', 'Balance', 'Hands', 'Done'];
 
-function Scale({ id, label, value, onChange }) {
-  const word = value === 0 ? 'None' : value <= 3 ? 'Mild' : value <= 6 ? 'Moderate' : 'Severe';
+const WORD = (v) => (v === 0 ? 'None' : v <= 3 ? 'Mild' : v <= 6 ? 'Moderate' : 'Severe');
+function Scale({ id, n, tag, label, value, onChange }) {
   return (
-    <fieldset className="panel" style={{ margin: '12px 0' }}>
-      <legend style={{ fontWeight: 700, padding: '0 4px' }}>{label}</legend>
-      <div className="scale" role="group" aria-label={label}>
+    <fieldset className="sym-card">
+      <legend className="sr-only">{label}</legend>
+      <p className="mono sym-tag"><span>{n}</span>{tag}</p>
+      <p className="sym-q" aria-hidden="true">{label}</p>
+      <p className="sym-read" aria-live="polite"><b>{value}</b><span>/10</span><em>{WORD(value)}</em></p>
+      <div className="sym-scale" role="group" aria-label={label}>
         {Array.from({ length: 11 }, (_, i) => (
-          <button key={i} id={`${id}-${i}`} type="button" aria-pressed={value === i} className={i >= 7 ? 'high' : i >= 4 ? 'mid' : ''} onClick={() => onChange(i)}>{i}</button>
+          <button key={i} id={`${id}-${i}`} type="button" aria-pressed={value === i} aria-label={`${i} out of 10`} onClick={() => onChange(i)}>{i}</button>
         ))}
       </div>
-      <div className="scale-ends"><span>0 = none</span><strong style={{ color: 'var(--ink)' }}>{value}: {word}</strong><span>10 = worst imaginable</span></div>
+      <div className="sym-ends"><span>None</span><span>Worst imaginable</span></div>
     </fieldset>
   );
 }
@@ -119,7 +122,7 @@ export default function CheckIn({ go }) {
   const flags = saved && all.length > 1 ? Trends.compare(all[0], saved) : [];
 
   return (
-    <div className="wrap">
+    <div className={step === 1 ? 'wrap wide ci-ed' : 'wrap'}>
       <div className="wizard-head">
         <button type="button" className="btn ghost small" onClick={() => (step > 1 && step < 5 ? goStep(step - 1) : go('home'))}><Icon name="arrowLeft" size={18} /> {step > 1 && step < 5 ? 'Back' : 'Home'}</button>
         <span className="step-label">Step {step} of 5: {STEP_NAMES[step - 1]}</span>
@@ -128,28 +131,49 @@ export default function CheckIn({ go }) {
 
       {step === 1 && (
         <form onSubmit={(e) => { e.preventDefault(); goStep(2); }}>
-          <h1>How have your feet and hands been this week?</h1>
-          <div className="grid2">
-            <label className="field">Chemo cycle number<input id="ci-cycle" type="number" min="1" max="60" inputMode="numeric" value={d.cycle} onChange={(e) => set({ cycle: Math.max(1, parseInt(e.target.value || '1', 10)) })} /></label>
-            <label className="field">Date<input id="ci-date" type="date" value={d.date} onChange={(e) => set({ date: e.target.value || today() })} /></label>
-          </div>
-          <Scale id="feet" label="Numbness or tingling in my feet" value={d.symptoms.feetNumb} onChange={(v) => sym('feetNumb', v)} />
-          <Scale id="hands" label="Numbness or tingling in my hands" value={d.symptoms.handsNumb} onChange={(v) => sym('handsNumb', v)} />
-          <Scale id="pain" label="Burning or pain in my feet" value={d.symptoms.feetPain} onChange={(v) => sym('feetPain', v)} />
-          <fieldset className="panel" style={{ margin: '12px 0' }}>
-            <legend style={{ fontWeight: 700, padding: '0 4px' }}>Any trouble with buttons, zips, or picking up small things?</legend>
-            <div className="choices"><Choice pressed={!d.buttons} onClick={() => set({ buttons: false })}>No</Choice><Choice pressed={d.buttons} onClick={() => set({ buttons: true })}>Yes</Choice></div>
-          </fieldset>
-          <fieldset className="panel" style={{ margin: '12px 0' }}>
-            <legend style={{ fontWeight: 700, padding: '0 4px' }}>Since your last check-in, have you…</legend>
-            <div className="choices">
-              <Choice pressed={d.falls === 'none'} onClick={() => set({ falls: 'none' })}>Not fallen or tripped</Choice>
-              <Choice pressed={d.falls === 'near'} onClick={() => set({ falls: 'near' })}>Tripped or caught myself</Choice>
-              <Choice pressed={d.falls === 'fall'} onClick={() => set({ falls: 'fall' })}>Fallen</Choice>
+          <div className="ci-intro">
+            <p className="mono ci-dot">Three questions · about 20 seconds</p>
+            <h1>How have your feet and hands <span>been this week?</span></h1>
+            <div className="ci-pills">
+              <label className="pill-field">Cycle<input id="ci-cycle" type="number" min="1" max="60" inputMode="numeric" value={d.cycle} onChange={(e) => set({ cycle: Math.max(1, parseInt(e.target.value || '1', 10)) })} /></label>
+              <label className="pill-field">Date<input id="ci-date" type="date" value={d.date} onChange={(e) => set({ date: e.target.value || today() })} /></label>
             </div>
-            {d.falls === 'fall' && <p className="notice red" style={{ marginTop: 10 }}>If you fell and were hurt, or your numbness came on suddenly, call your care team today rather than waiting for your next visit.</p>}
-          </fieldset>
-          <div className="actions"><button type="submit" className="btn primary block">Next: walking test <Icon name="arrowRight" size={18} /></button></div>
+          </div>
+
+          <div className="sym-grid">
+            <Scale id="feet" n="01" tag="Feet" label="Numbness or tingling in my feet" value={d.symptoms.feetNumb} onChange={(v) => sym('feetNumb', v)} />
+            <Scale id="hands" n="02" tag="Hands" label="Numbness or tingling in my hands" value={d.symptoms.handsNumb} onChange={(v) => sym('handsNumb', v)} />
+            <Scale id="pain" n="03" tag="Feet" label="Burning or pain in my feet" value={d.symptoms.feetPain} onChange={(v) => sym('feetPain', v)} />
+          </div>
+
+          <div className="sym-grid two">
+            <fieldset className="sym-card">
+              <legend className="sr-only">Any trouble with buttons, zips, or picking up small things?</legend>
+              <p className="mono sym-tag"><span>04</span>Hands</p>
+              <p className="sym-q" aria-hidden="true">Any trouble with buttons, zips, or picking up small things?</p>
+              <div className="tag-choices">
+                <button type="button" aria-pressed={!d.buttons} onClick={() => set({ buttons: false })}>No</button>
+                <button type="button" aria-pressed={d.buttons} onClick={() => set({ buttons: true })}>Yes</button>
+              </div>
+            </fieldset>
+            <fieldset className="sym-card">
+              <legend className="sr-only">Since your last check-in, have you…</legend>
+              <p className="mono sym-tag"><span>05</span>Since your last check-in</p>
+              <p className="sym-q" aria-hidden="true">Have you fallen or tripped?</p>
+              <div className="tag-choices">
+                <button type="button" aria-pressed={d.falls === 'none'} onClick={() => set({ falls: 'none' })}>Not fallen or tripped</button>
+                <button type="button" aria-pressed={d.falls === 'near'} onClick={() => set({ falls: 'near' })}>Tripped or caught myself</button>
+                <button type="button" aria-pressed={d.falls === 'fall'} onClick={() => set({ falls: 'fall' })}>Fallen</button>
+              </div>
+              {d.falls === 'fall' && <p className="notice red" style={{ marginTop: 12 }}>If you fell and were hurt, or your numbness came on suddenly, call your care team today rather than waiting for your next visit.</p>}
+            </fieldset>
+          </div>
+
+          <button type="submit" className="ci-next">
+            <span className="mono">Next · Step 2 of 5</span>
+            <b>Walking test <Icon name="arrowRight" size={22} /></b>
+            <small>30 seconds with your phone in your pocket.</small>
+          </button>
         </form>
       )}
 
