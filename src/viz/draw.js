@@ -5,9 +5,7 @@
  *   Twin.sparkline(svg, values, opts)    small trend chart across cycles
  */
 const NS = 'http://www.w3.org/2000/svg';
-// Colors come from CSS variables on the chart's own element, so a chart inside a dark band picks up that band's colors.
-let scopeEl = null;
-const css = (name) => getComputedStyle(scopeEl || document.documentElement).getPropertyValue(name).trim();
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 function el(tag, attrs = {}, parent) {
   const e = document.createElementNS(NS, tag);
   for (const k in attrs) e.setAttribute(k, attrs[k]);
@@ -26,7 +24,6 @@ function glowColor(score) {
 }
 
 function renderBody(svg, symptoms = {}) {
-  scopeEl = svg;
   svg.innerHTML = '';
   const fill = css('--body'), stroke = css('--body-line');
   const defs = el('defs', {}, svg);
@@ -140,7 +137,6 @@ class Walker {
 
 /* ---------------- Sparkline ---------------- */
 function sparkline(svg, values, opts = {}) {
-  scopeEl = svg;
   svg.innerHTML = '';
   const W = 220, H = 64, P = 8;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
@@ -168,7 +164,6 @@ function txt(parent, x, y, s, attrs = {}) {
 /* ---------------- Nerve twin band chart ---------------- */
 // steps: output of NerveTwin.run; observations shown as faint dots behind the estimate.
 function bandChart(svg, steps, selected) {
-  scopeEl = svg;
   svg.innerHTML = '';
   const W = 600, H = 250, L = 38, R = 14, T = 26, B = 34;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
@@ -203,7 +198,6 @@ function bandChart(svg, steps, selected) {
 
 /* ---------------- Tumor vs nerve timeline ---------------- */
 function dualTimeline(svg, tumor, nerve) {
-  scopeEl = svg;
   svg.innerHTML = '';
   const W = 600, H = 320, L = 40, R = 14;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
@@ -255,7 +249,6 @@ function dualTimeline(svg, tumor, nerve) {
 // data: Scans.lesionTracks(scans). Each measured spot is one line across scan dates.
 // opts: { selected: date index, focus: track index | null }. Columns carry data-k for clicks.
 function spotChart(svg, data, opts = {}) {
-  scopeEl = svg;
   svg.innerHTML = '';
   const W = Math.max(300, Math.round(svg.clientWidth || svg.parentNode?.clientWidth || 600));
   const wide = W >= 640;
