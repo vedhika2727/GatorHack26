@@ -395,11 +395,34 @@ dialog.sheet h2 { margin-top: 0; }
   @keyframes sheet-in { from { transform: translateY(60px); opacity: 0; } }
 }
 
-/* Report */
-.report h3 { font-size: 1.05rem; margin-top: 1.2rem; }
-.report .pre { white-space: pre-line; }
-.report table { border-collapse: collapse; width: 100%; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
-.report th, .report td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; white-space: nowrap; }
+/* Report: a one-page visit sheet */
+.report { padding: 28px; }
+.rep-head h2 { margin: 0 0 4px; font-size: 1.6rem; }
+.rep-head p { margin: 0; }
+.rep-sec { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 18px; }
+.rep-sec h3 { font-size: 1.1rem; margin: 0 0 10px; }
+.short { margin: 0; padding-left: 1.1em; display: grid; gap: 8px; font-size: 1.05rem; }
+.short li::marker { color: var(--rose); }
+.changes-table { border-collapse: collapse; width: 100%; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.changes-table th, .changes-table td { text-align: left; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; font-weight: 400; }
+.changes-table thead th { font-size: 0.82rem; color: var(--ink-2); font-weight: 600; white-space: nowrap; }
+.changes-table tbody th { font-weight: 500; }
+.changes-table tr.grp th { font-weight: 700; padding-top: 16px; border-bottom: 1px solid var(--ink); }
+.changes-table td.st { font-weight: 700; font-size: 0.88rem; white-space: nowrap; }
+.changes-table tr.notable td.st { color: var(--red); }
+.changes-table tr.watch td.st { color: var(--rose); }
+.changes-table tr.notable th, .changes-table tr.watch th { font-weight: 600; }
+.changes-table.all { font-size: 0.85rem; }
+.changes-table.all td { white-space: nowrap; }
+.changes-table .u { color: var(--ink-2); font-size: 0.8rem; }
+.reads { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+.reads li { padding-left: 12px; border-left: 3px solid var(--rose-wash); }
+.checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.checks li { position: relative; padding-left: 30px; }
+.checks li::before { content: ""; position: absolute; left: 0; top: 3px; width: 16px; height: 16px; border: 2px solid var(--ink); border-radius: 4px; }
+.rep-sec.tech { color: var(--ink-2); }
+.rep-sec.tech h3 { color: var(--ink); }
+@media print { .report { padding: 0; } .rep-sec { break-inside: avoid; } }
 
 /* Modal */
 dialog { border: 0; border-radius: var(--r-lg); padding: 22px; max-width: min(92vw, 520px); background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
