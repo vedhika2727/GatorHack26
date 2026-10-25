@@ -83,18 +83,46 @@ const fmtChange = (a, b) => {
 };
 
 
-/* How far each measure moved from cycle 1, on one scale: positive = worse, negative = better, capped at 100. */
-const DIR = { cadence: -1, variability: 1, regularity: -1, 'tap-right': -1, 'tap-left': -1, sway: 1, romberg: 1 };
-function shift(id, a, v) {
-  if (a == null || v == null) return null;
-  if (id === 'buttons') return v === a ? 0 : v === 'Yes' ? 50 : -50;
-  if (id === 'falls') { const n = { None: 0, 'Near-fall': 50, Fall: 100 }; return (n[v] ?? 0) - (n[a] ?? 0); }
-  if (id === 'hesitations') return (v - a) * 25;
-  if (['feetNumb', 'handsNumb', 'feetPain'].includes(id)) return (v - a) * 10;
-  if (!a) return 0;
-  return ((v - a) / a) * 100 * (DIR[id] || 1);
+/*
+ * Every measure on one scale: 1.0 = the "large change" threshold for that measure (the same
+ * thresholds src/core/trends.js uses for its labels), so a bar that reaches the Large mark means
+ * the same thing in every row. Positive = worse than cycle 1, negative = better.
+ */
+const SEV = {
+  cadence: { kind: 'pct', dir: -1, some: 8, large: 15 },
+  variability: { kind: 'abs', dir: 1, some: 1.5, large: 3 },
+  regularity: { kind: 'abs', dir: -1, some: 0.1, large: 0.2 },
+  hesitations: { kind: 'abs', dir: 1, some: 1, large: 2 },
+  sway: { kind: 'pct', dir: 1, some: 50, large: 100 },
+  romberg: { kind: 'pct', dir: 1, some: 30, large: 60 },
+  'tap-right': { kind: 'pct', dir: -1, some: 15, large: 30 },
+  'tap-left': { kind: 'pct', dir: -1, some: 15, large: 30 },
+  feetNumb: { kind: 'abs', dir: 1, some: 2, large: 4 },
+  handsNumb: { kind: 'abs', dir: 1, some: 2, large: 4 },
+  feetPain: { kind: 'abs', dir: 1, some: 2, large: 4 },
+};
+const MAX = 1.5; // the track shows up to 1.5x the large threshold
+const Z = 22; // where 'same as cycle 1' sits on the track, in %; most room goes to the worse side
+const pos = (n) => (n >= 0 ? Z + (n / MAX) * (100 - Z) : Z + (n / MAX) * Z);
+const SOME_AT = 0.5; // where the "some change" mark sits for the text-valued rows
+function severity(id, a, v) {
+  if (a == null || v == null) return 0;
+  if (id === 'buttons') return v === a ? 0 : v === 'Yes' ? SOME_AT : -SOME_AT;
+  if (id === 'falls') { const n = { None: 0, 'Near-fall': SOME_AT, Fall: 1 }; return (n[v] ?? 0) - (n[a] ?? 0); }
+  const t = SEV[id]; if (!t) return 0;
+  const raw = t.kind === 'pct' ? (a ? ((v - a) / a) * 100 : 0) : v - a;
+  return (raw * t.dir) / t.large;
 }
-const cap = (x) => Math.max(-100, Math.min(100, x));
+function deltaText(r, a, v) {
+  if (typeof a !== 'number' || typeof v !== 'number') return v === a ? 'no change' : `was ${a}`;
+  const d = +(v - a).toFixed(2);
+  if (!d) return 'no change';
+  const sign = d > 0 ? '+' : '−', mag = Math.abs(d);
+  if (r.unit === '/10') return `${sign}${mag} points`;
+  if (r.unit === '%') return `${sign}${mag} points`;
+  if (r.unit === '×') return `${sign}${mag}×`;
+  return `${sign}${mag}${r.unit ? ` ${r.unit}` : ''}`;
+}
 
 function Detail({ r, checkins, at }) {
   const vals = checkins.map(r.get);
@@ -148,21 +176,25 @@ function ChangeChart({ checkins }) {
           <button type="button" className="btn small no-print" onClick={play} disabled={playing}><Icon name="play" size={14} /> {playing ? 'Playing…' : 'Play'}</button>
         </div>
       </div>
-      <div className="cc-axis" aria-hidden="true"><span>Better</span><span>Cycle {first.cycle}</span><span>Worse</span></div>
+      <div className="cc-axis" aria-hidden="true"><span className="ax-track"><span style={{ left: 0 }}>Better</span><span style={{ left: `${Z}%` }}>Same</span><span style={{ left: `${pos(1)}%` }}>Large change</span><span className="far">Worse</span></span><span className="ax-val">C{cur.cycle} value</span></div>
       {GROUPS.map((g) => (
         <div key={g.name} className="cc-group">
           <h3>{g.name}</h3>
           {g.rows.map((r) => {
-            const v = r.get(cur), a = r.get(first), d = cap(shift(r.id, a, v) ?? 0);
+            const v = r.get(cur), a = r.get(first), n = Math.max(-MAX, Math.min(MAX, severity(r.id, a, v)));
+            const some = (SEV[r.id] ? SEV[r.id].some / SEV[r.id].large : SOME_AT);
             const isOpen = open === r.id, level = lvl[r.id];
             return (
               <div key={r.id} className={`cc-item${isOpen ? ' open' : ''}`}>
                 <button type="button" className={`cc-row ${level || ''}`} aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : r.id)}>
                   <span className="cc-name">{r.label}</span>
                   <span className="cc-track" aria-hidden="true">
-                    <span className={`cc-bar ${d > 0 ? 'worse' : 'better'}`} style={{ left: d >= 0 ? '50%' : `${50 + d / 2}%`, width: `${Math.abs(d) / 2}%` }} />
+                    <i className="mk zero" style={{ left: `${Z}%` }} />
+                    <i className="mk some" style={{ left: `${pos(some)}%` }} />
+                    <i className="mk large" style={{ left: `${pos(1)}%` }} />
+                    <span className={`cc-bar ${n > 0 ? 'worse' : 'better'}`} style={{ left: `${Math.min(Z, pos(n))}%`, width: `${Math.abs(pos(n) - Z)}%` }} />
                   </span>
-                  <span className="cc-val">{show(v, r.unit)}</span>
+                  <span className="cc-val"><b>{show(v, r.unit)}</b><small>{deltaText(r, a, v)}</small></span>
                 </button>
                 {isOpen && <Detail r={r} checkins={checkins} at={at} />}
               </div>
@@ -170,7 +202,7 @@ function ChangeChart({ checkins }) {
           })}
         </div>
       ))}
-      <p className="fine cc-note">Bars show how far each measure has moved from cycle {first.cycle}. Pink means a change big enough to mention. Tap a row to see every cycle.</p>
+      <p className="fine cc-note">Each bar shows how far a measure has moved from cycle {first.cycle}, scaled so the tall tick means a large change for that measure and the short tick means some change. Tap a row to see every cycle.</p>
     </section>
   );
 }
